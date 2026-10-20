@@ -1,7 +1,7 @@
 # Task: Adopt project engineering standard and publish test0.02
 
 - ID: 20261020-02-project-engineering-standard
-- Status: verifying
+- Status: completed
 - Workflow mode: execute
 - Plan revision: 2
 - Approval status: approved
@@ -43,5 +43,5 @@ The new supplied standards supersede the earlier no-additional-standards choice 
 - User challenged that mapping. Static review of providers.py and store.py supported separating domain rules, application orchestration and technical adapters.
 - Revision 2 follows the user's explicit selection of the displayed recommendation and requirement that future development comply. User then explicitly authorized Git upload/version iteration.
 - Keep current technology/launch roots and preserve credential identity. Version-only historical edits have a narrow documented exception from whole-function comment/size remediation; no logic changes are covered by that exception.
-- Origin is https://github.com/20050404yxc-collab/KnowledgeBase.git. Fetch confirmed local main and origin/main aligned before changes. Normal commit and a new annotated test0.02 tag will be pushed without force.
+- Origin is https://github.com/20050404yxc-collab/KnowledgeBase.git. Fetch confirmed local main and origin/main aligned before changes. Release commit 82c412bcd58f1828834550a79edb0b93e77cd143 and its new annotated test0.02 tag were pushed atomically without force; remote main and peeled tag matched that release commit. A subsequent documentation-only commit records this verified publication, leaving the release tag unchanged.
 - Full architecture migration remains future work; this task does not fabricate its authorization or completion.

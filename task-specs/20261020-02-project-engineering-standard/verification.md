@@ -14,7 +14,7 @@
 | AC-04 | .venv/Scripts/python.exe -m ruff check services/knowledge-agent tests | passed | All checks passed |
 | AC-04 | npm.cmd run test:ui | failed: environment collision | Existing user Electron instance uses the same profile/single-instance lock; test timed out discovering a debug target. User instance was preserved |
 | AC-04 | node artifacts/test0.02/check-desktop-isolated.mjs | passed | Same desktop test body and production bundle, launched through an ignored wrapper setting a separate Electron profile inside temporary KB_DATA_DIR; 11 checks passed, including edit/search/attachments/restart and normal/forced worker shutdown. Report: artifacts/test0.02/desktop-check.json |
-| AC-04 | Commit/tag/push and remote ref comparison | not run | Required after checks |
+| AC-04 | git commit; git tag -a test0.02; git push --atomic origin main refs/tags/test0.02; git ls-remote | passed | Release commit 82c412bcd58f1828834550a79edb0b93e77cd143 uploaded; remote main and peeled test0.02 both matched. Annotated tag object: 4dfe81a32ee0335188a9057d966bf721251b3b9f. This verified completion record is a later documentation-only commit; the release tag remains on the release commit |
 
 ## Documentation Review
 
@@ -22,4 +22,4 @@ Chinese page states effective revision-2 approval, purpose, scope, how, effect, 
 
 ## Unverified Items
 
-Full architecture conformance, real-provider behavior, performance, migrations and packaging remain unverified. Standard desktop command requires the regular app to be closed or profile isolation; the ignored wrapper supplied isolation without changing tracked product/test logic. Generated validation artifacts are ignored and not published. Publication remains pending above. User adoption/publish authorization is explicit; full architecture migration has not been performed.
+Full architecture conformance, real-provider behavior, performance, migrations and packaging remain unverified. Standard desktop command requires the regular app to be closed or profile isolation; the ignored wrapper supplied isolation without changing tracked product/test logic. Generated validation artifacts are ignored and not published. User adoption/publish authorization is explicit; full architecture migration has not been performed.
