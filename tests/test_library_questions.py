@@ -120,8 +120,16 @@ def test_restructure_same_title_collision(tmp_path):
         draft("b", title="队列", theme=encode_path("编程语言", "C++"), content="通用队列概念")
     )
     try:
+        value = outline(service)
+        assert value["groups"] == 1
+        group = service.library.draft["duplicates"][0]
+        value = call(
+            service,
+            "library.restructure.plan",
+            {**value, "review": {"action": "decision", "id": group["id"], "decision": "keep"}},
+        )
         with pytest.raises(ValueError, match="同名知识"):
-            outline(service)
+            call(service, "library.restructure.prepare", value)
         assert len(service.store.library_inventory()) == 2
         value = service.library.summary()
         call(service, "library.restructure.discard", value)

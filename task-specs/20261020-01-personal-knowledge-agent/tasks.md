@@ -24,22 +24,23 @@ Current handoff: R10 navigation requirements are included in R11 implementation.
 
 - [x] R9.1 Reuse the existing task/pages; inspect current summarization, confirmation, storage, schema and canonical-read risks. Diagnose validation boundary without pretending to know the actual bad response.
 - [x] R9.2 Record user choices: duplicates require per-group confirmation; extract original content first and label optional model explanations separately. Write the complete reviewable plan, UI and sequence.
-- [ ] R9.3 Obtain review/execution authorization for revision 9; do not infer it from strategy answers or R8 approval.
-- [ ] R9.4 Implement two-worker claims/ledger, bounded calls, full coverage, precise validation and partial-failure resume; R9-01/02.
-- [ ] R9.5 Expand parent request-set cancellation, paged state synchronization and lifecycle tests; R9-02/07.
-- [ ] R9.6 Implement reconciled directory, cross-worker candidates, evidence/group validation, correction and source maps; R9-03.
-- [ ] R9.7 Implement source-based content extraction, unique/conflict retention, independent model explanations and group acceptance gates; R9-04/05.
-- [ ] R9.8 Implement isolated-tested recoverable schema 3-to-4 migration, retained originals/provenance, canonical read/search/reuse/frequency handling and group deletion guard; R9-06.
-- [ ] R9.9 Implement atomic checked apply/indices/receipt with recovery-point and fault tests; R9-05/06.
-- [ ] R9.10 Implement worker-record/duplicate/structure/source/diff UI and additive validated contracts, with explicit group/explanation selections; R9-03/05/07.
-- [ ] R9.11 Run meaningful isolated regression/fault tests, `npm run check`, `npm run test:ui`, wide/narrow visual QA and reconcile human docs/evidence; R9-01..07.
+- [x] R9.3 User explicitly authorized sequential execution and per-task commits; navigation committed as 4a7447f before R9 implementation.
+- [x] R9.4 Implement two-worker claims/ledger, bounded calls, full coverage, precise validation and partial-failure resume; R9-01/02.
+- [x] R9.5 Expand parent request-set cancellation, paged state synchronization and lifecycle tests; R9-02/07.
+- [x] R9.6 Implement reconciled directory, cross-worker candidates, evidence/group validation, correction and source maps; R9-03.
+- [x] R9.7 Implement source-based content extraction, unique/conflict retention, independent model explanations and group acceptance gates; R9-04/05.
+- [x] R9.8 Implement isolated-tested recoverable schema 3-to-4 migration, retained originals/provenance, canonical read/search/reuse/frequency handling and group deletion guard; R9-06.
+- [x] R9.9 Implement atomic checked apply/indices/receipt with recovery-point and fault tests; R9-05/06.
+- [x] R9.10 Implement worker-record/duplicate/structure/source/diff UI and additive validated contracts, with explicit group/explanation selections; R9-03/05/07.
+- [x] R9.11 Run meaningful isolated regression/fault tests, `npm run check`, `npm run test:ui`, wide/narrow visual QA and reconcile human docs/evidence; R9-01..07.
 
 ### Revision 9 handoff
 
-- Current workflow: confirmation; plan 9 ready for user review, approved implementation baseline 8.
-- Actual changes: planning documents only. No product code, schema migration, paid call or production data access.
-- Next: review Chinese product section 3.10 and authorize this revision before implementing R9.4 onward.
-- Unverified: all new concurrency, output quality, merge/provenance/migration and UI behavior; no performance/cost guarantees. Records are session-local.
+- Execution authorized by the user's explicit three-task sequence; 4a7447f committed navigation first.
+- Two analysis children are owned by the Python draft and joined under the current desktop advance request. Parent cancellation propagates; no independent frontend generation jobs are introduced.
+- Conservative extraction preserves complete original chunks and all distinct qualifications; only identical cross-source chunks are coalesced. Model explanations are separate optional suggestions with no inherited citations. Semantic rewriting and exhaustive duplicate detection are not claimed.
+- Backend, host and extended desktop checks passed; actual evidence and limitations are recorded in verification.md. Settings changes remain preserved in the main checkout and are excluded from this commit.
+- Next: finish acceptance, commit R9, then continue the existing settings work.
 
 ## Revision 8 planning and implementation
 

@@ -71,16 +71,22 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 `knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径长度 0/1/2 分别返回大类、小类、知识点，最多 50 节点，结果为 `{nodes,total,revision,next_cursor}`。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定当前层结果摘要，目录变化拒绝旧游标。叶子只有 ID、标题与分区，详情仍走 `knowledge.get`；展开不增加使用日。
 
-| 操作                          | 参数和状态                                                                                                               |
-| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance`；不带 advance 初始化或明确重规划，advance 每次处理一个摘要／分类阶段 |
-| `library.restructure.prepare` | `{draft_id,revision}`；明确确认目录后每次准备 1 条内容建议，只有 outline/preparing 可推进                                |
-| `library.restructure.preview` | `{draft_id,revision,kind,page?}`；outline 每页 30 项，suggestions 每页 1 项，page 从 0 起                                |
-| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交，空数组仅改目录；重复提交返回原收据                             |
-| `library.restructure.discard` | `{draft_id,revision}`；丢弃会话草案，晚到模型结果不能恢复它                                                              |
+| 操作                          | 参数和状态                                                                                                                                                                  |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance,retry,review`；初始化／重规划；advance 一轮最多两分析块或一个分类／核验阶段；paused 必须显式 retry                       |
+| `library.restructure.prepare` | `{draft_id,revision,retry?}`；明确确认当前结构和逐组决定后，逐个原文块准备独立模型补充                                                                                      |
+| `library.restructure.preview` | `{draft_id,revision,kind,page?,evidence_page?}`；outline 每页 30，suggestions／records／sources／duplicates 每页 1；summary 只同步状态；重复组证据另按 evidence_page 每页 1 |
+| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交；每个合并保留点 ID 必须选中其完整提取稿，`:explanation` 是独立模型补充选择；无合并时空数组仅改目录                 |
+| `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                     |
 
-状态顺序为 `planning → outline → preparing → ready → applied`。后台最多一份草案，重规划产生新的草案与修订标识；旧确认失效。每条正文和补充按 7000 字符分块，累计摘要最多 1600 字符；分类每批 8 条，先前路径成为后批词表，分类输入超过 26000 字符受控停止，不自动重试。全量清单及正文快照存于内存，大库性能未实测。取消阶段可在当前会话显式继续，退出后草案不恢复。
+`review` 为 `point`（id/title/category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、category、subcategory 和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组、未决定组及同路径同名阻止结构准备；related/conflict 不可合并。
 
-仅未编辑的生成正文且长度不超过 8000 字符可建议替换，其他仅建议追加；单条建议最多 20000 字符。差异默认不选择，已有手工正文、补充和引用保持。全库集合／正文／补充／分类摘要不一致时拒绝提交；使用日变化不构成正文冲突。提交创建唯一 SQLite 恢复点，然后事务内再次检查、写入路径及所选更新、重建搜索索引；异常整体回滚，模型等待不持有写事务。恢复方法见 [使用说明](../README.md#重构知识库)。本轮使用 schema 3，无迁移、协议版本或数据路径更改。
+状态为 `planning → outline → preparing → ready → applied`，分析或准备失败进入 `paused`，保留成功片段。summary 区分来源 total/covered、target_count、groups/undecided、workers 和错误。所有来源按 created_at/id 固定排序，两路独占领取；每块最多 7000 字符、累计摘要最多 1600 字符，分类每批最多 8 条和 26000 字符。记录包含草案／修订／source version／agent／generation／locator／call_id／attempt_ids，分页可重新同步，取消父请求同时取消并等待两路。
+
+原文提取稿从完整正文、补充及历史来源确定性拼接，按来源及定位标注，仅移除跨来源完全相同片段；不让摘要重建正文或由模型删减限定条件。模型补充逐原文块独立生成，无借用引用，默认不选。未编辑生成正文且原长度不超过 8000 可选择替换，其他仅追加，原版本先保存；单条完整建议超过 20000 明确未完成、不截尾。
+
+schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来源行，新增 canonical 映射、原始版本与整理 provenance；高于 4 拒绝。全库正文／补充／引用／手工分区／分类／来源映射版本变化使 apply 失效，使用日不影响快照。最终提交前唯一恢复点，事务检查和映射／分类／内容／索引原子写入，收据含 source_count/target_count/groups，重复成功提交幂等。版本号、数据目录、凭据服务名不变；仅隔离库验证迁移。
+
+`knowledge.get` 默认沿旧 ID 解析保留点，并返回可选 original_sources（source_id/version/title/chunks）。以 `{id,original:true,source_id,version,page?}` 逐个 7000 字符片段只读打开原版本，返回 read_only/original_locator/original_page/original_total，不记录使用日。常规 get／编辑／分区／补充均作用于 canonical；树、列表、搜索和复用排除独立隐藏来源，但原内容可检索为保留点。使用日按组内自然日集合计算。合并组普通删除拒绝；未合并知识正常删除其关联快照。恢复方法见 [使用说明](../README.md#重构知识库)。
 
 普通 `question`／推荐拓展新增收录要求模型返回合法 `category/subcategory`，与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。

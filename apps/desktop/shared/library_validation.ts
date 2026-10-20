@@ -28,6 +28,48 @@ function counts(value: Record<string, unknown>, keys: string[]) {
 function rows(value: unknown, check: (item: Record<string, unknown>) => boolean) {
   return Array.isArray(value) && value.every((item) => record(item) && check(item))
 }
+// 新字段可缺失以兼容旧样例，出现后必须执行完整校验。
+function optional(value: unknown, check: (value: unknown) => boolean) {
+  return value === undefined || check(value)
+}
+// 文本集合不接受混合类型。
+function stringList(value: unknown) {
+  return Array.isArray(value) && value.every((item) => typeof item === 'string')
+}
+// 引文必须携带来源标识、定位和逐字摘录。
+function evidence(value: Record<string, unknown>) {
+  return (
+    strings(value, ['kind', 'reason', 'left', 'right']) &&
+    ['overlap', 'unique', 'conflict'].every((key) =>
+      rows(value[key], (quote) => strings(quote, ['source_id', 'locator', 'quote']))
+    )
+  )
+}
+// 重复决定必须来自有限集合，不能被未知字符串伪装为已确认。
+function duplicate(value: Record<string, unknown>) {
+  return (
+    strings(value, [
+      'id',
+      'kind',
+      'decision',
+      'reason',
+      'target_id',
+      'title',
+      'category',
+      'subcategory'
+    ]) &&
+    ['pending', 'equivalent', 'partial-overlap', 'related', 'conflict'].includes(
+      String(value.kind)
+    ) &&
+    ['undecided', 'keep', 'merge'].includes(String(value.decision)) &&
+    stringList(value.sources) &&
+    typeof value.bucket_decided === 'boolean' &&
+    (value.manual_bucket === null ||
+      ['常用', '在学', '归档'].includes(String(value.manual_bucket))) &&
+    counts(value, ['checked', 'evidence_total', 'evidence_page']) &&
+    rows(value.evidence, evidence)
+  )
+}
 // 树节点只能含摘要，正文通过已有详情入口读取。
 export function isLibraryTree(value: unknown): value is LibraryTree {
   return (
@@ -45,8 +87,18 @@ export function isRestructureSummary(value: unknown): value is RestructureSummar
   return (
     record(value) &&
     strings(value, ['draft_id', 'revision', 'status']) &&
-    ['planning', 'outline', 'preparing', 'ready', 'applied'].includes(String(value.status)) &&
-    counts(value, ['total', 'covered', 'classified', 'prepared', 'suggestions'])
+    ['planning', 'outline', 'preparing', 'ready', 'applied', 'paused'].includes(
+      String(value.status)
+    ) &&
+    counts(value, ['total', 'covered', 'classified', 'prepared', 'suggestions']) &&
+    optional(value.phase, (item) => typeof item === 'string') &&
+    optional(value.errors, stringList) &&
+    ['target_count', 'groups', 'undecided'].every(
+      (key) => value[key] === undefined || counts(value, [key])
+    ) &&
+    optional(value.workers, (item) =>
+      rows(item, (worker) => strings(worker, ['agent']) && counts(worker, ['covered']))
+    )
   )
 }
 // 差异文本只作安全文本展示，原路径必须是字符串集合。
@@ -65,8 +117,55 @@ export function isRestructurePreview(value: unknown): value is RestructurePrevie
       value.suggestions,
       (item) =>
         strings(item, ['id', 'title', 'mode', 'original', 'content', 'reason', 'diff']) &&
-        ['replace', 'append'].includes(String(item.mode))
-    )
+        ['replace', 'append'].includes(String(item.mode)) &&
+        optional(item.target_id, (part) => typeof part === 'string') &&
+        optional(
+          item.kind,
+          (part) => part === 'original-extraction' || part === 'model-explanation'
+        ) &&
+        optional(item.provenance, (part) =>
+          rows(
+            part,
+            (source) =>
+              strings(source, ['source_id', 'version', 'locator']) && counts(source, ['section'])
+          )
+        )
+    ) &&
+    optional(value.kind, (part) =>
+      ['outline', 'suggestions', 'records', 'duplicates', 'sources', 'summary'].includes(
+        String(part)
+      )
+    ) &&
+    optional(value.summary, isRestructureSummary) &&
+    optional(value.records, (part) =>
+      rows(
+        part,
+        (item) =>
+          strings(item, [
+            'draft_id',
+            'revision',
+            'source_id',
+            'title',
+            'version',
+            'agent',
+            'locator',
+            'status',
+            'summary',
+            'error',
+            'call_id'
+          ]) &&
+          counts(item, ['generation']) &&
+          stringList(item.attempt_ids) &&
+          stringList(item.candidates) &&
+          stringList(item.path)
+      )
+    ) &&
+    optional(value.sources, (part) =>
+      rows(part, (item) =>
+        strings(item, ['source_id', 'title', 'version', 'target_id', 'locator', 'content'])
+      )
+    ) &&
+    optional(value.duplicates, (part) => rows(part, duplicate))
   )
 }
 // 应用收据只确认实际已提交结果。
@@ -75,6 +174,9 @@ export function isRestructureReceipt(value: unknown): value is RestructureReceip
     record(value) &&
     typeof value.applied === 'boolean' &&
     counts(value, ['count']) &&
-    strings(value, ['backup'])
+    strings(value, ['backup']) &&
+    ['source_count', 'target_count', 'groups'].every(
+      (key) => value[key] === undefined || counts(value, [key])
+    )
   )
 }

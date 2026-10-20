@@ -5,15 +5,8 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { checkMergeUi } from './check_merge_ui.mjs'
 import { verifyPlanetPages } from './check_planet_ui.mjs'
-
-// 读取错误提示中的请求编号，编号缺失时立即让回归失败。
-async function readErrorRequestId(ui) {
-  const message = await ui.evaluate(`document.querySelector('.alert.error').innerText`)
-  const requestId = message.match(/日志请求 ID：([a-zA-Z0-9-]+)/)?.[1]
-  assert.ok(requestId)
-  return requestId
-}
 
 // 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
 async function assertSummaryFailure(logDir, requestId) {
@@ -42,25 +35,23 @@ async function checkSummaryFailure({ ui, click, waitFor, fixture, logDir, report
   await waitFor(
     () =>
       ui.evaluate(
-        `document.querySelector('.alert.error')?.innerText.includes('知识点知识要点无效')`
+        `document.querySelector('[aria-label="重构覆盖与来源核对"] [role="alert"]')?.innerText.includes('知识要点无效')`
       ),
-    'invalid model summary produces visible red error'
+    'failed summary pauses with source context'
   )
-  const requestId = await readErrorRequestId(ui)
-  await waitFor(async () => {
-    const text = await readFile(join(logDir, 'desktop.log'), 'utf8')
-    return text
-      .trim()
-      .split('\n')
-      .map(JSON.parse)
-      .some((row) => row.kind === 'feedback_error' && row.request_id === requestId)
-  }, 'red error diagnostic persisted')
-  await assertSummaryFailure(logDir, requestId)
+  const rows = (await readFile(join(logDir, 'worker.log'), 'utf8'))
+    .trim()
+    .split('\n')
+    .map(JSON.parse)
+  const failure = rows.findLast(
+    (row) => row.event === 'step.failed' && row.step === 'library.validate_summary'
+  )
+  await assertSummaryFailure(logDir, failure.request_id)
   await screenshot('desktop-summary-error.png')
   await click('取消并丢弃草案')
   fixture.state.reply = null
   report.checks.push(
-    'red model-summary error correlates visible request id, feedback event and safe validation rule'
+    'invalid model summary pauses both workers with safe validation rule and source context'
   )
 }
 
@@ -76,6 +67,9 @@ function reply(body) {
   const input = JSON.parse(body.input)
   if ('chunk' in input) {
     return { summary: input.title + ' 的概念及限制条件' }
+  }
+  if ('left' in input && 'right' in input) {
+    return { kind: 'related', reason: '不同来源保持独立', overlap: [], unique: [], conflict: [] }
   }
   if ('items' in input) {
     return {
@@ -98,12 +92,16 @@ function reply(body) {
 async function runRestructureFlow(context, manual, original, count) {
   const { ui, click, waitFor, fixture, finish, screenshot } = context
   await click('重构知识库')
-  await waitFor(async () => fixture.state.posts.length === count + 1, 'first overview stage')
+  await waitFor(async () => fixture.state.posts.length >= count + 1, 'first overview stage')
   await go(ui, '资料库')
   assert.equal(await ui.evaluate(`!!document.querySelector('.session-task')`), true)
   await screenshot('desktop-background-task.png')
   fixture.state.reply = reply
-  finish(fixture, reply(fixture.state.posts.at(-1)))
+  for (const entry of [...fixture.state.pending]) {
+    if (!entry.response.destroyed && !entry.response.writableEnded) {
+      finish(fixture, reply(entry.body))
+    }
+  }
   await waitFor(
     () => ui.evaluate(`!document.querySelector('.session-task')`),
     'all overview and directory stages complete hidden',
@@ -124,6 +122,7 @@ async function runRestructureFlow(context, manual, original, count) {
     false
   )
   await screenshot('desktop-restructure-outline.png')
+  await decideExistingGroups(context)
   await click('确认目录，准备内容调整')
   await waitFor(
     () =>
@@ -177,6 +176,7 @@ export async function checkLibraryUi(context) {
   const original = await ui.evaluate(`window.knowledgeBase.request('knowledge.list')`)
   const count = fixture.state.posts.length
   await runRestructureFlow(context, manual, original, count)
+  await checkMergeUi(context, reply)
   await verifyCompleteTree(context)
   report.checks.push(
     'library overview continues across pages; final directory confirmation precedes content preparation; diffs default unselected; selected manual suggestion appended; other bodies preserved; all four complete trees'
@@ -215,7 +215,7 @@ async function selectManualSuggestion({ ui, click, waitFor }, id) {
     ) {
       assert.equal(
         await ui.evaluate(
-          `document.querySelector('.content-change label').innerText.includes('追加整理建议')`
+          `document.querySelector('.content-change label').innerText.includes('追加整理')`
         ),
         true
       )
@@ -273,5 +273,39 @@ async function verifyCompleteTree(context) {
     await screenshot('desktop-saved-tree-narrow.png')
   } finally {
     await ui.command('Emulation.clearDeviceMetricsOverride')
+  }
+}
+
+// 候选默认未决定，模拟用户明确逐组保留独立来源。
+async function decideExistingGroups({ ui, click, waitFor }) {
+  await click('核对重复组')
+  await waitFor(
+    () => ui.evaluate(`!!document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination')`),
+    'duplicate list'
+  )
+  const total = await ui.evaluate(
+    `Number(document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination span').innerText.match(/共 ([0-9]+)/)[1])`
+  )
+  for (let page = 0; page < total; page++) {
+    await click('保持独立，不合并')
+    await waitFor(
+      () =>
+        ui.evaluate(
+          `document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('keep')`
+        ),
+      'explicit keep decision'
+    )
+    if (page + 1 < total) {
+      await ui.evaluate(
+        `document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination button:last-child').click()`
+      )
+      await waitFor(
+        () =>
+          ui.evaluate(
+            `document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('undecided')`
+          ),
+        'next duplicate group'
+      )
+    }
   }
 }

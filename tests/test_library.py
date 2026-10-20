@@ -47,6 +47,16 @@ class LibraryClient:
                     ]
                 }
             )
+        if purpose == "library-duplicates":
+            return json.dumps(
+                {
+                    "kind": "related",
+                    "reason": "不同主题，不合并",
+                    "overlap": [],
+                    "unique": [],
+                    "conflict": [],
+                }
+            )
         return json.dumps({"content": "整理后的知识 " + value["id"], "reason": "整理结构"})
 
 
@@ -198,14 +208,15 @@ def test_apply_selected_manual_protection_backup_and_idempotency(library, tmp_pa
     assert store.get(edited["id"])["content"] == "用户修改的正文"
     assert store.get(untouched["id"])["content"] == "保持原样"
     updated = store.get(generated["id"])
-    assert updated["content"] == "整理后的知识 " + generated["id"]
+    assert generated["content"] in updated["content"]
+    assert "整理后的知识" not in updated["content"]
     assert updated["citations"][0]["text"] == "引用摘录"
     current = store.get(manual["id"])
     assert current["bucket"] == "归档" and len(current["supplements"]) == 1
     assert current["supplements"][0]["citations"][0]["text"] == "引用摘录"
     assert len(store.library_inventory()) == receipt["count"] == 4
     assert store.db.execute("SELECT count(*) FROM uses").fetchone()[0] == 1
-    assert store.search({"query": "整理后的知识"})["total"] == 3
+    assert all("整理后的知识" not in part["content"] for part in current["supplements"])
     restored_dir = tmp_path / "restored"
     restored_dir.mkdir()
     shutil.copyfile(store.root / receipt["backup"], restored_dir / "knowledge.sqlite3")
@@ -362,9 +373,9 @@ def test_discard_inflight_result(library):
             )
         )
         await asyncio.sleep(0)
-        library.library.discard(value)
+        await library.library.discard(value)
         library.client.gate.set()
-        with pytest.raises(ValueError, match="已取消"):
+        with pytest.raises((ValueError, asyncio.CancelledError)):
             await task
 
     asyncio.run(scenario())

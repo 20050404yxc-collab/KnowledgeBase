@@ -36,7 +36,7 @@ Focus paths and presentation pages SHALL be owned by their originating page. Exi
 #### Scenario: Large, changing and narrow library
 Given more than 200 leaves, many sibling categories, long labels and narrow windows, every filtered leaf SHALL remain accessible with readable non-overlapping labels and valid horizontal connectors. Rapid navigation, late responses, empty results, failures/retry, section changes and removed categories SHALL NOT select an unrelated node or leave an unreachable view. Existing knowledge detail and usage semantics SHALL remain unchanged.
 
-## Revision 9 requirements (planned, not implemented)
+## Revision 9 requirements (implemented; isolated acceptance passed)
 
 ### Requirement: R9-01 Opposite-direction workers and coverage ledger
 One restructuring task SHALL own two analysis workers with independent model context, claiming from opposite ends of a snapshot ordered by creation time and ID. Claims SHALL be exclusive. Validated per-item/chunk evidence, coverage, agent, version, candidates and status SHALL be recorded in session state. Total coverage SHALL count each source exactly once; meeting at the center SHALL NOT duplicate processing. Existing single top-level generation-task policy remains.

@@ -17,7 +17,6 @@ from knowledge_agent.domain.knowledge_rules import (
     bucket_for,
     identity,
     now,
-    relevance,
     validate_note,
 )
 from knowledge_agent.domain.models import (
@@ -30,15 +29,18 @@ from knowledge_agent.domain.models import (
 )
 
 from .library_store import LibraryStorage
+from .merge_schema import migrate_merges
+from .merge_store import MergeStorage
 from .model_catalog_schema import migrate_catalog
 from .topic_schema import migrate_topics, populate_index, register_tokens
 from .topic_store import TopicStorage
 
 
-class Store(TopicStorage, LibraryStorage):
+class Store(TopicStorage, LibraryStorage, MergeStorage):
     # 重构事务内部重建索引，不开启另一层提交。
     def populate_library_index(self) -> None:
         populate_index(self.db)
+        self.populate_original_index()
 
     # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
     @traced
@@ -63,7 +65,7 @@ class Store(TopicStorage, LibraryStorage):
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         record("storage.schema", schema_version=schema_version)
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 3:
+        if schema_version > 4:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
         # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
@@ -101,6 +103,7 @@ class Store(TopicStorage, LibraryStorage):
         self.db.create_function("kb_identity", 1, identity)
         migrate_catalog(self.db, self.root, schema_version)
         migrate_topics(self.db, self.root)
+        migrate_merges(self.db, self.root)
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
         # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
@@ -140,6 +143,7 @@ class Store(TopicStorage, LibraryStorage):
 
     # 按稳定标识读取当前记录，缺失状态由所属适配器明确处理。
     def get(self, item_id: str, active_use: bool = False) -> Knowledge:
+        item_id = self.canonical_id(item_id)
         row = self.db.execute("SELECT * FROM knowledge WHERE id=?", (item_id,)).fetchone()
         # 缺失条目可观察地失败；主动打开按本地自然日幂等计入使用记录。
         if not row:
@@ -151,7 +155,11 @@ class Store(TopicStorage, LibraryStorage):
                     "INSERT OR IGNORE INTO uses VALUES (?, ?, ?)",
                     (item_id, current.date().isoformat(), str(current.tzinfo)),
                 )
-        return self.knowledge(row)
+        result = self.knowledge(row)
+        result["canonical_id"] = item_id
+        result["bucket"] = self.merged_bucket(result)
+        result["original_sources"] = self.original_sources(item_id)
+        return result
 
     # 扫描最近条目并排序，摘要裁剪不改变持久化正文。
     @traced
@@ -160,11 +168,13 @@ class Store(TopicStorage, LibraryStorage):
     ) -> list[dict]:
         result = []
         # 先按关键词和分区过滤，再只裁剪列表摘要；持久化正文保持完整。
-        for row in self.db.execute("SELECT * FROM knowledge ORDER BY updated_at DESC"):
-            score = relevance(query, row["title"], row["content"]) if query.strip() else 1
+        for row in self.db.execute(
+            "SELECT * FROM knowledge WHERE id NOT IN (SELECT source_id FROM knowledge_merges) ORDER BY updated_at DESC"
+        ):
+            score = self.group_relevance(row["id"], query) if query.strip() else 1
             if score <= 0:
                 continue
-            item = self.knowledge(row)
+            item = self.get(row["id"])
             if bucket and item["bucket"] != bucket:
                 continue
             if brief:
@@ -190,6 +200,8 @@ class Store(TopicStorage, LibraryStorage):
         capture_key: str | None = None,
         classification_path: tuple[str, str] | None = None,
     ) -> dict:
+        if item_id:
+            item_id = self.canonical_id(item_id)
         title, content, concept = validate_note(title, content)
         # 主题知识使用独立身份键，编辑标题不退回全库标题唯一规则。
         if (
@@ -271,6 +283,7 @@ class Store(TopicStorage, LibraryStorage):
     def set_bucket(self, item_id: str, bucket: str | None) -> dict:
         if bucket is not None and bucket not in BUCKETS:
             raise ValueError("无效分区")
+        item_id = self.canonical_id(item_id)
         self.get(item_id)
         with self.db:
             self.db.execute("UPDATE knowledge SET manual_bucket=? WHERE id=?", (bucket, item_id))
@@ -279,6 +292,7 @@ class Store(TopicStorage, LibraryStorage):
     # 删除知识及外键关联记录，不删除资料或用户文件。
     @traced
     def delete_knowledge(self, item_id: str) -> dict:
+        self.require_deletable(item_id)
         with self.db:
             self.db.execute("DELETE FROM knowledge WHERE id=?", (item_id,))
         return {"deleted": True}

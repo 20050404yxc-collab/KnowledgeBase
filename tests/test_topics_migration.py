@@ -7,6 +7,7 @@ import sqlite3
 from contextlib import closing
 
 import pytest
+from knowledge_agent.infrastructure.merge_schema import migrate_merges
 from knowledge_agent.infrastructure.sqlite_store import Store
 from knowledge_agent.infrastructure.topic_schema import migrate_topics
 from legacy_database import downgrade_topics
@@ -100,6 +101,7 @@ def test_failure_rolls_back_and_retries(tmp_path):
         == "用户手工编辑不覆盖"
     )
     migrate_topics(store.db, tmp_path)
+    migrate_merges(store.db, tmp_path)
     assert store.get(item_id)["content"] == "用户手工编辑不覆盖"
     store.close()
 
@@ -107,9 +109,9 @@ def test_failure_rolls_back_and_retries(tmp_path):
 # 高版本数据库直接拒绝，不能为了启动清空、改版或覆盖正式内容。
 def test_newer_schema_rejected(tmp_path):
     store = Store(tmp_path)
-    store.db.execute("PRAGMA user_version=4")
+    store.db.execute("PRAGMA user_version=5")
     store.close()
     with pytest.raises(ValueError, match="版本高于"):
         Store(tmp_path)
     with closing(sqlite3.connect(tmp_path / "knowledge.sqlite3")) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 4
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 5

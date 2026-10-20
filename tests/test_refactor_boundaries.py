@@ -103,16 +103,40 @@ def test_malformed_frames_do_not_crash_worker(tmp_path):
         {"id": "bad", "operation": "bootstrap", "params": []},
     ]
     messages = invalid + [{"id": "ok", "operation": "bootstrap", "params": {}}]
-    result = subprocess.run(
-        [sys.executable, "-u", str(script), "--data-dir", str(tmp_path)],
-        input="".join(json.dumps(value) + "\n" for value in messages),
-        text=True,
-        encoding="utf-8",
-        capture_output=True,
-        timeout=15,
-        check=True,
-    )
-    frames = [json.loads(line) for line in result.stdout.splitlines()]
+
+    # EOF 会取消后台请求；必须先读到合法终态，不能靠启动速度碰运气。
+    async def exchange():
+        process = await asyncio.create_subprocess_exec(
+            sys.executable,
+            "-u",
+            str(script),
+            "--data-dir",
+            str(tmp_path),
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        frames = []
+        try:
+            process.stdin.write("".join(json.dumps(value) + "\n" for value in messages).encode())
+            await process.stdin.drain()
+            async with asyncio.timeout(15):
+                while True:
+                    line = await process.stdout.readline()
+                    assert line, "worker exited before valid result"
+                    frame = json.loads(line)
+                    frames.append(frame)
+                    if frame.get("id") == "ok" and frame["type"] in ("result", "error"):
+                        break
+            await asyncio.wait_for(process.communicate(), 15)
+            assert process.returncode == 0
+            return frames
+        finally:
+            if process.returncode is None:
+                process.kill()
+                await process.wait()
+
+    frames = asyncio.run(exchange())
     assert len([frame for frame in frames if frame.get("error") == "无效协议消息"]) == len(invalid)
     assert any(frame.get("id") == "ok" and frame["type"] == "result" for frame in frames)
     assert not list((tmp_path / "sessions").iterdir())

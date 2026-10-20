@@ -12,6 +12,7 @@ from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.domain.models import ProviderConfig
 
+from .generation_context import ATTEMPT_OBSERVER
 from .generation_prompts import instructions_for
 from .ports import AttemptRepository, CredentialVault, Emit, ModelTransport
 
@@ -35,6 +36,9 @@ class ProviderClient:
         if not secret:
             raise ValueError("Windows 凭据中未找到 API Key，请重新保存该配置")
         attempt_id = str(uuid.uuid4())
+        observer = ATTEMPT_OBSERVER.get()
+        if observer:
+            observer(attempt_id)
         record(
             "model.attempt",
             attempt_id=attempt_id,
@@ -51,6 +55,7 @@ class ProviderClient:
                 "project-materials",
                 "library-summary",
                 "library-outline",
+                "library-duplicates",
                 "library-content",
                 "connection-test",
             }

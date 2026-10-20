@@ -8,6 +8,7 @@ import hashlib
 import json
 
 from .knowledge_rules import identity
+from .restructure_evidence import source_version
 from .topic_rules import json_object, short_field
 
 
@@ -21,22 +22,7 @@ def display_path(item: dict) -> list[str]:
 
 # 版本仅跟踪会改变重构结果的数据，不将使用日和当前资料保留状态作为内容变化。
 def inventory_version(items: list[dict]) -> str:
-    data = [
-        [
-            item["id"],
-            item["title"],
-            item["content"],
-            item.get("theme"),
-            item["generated"],
-            item["edited"],
-            item["updated_at"],
-            [
-                {k: s[k] for k in ("id", "title", "content", "edited", "updated_at")}
-                for s in item.get("supplements", [])
-            ],
-        ]
-        for item in sorted(items, key=lambda value: value["id"])
-    ]
+    data = [source_version(item) for item in sorted(items, key=lambda value: value["id"])]
     return hashlib.sha256(json.dumps(data, ensure_ascii=False).encode()).hexdigest()
 
 

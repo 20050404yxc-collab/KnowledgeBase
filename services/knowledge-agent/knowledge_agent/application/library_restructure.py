@@ -1,36 +1,31 @@
 # 文件：library_restructure.py
 # 层：Python application
-# 作用：协调全库概览、目录确认、内容差异和最终原子提交。
-# 说明：草案限一个会话，由 service 关闭时释放；每阶段可取消并独立记账。
+# 作用：拥有双代理重构会话、结构确认及最终提交生命周期。
+# 说明：会话退出释放未确认快照，正式写入交给仓库原子完成。
 from __future__ import annotations
 
 import asyncio
-import difflib
-import json
 import uuid
 
-from knowledge_agent.diagnostics import record, step, traced
-from knowledge_agent.domain.library_rules import (
-    display_path,
-    inventory_version,
-    validate_assignments,
-    validate_collisions,
-    validate_suggestion,
-)
+from knowledge_agent.diagnostics import traced
+from knowledge_agent.domain.library_rules import inventory_version
 from knowledge_agent.domain.provider_rules import resolve_generation
-from knowledge_agent.domain.topic_rules import json_object, short_field
+from knowledge_agent.domain.topic_rules import short_field
 
+from .library_analysis import analysis_records, analysis_round
+from .library_planning import LibraryPlanning
+from .library_preparation import LibraryPreparation
 from .ports import Emit, Generator, Repository
 
 
-class LibraryRestructure:
-    # 草案仅归当前后台会话，关闭后不保留用户正文副本。
+class LibraryRestructure(LibraryPlanning, LibraryPreparation):
+    # 草案和子任务只归当前后台会话，不由界面生命周期释放。
     def __init__(self, store: Repository, client: Generator) -> None:
         self.store = store
         self.client = client
         self.draft: dict | None = None
 
-    # 有草案时须明确重规划／丢弃，不静默替换待核对内容。
+    # 已有草案只能明确重规划，不能替换仍在执行或未识别的草案。
     @traced
     def begin(self, params: dict) -> dict:
         previous = self.draft
@@ -54,205 +49,68 @@ class LibraryRestructure:
             "items": items,
             "config": resolve_generation(config, params),
             "summaries": {},
-            "item_index": 0,
-            "chunk_index": 0,
+            "records": analysis_records(items),
             "outline": [],
+            "duplicates": [],
             "suggestions": [],
             "prepared": 0,
             "receipt": None,
             "busy": False,
+            "errors": [],
+            "phase": "analysis",
+            "children": [],
+            "cancelled": False,
+            "source_map": {},
+            "merges": [],
+            "targets": [],
+            "approved": None,
+            "preparation": None,
             "feedback": short_field(
                 params.get("feedback") or "按知识要点细分，优先沿用合适分类", "调整意见", 2000
             ),
         }
-        record("library.draft_created", items=len(items))
         return self.summary()
 
-    # 任一模型阶段绑定同一草案，禁止重复并发推进或已丢弃结果回写。
+    # 每轮最多两块；失败保留当前轮成功结果并暂停，只有显式继续会重试。
     @traced
     async def advance(self, params: dict, emit: Emit, prepare: bool = False) -> dict:
         draft = self.require(params)
         if draft["busy"]:
             raise ValueError("该重构阶段仍在执行")
-        expected = "preparing" if prepare else "planning"
+        if draft["status"] == "paused":
+            if params.get("retry") is not True:
+                return self.summary()
+            draft.update(
+                errors=[], status="preparing" if draft["phase"] == "preparing" else "planning"
+            )
         if prepare and draft["status"] == "outline":
-            draft["status"] = "preparing"
-        if draft["status"] != expected:
+            self.approve_structure(draft)
+        if draft["status"] not in ("planning", "preparing"):
             return self.summary()
         draft["busy"] = True
-        record(
-            "library.advance",
-            status=expected,
-            item_index=draft["item_index"],
-            chunk_index=draft["chunk_index"],
-            prepared=draft["prepared"],
-        )
         try:
-            # 每次仅推进一个有界模型阶段；没有持有数据库写事务。
-            if prepare:
+            if draft["status"] == "preparing":
                 await self.prepare_one(draft, emit)
-            elif draft["item_index"] < len(draft["items"]):
-                await self.summarize_one(draft, emit)
+            elif any(r["status"] != "complete" for r in draft["records"]):
+                await analysis_round(self, draft, emit)
+            elif draft["phase"] == "duplicates":
+                await self.verify_one(draft, emit)
             else:
+                draft["phase"] = "classification"
                 await self.assign_batch(draft, emit)
+            return self.summary()
+        except asyncio.CancelledError:
+            draft.update(
+                status="paused", errors=["当前阶段已取消；成功记录保留，可显式继续未完成阶段"]
+            )
+            raise
+        except Exception as error:
+            draft.update(status="paused", errors=[str(error)])
             return self.summary()
         finally:
             draft["busy"] = False
 
-    # 全文和每个补充都以有界块参与摘要，不只读取正文头部。
-    @traced
-    async def summarize_one(self, draft: dict, emit: Emit) -> None:
-        item = draft["items"][draft["item_index"]]
-        parts = [
-            item["content"],
-            *[s["title"] + "\n" + s["content"] for s in item.get("supplements", [])],
-        ]
-        chunks = [
-            part[start : start + 7000] for part in parts for start in range(0, len(part), 7000)
-        ]
-        index = draft["chunk_index"]
-        record(
-            "library.summary_context",
-            item_index=draft["item_index"],
-            items=len(draft["items"]),
-            chunk_index=index,
-            chunks=len(chunks),
-        )
-        emit(
-            {
-                "type": "progress",
-                "message": f"概览 {draft['item_index'] + 1}/{len(draft['items'])}：{item['title']} · 片段 {index + 1}/{len(chunks)}",
-            }
-        )
-        text = await self.client.generate(
-            draft["config"],
-            json.dumps(
-                {
-                    "title": item["title"],
-                    "previous": draft["summaries"].get(item["id"], ""),
-                    "chunk": chunks[index],
-                    "part": index + 1,
-                    "parts": len(chunks),
-                },
-                ensure_ascii=False,
-            ),
-            "library-summary",
-            emit,
-        )
-        with step("library.validate_summary"):
-            summary = short_field(json_object(text).get("summary"), "知识要点", 1600)
-        self.ensure_active(draft)
-        draft["summaries"][item["id"]] = summary
-        draft["chunk_index"] += 1
-        if draft["chunk_index"] == len(chunks):
-            draft["item_index"] += 1
-            draft["chunk_index"] = 0
-
-    # 前批路径作为后一批分类词表；全局碰撞检查通过后才允许确认目录。
-    @traced
-    async def assign_batch(self, draft: dict, emit: Emit) -> None:
-        start = len(draft["outline"])
-        items = draft["items"][start : start + 8]
-        paths = sorted({(p["category"], p["subcategory"]) for p in draft["outline"]})
-        prompt = {
-            "items": [
-                {
-                    "id": item["id"],
-                    "title": item["title"],
-                    "old_path": display_path(item),
-                    "summary": draft["summaries"][item["id"]],
-                }
-                for item in items
-            ],
-            "existing_paths": paths,
-            "feedback": draft["feedback"],
-        }
-        payload = json.dumps(prompt, ensure_ascii=False)
-        if len(payload) > 26000:
-            raise ValueError("分类词表超出本阶段上限，请调整目录减少重复分类后重试")
-        emit({"type": "progress", "message": f"规划目录 {start}/{len(draft['items'])}"})
-        text = await self.client.generate(draft["config"], payload, "library-outline", emit)
-        with step("library.validate_assignments"):
-            values = validate_assignments(text, items)
-        self.ensure_active(draft)
-        combined = draft["outline"] + [
-            {**value, "title": item["title"], "old_path": display_path(item)}
-            for value in values
-            for item in items
-            if value["id"] == item["id"]
-        ]
-        with step("library.validate_collisions"):
-            validate_collisions(combined, draft["items"])
-        draft["outline"] = combined
-        if len(combined) == len(draft["items"]):
-            draft["status"] = "outline"
-
-    # 目录确认后逐项生成必要整理建议，手工或长正文只允许追加要点。
-    @traced
-    async def prepare_one(self, draft: dict, emit: Emit) -> None:
-        item = draft["items"][draft["prepared"]]
-        mode = (
-            "replace"
-            if item["generated"] and not item["edited"] and len(item["content"]) <= 8000
-            else "append"
-        )
-        emit(
-            {
-                "type": "progress",
-                "message": f"准备内容差异 {draft['prepared'] + 1}/{len(draft['items'])}：{item['title']}",
-            }
-        )
-        text = await self.client.generate(
-            draft["config"],
-            json.dumps(
-                {
-                    "id": item["id"],
-                    "title": item["title"],
-                    "mode": mode,
-                    "original": item["content"]
-                    if mode == "replace"
-                    else "原文受保护，仅据要点另附整理建议",
-                    "summary": draft["summaries"][item["id"]],
-                    "path": next(
-                        [p["category"], p["subcategory"]]
-                        for p in draft["outline"]
-                        if p["id"] == item["id"]
-                    ),
-                },
-                ensure_ascii=False,
-            ),
-            "library-content",
-            emit,
-        )
-        with step("library.validate_suggestion"):
-            suggestion = validate_suggestion(text)
-        self.ensure_active(draft)
-        if suggestion["content"] and suggestion["content"] != item["content"]:
-            original = item["content"] if mode == "replace" else ""
-            diff = "\n".join(
-                difflib.unified_diff(
-                    original.splitlines(),
-                    suggestion["content"].splitlines(),
-                    fromfile="原文" if mode == "replace" else "原文保留",
-                    tofile="建议",
-                    lineterm="",
-                )
-            )
-            draft["suggestions"].append(
-                {
-                    **suggestion,
-                    "id": item["id"],
-                    "title": item["title"],
-                    "mode": mode,
-                    "original": original,
-                    "diff": diff,
-                }
-            )
-        draft["prepared"] += 1
-        if draft["prepared"] == len(draft["items"]):
-            draft["status"] = "ready"
-
-    # 最终确认只应用用户勾选项；重复确认返回同一收据而非重做写入。
+    # 合并稿必须整体接受，模型解释的选择不能代替原文稿。
     @traced
     async def apply(self, params: dict) -> dict:
         draft = self.require(params)
@@ -263,38 +121,62 @@ class LibraryRestructure:
         if (
             draft["busy"]
             or draft["status"] != "ready"
+            or draft["approved"] != draft["revision"]
             or not isinstance(selected, list)
-            or any(not isinstance(i, str) or i not in allowed for i in selected)
+            or any(not isinstance(key, str) or key not in allowed for key in selected)
             or len(set(selected)) != len(selected)
         ):
-            raise ValueError("请完成当前目录和正文差异核对后确认")
+            raise ValueError("请完成当前结构和内容差异核对后确认")
+        if any(group["target_id"] not in selected for group in draft["merges"]):
+            raise ValueError("合并必须整体接受完整原文整理稿，不能仅应用含合并的目录")
         await asyncio.sleep(0)
         self.ensure_active(draft)
         result = self.store.apply_library(draft, selected)
-        draft["receipt"] = result
-        draft["status"] = "applied"
-        # 完成后释放正文快照，仅保留有限收据及分页预览。
-        draft["items"] = []
-        draft["summaries"] = {}
+        draft.update(receipt=result, status="applied")
         return result
 
-    # 分页预览最多一个完整正文差异，严格控制协议帧。
+    # 成功或失败后均可重新获取真实状态，不会启动模型。
     @traced
     def preview(self, params: dict) -> dict:
         draft = self.require(params)
         kind, page = params.get("kind", "outline"), params.get("page", 0)
-        if kind not in ("outline", "suggestions") or type(page) is not int or page < 0:
+        sizes = {
+            "outline": 30,
+            "suggestions": 1,
+            "records": 1,
+            "duplicates": 1,
+            "sources": 1,
+            "summary": 1,
+        }
+        if not isinstance(kind, str) or kind not in sizes or type(page) is not int or page < 0:
             raise ValueError("重构预览分页无效")
-        values = draft[kind]
-        size = 30 if kind == "outline" else 1
-        return {
-            "outline": values[page * size : (page + 1) * size] if kind == "outline" else [],
-            "suggestions": values[page : page + 1] if kind == "suggestions" else [],
+        values = preview_values(draft, kind)
+        if kind == "duplicates":
+            evidence_page = params.get("evidence_page", 0)
+            if type(evidence_page) is not int or evidence_page < 0:
+                raise ValueError("证据分页无效")
+            for value in values:
+                group = next(g for g in draft["duplicates"] if g["id"] == value["id"])
+                value.update(
+                    evidence=group["evidence"][evidence_page : evidence_page + 1],
+                    evidence_page=evidence_page,
+                )
+        result = {
+            "outline": [],
+            "suggestions": [],
+            "records": [],
+            "duplicates": [],
+            "sources": [],
+            "kind": kind,
             "total": len(values),
             "page": page,
+            "summary": self.summary(),
         }
+        if kind != "summary":
+            result[kind] = values[page * sizes[kind] : (page + 1) * sizes[kind]]
+        return result
 
-    # 每次跨进程确认都验证草案与目录修订，不接受旧方案回写。
+    # 每次读写绑定草案及修订，防止旧界面提交过期决定。
     def require(self, params: dict) -> dict:
         draft = self.draft
         if (
@@ -305,19 +187,24 @@ class LibraryRestructure:
             raise ValueError("重构草案已失效，请重新打开")
         return draft
 
-    # 丢弃可打断正在等待模型的草案，返回后的旧模型结果不能复活它。
+    # 先失效，再取消并等待两路，忽略取消的输出不能复活。
     @traced
-    def discard(self, params: dict) -> dict:
-        self.require(params)
+    async def discard(self, params: dict) -> dict:
+        draft = self.require(params)
+        draft["cancelled"] = True
         self.draft = None
+        tasks = list(draft["children"])
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         return {"discarded": True}
 
-    # 模型返回后、进入任何草案提交前验证会话所有权。
+    # 模型返回和写入前验证草案所有权及取消状态。
     def ensure_active(self, draft: dict) -> None:
-        if self.draft is not draft:
+        if self.draft is not draft or draft["cancelled"]:
             raise ValueError("重构已取消，未修改知识库")
 
-    # 摘要不携带原知识正文；客户端逐阶段推进以保留取消点。
+    # 计数区分来源、目标及两路覆盖，不发送完整正文。
     def summary(self) -> dict:
         draft = self.draft
         if not draft:
@@ -326,9 +213,93 @@ class LibraryRestructure:
             "draft_id": draft["id"],
             "revision": draft["revision"],
             "status": draft["status"],
-            "total": len(draft["items"]) or len(draft["outline"]),
-            "covered": draft["item_index"],
+            "total": len(draft["items"]),
+            "covered": sum(r["status"] == "complete" for r in draft["records"]),
             "classified": len(draft["outline"]),
             "prepared": draft["prepared"],
             "suggestions": len(draft["suggestions"]),
+            "phase": draft["phase"],
+            "errors": draft["errors"],
+            "target_count": len(draft["targets"])
+            or len({i["canonical_id"] for i in draft["items"]}),
+            "groups": len(draft["duplicates"]),
+            "undecided": sum(g["decision"] == "undecided" for g in draft["duplicates"]),
+            "workers": [
+                {
+                    "agent": agent,
+                    "covered": sum(
+                        r["status"] == "complete" and r["agent"] == agent for r in draft["records"]
+                    ),
+                }
+                for agent in ("A", "B")
+            ],
         }
+
+
+# 分片证据逐条分页，防止长来源或大重复组超过一帧。
+def preview_values(draft: dict, kind: str) -> list[dict]:
+    if kind == "records":
+        return [
+            {
+                "draft_id": draft["id"],
+                "revision": draft["revision"],
+                "candidates": record["candidates"],
+                "path": next(
+                    (
+                        [p["category"], p["subcategory"]]
+                        for p in draft["outline"]
+                        if p["id"]
+                        == next(
+                            item["canonical_id"]
+                            for item in draft["items"]
+                            if item["id"] == record["source_id"]
+                        )
+                    ),
+                    [],
+                ),
+                **{
+                    key: record[key]
+                    for key in ("source_id", "title", "version", "agent", "generation", "status")
+                },
+                **{
+                    key: chunk[key]
+                    for key in (
+                        "locator",
+                        "status",
+                        "summary",
+                        "error",
+                        "attempt_ids",
+                        "call_id",
+                        "generation",
+                    )
+                },
+            }
+            for record in draft["records"]
+            for chunk in record["chunks"]
+        ]
+    if kind == "sources":
+        return [
+            {
+                "source_id": r["source_id"],
+                "title": r["title"],
+                "version": r["version"],
+                "target_id": draft["source_map"].get(
+                    r["source_id"],
+                    next(i["canonical_id"] for i in draft["items"] if i["id"] == r["source_id"]),
+                ),
+                "locator": c["locator"],
+                "content": c["text"],
+            }
+            for r in draft["records"]
+            for c in r["chunks"]
+        ]
+    if kind == "duplicates":
+        return [
+            {
+                **{key: value for key, value in g.items() if key != "evidence"},
+                "evidence": g["evidence"][:1],
+                "evidence_total": len(g["evidence"]),
+            }
+            for g in draft["duplicates"]
+        ]
+    return draft.get(kind, [])

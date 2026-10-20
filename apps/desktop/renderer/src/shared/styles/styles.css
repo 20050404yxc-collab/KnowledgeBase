@@ -1869,3 +1869,22 @@ td small {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* 重构原文和稳定标识可在窄窗口换行，不撑开外层页面。 */
+.restructure-panel pre,
+[aria-label='只读原文'] pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+}
+.restructure-panel,
+[aria-label='只读原文'],
+.restructure-panel select {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.restructure-panel select {
+  width: 100%;
+}

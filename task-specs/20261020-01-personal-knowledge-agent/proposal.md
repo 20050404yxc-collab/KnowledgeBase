@@ -1,7 +1,7 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 11 implemented and isolated acceptance passed; revision 9 starts only after the navigation commit
+- Status: revision 11 implemented and isolated acceptance passed; revision 9 implemented after navigation commit 4a7447f; isolated acceptance passed
 - Workflow mode: execute
 - Plan revision: 11
 - Approval status: user explicitly requests sequential execution of navigation, restructuring and settings, committing each completed item before the next

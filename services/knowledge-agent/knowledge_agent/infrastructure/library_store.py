@@ -11,7 +11,7 @@ import uuid
 from contextlib import closing
 
 from knowledge_agent.diagnostics import traced
-from knowledge_agent.domain.knowledge_rules import BUCKETS, bucket_for, identity, now, relevance
+from knowledge_agent.domain.knowledge_rules import BUCKETS, identity, now, relevance
 from knowledge_agent.domain.library_rules import display_path, inventory_version
 from knowledge_agent.domain.taxonomy import classification, encode_path
 
@@ -23,7 +23,20 @@ class LibraryStorage:
     # 全量快照按稳定 ID 排序，读取不会增加使用日。
     @traced
     def library_inventory(self) -> list[dict]:
-        return [self.get(row[0]) for row in self.db.execute("SELECT id FROM knowledge ORDER BY id")]
+        result = []
+        for row in self.db.execute("SELECT id FROM knowledge ORDER BY created_at,id"):
+            item = self.raw_knowledge(row[0])
+            item["canonical_id"] = self.canonical_id(row[0])
+            item["archived_evidence"] = self.archived_evidence(row[0])
+            item["provenance"] = [
+                dict(value)
+                for value in self.db.execute(
+                    "SELECT suggestion_id,kind,sources FROM restructure_provenance WHERE target_id=? ORDER BY created_at,suggestion_id",
+                    (row[0],),
+                )
+            ]
+            result.append(item)
+        return result
 
     # 先分区和搜索过滤，再按路径聚合；没有旧卡片列表的 200 条限制。
     @traced
@@ -33,14 +46,10 @@ class LibraryStorage:
         rows = self.db.execute("""SELECT k.id,k.title,k.content,k.created_at,k.updated_at,
             k.manual_bucket,t.theme,group_concat(u.day) AS days FROM knowledge k
             LEFT JOIN topic_links t ON t.knowledge_id=k.id
-            LEFT JOIN uses u ON u.knowledge_id=k.id GROUP BY k.id ORDER BY k.id""")
+            LEFT JOIN uses u ON u.knowledge_id=k.id WHERE k.id NOT IN (SELECT source_id FROM knowledge_merges) GROUP BY k.id ORDER BY k.id""")
         for row in rows:
             # 频率和正文查询均以完整集合为依据，补充同样可以成为命中来源。
-            current_bucket = bucket_for(
-                row["created_at"],
-                (row["days"] or "").split(",") if row["days"] else [],
-                row["manual_bucket"],
-            )
+            current_bucket = self.merged_bucket(dict(row))
             route = display_path(classification(row["theme"] or "未分类"))
             if bucket and current_bucket != bucket or route[: len(path)] != path:
                 continue
@@ -72,7 +81,10 @@ class LibraryStorage:
 
     # 避免将补充全文传给界面，但搜索覆盖全部补充内容。
     def _library_matches(self, row: sqlite3.Row, query: str, route: list[str]) -> bool:
-        if relevance(query, row["title"] + " ".join(route), row["content"]) > 0:
+        if (
+            relevance(query, row["title"] + " ".join(route), row["content"]) > 0
+            or self.group_relevance(row["id"], query) > 0
+        ):
             return True
         return any(
             relevance(query, value[0], value[1]) > 0
@@ -107,7 +119,9 @@ class LibraryStorage:
                 raise ValueError("知识库已变化，请重新规划；未修改知识库")
             # 先删除全部旧关系，避免合法的分类交换被旧唯一约束误拦。
             self.db.execute("DELETE FROM topic_links")
-            for point in draft["outline"]:
+            draft["selected"] = selected
+            self.apply_merge_map(draft)
+            for point in draft["targets"]:
                 self._apply_library_point(point)
             for suggestion in draft["suggestions"]:
                 if suggestion["id"] in selected:
@@ -117,11 +131,19 @@ class LibraryStorage:
                 self.db.execute("DELETE FROM search_fts")
             self.db.execute("DELETE FROM search_documents")
             self.populate_library_index()
-        return {"applied": True, "count": len(draft["outline"]), "backup": backup}
+        return {
+            "applied": True,
+            "count": len(draft["targets"]),
+            "backup": backup,
+            "source_count": len(draft["items"]),
+            "target_count": len(draft["targets"]),
+            "groups": len(draft["merges"]),
+        }
 
     # 关系不改变知识身份、创建时间、正文与手工分区。
     def _apply_library_point(self, point: dict) -> None:
         theme = encode_path(point["category"], point["subcategory"])
+        self.db.execute("UPDATE knowledge SET title=? WHERE id=?", (point["title"], point["id"]))
         self.db.execute(
             "INSERT INTO topic_links VALUES (?,?,?,?)",
             (point["id"], theme, identity(theme), identity(point["title"])),
@@ -129,26 +151,44 @@ class LibraryStorage:
 
     # 手工内容只能追加建议；正文替换仍保留所有原引用及补充。
     def _apply_library_suggestion(self, suggestion: dict, config: dict) -> None:
-        item = self.get(suggestion["id"])
+        item = self.get(suggestion["target_id"])
         content = suggestion["content"]
         if suggestion["mode"] == "replace":
             if not item["generated"] or item["edited"]:
                 raise ValueError("手工内容不能被重构替换")
             self.db.execute(
-                "UPDATE knowledge SET content=?,digest=?,updated_at=? WHERE id=?",
-                (content, hashlib.sha256(content.encode()).hexdigest(), now(), item["id"]),
+                "UPDATE knowledge SET content=?,digest=?,updated_at=?,citations=? WHERE id=?",
+                (
+                    content,
+                    hashlib.sha256(content.encode()).hexdigest(),
+                    now(),
+                    json.dumps(suggestion["citations"], ensure_ascii=False),
+                    item["id"],
+                ),
             )
         else:
             self._append_supplement(
                 item["id"],
-                "重构整理要点",
+                "模型补充解释（未独立核实）"
+                if suggestion["kind"] == "model-explanation"
+                else "重构原文整理",
                 content,
                 {
-                    "citations": item["citations"],
+                    "citations": suggestion["citations"],
                     "model": config["model"],
                     "provider_name": config["name"],
                 },
             )
+        self.db.execute(
+            "INSERT INTO restructure_provenance VALUES (?,?,?,?,?)",
+            (
+                item["id"],
+                suggestion["id"],
+                suggestion["kind"],
+                json.dumps(suggestion["provenance"], ensure_ascii=False),
+                now(),
+            ),
+        )
 
 
 # 严格验证树请求，不从字符串强转分页或容忍未知分区。

@@ -7,7 +7,9 @@ import type {
   DraftReference,
   RestructureSummary,
   RestructurePreview,
-  RestructureReceipt
+  RestructureReceipt,
+  PreviewKind,
+  StructureReview
 } from './library'
 export type {
   LibraryTree,
@@ -17,7 +19,10 @@ export type {
   RestructurePreview,
   RestructureReceipt,
   OutlinePoint,
-  ContentSuggestion
+  ContentSuggestion,
+  PreviewKind,
+  StructureReview,
+  DuplicateGroup
 } from './library'
 export type Bucket = '常用' | '在学' | '归档'
 export type Scope = 'mixed' | 'files' | 'knowledge'
@@ -47,6 +52,12 @@ export interface Knowledge {
   theme?: string
   version?: string
   supplements?: Supplement[]
+  canonical_id?: string
+  original_sources?: { source_id: string; version: string; title: string; chunks: number }[]
+  read_only?: boolean
+  original_locator?: string
+  original_page?: number
+  original_total?: number
 }
 export interface Supplement {
   id: string
@@ -292,9 +303,15 @@ export interface RequestMap {
     revision?: string
     feedback?: string
     advance?: boolean
+    retry?: boolean
+    review?: StructureReview
   }
-  'library.restructure.prepare': DraftReference
-  'library.restructure.preview': DraftReference & { kind: 'outline' | 'suggestions'; page?: number }
+  'library.restructure.prepare': DraftReference & { retry?: boolean }
+  'library.restructure.preview': DraftReference & {
+    kind: PreviewKind
+    page?: number
+    evidence_page?: number
+  }
   'library.restructure.apply': DraftReference & { selected: string[] }
   'library.restructure.discard': DraftReference
   bootstrap: Record<string, never>
@@ -310,7 +327,13 @@ export interface RequestMap {
   'supplements.save': SupplementInput
   'supplements.delete': SupplementInput
   'knowledge.list': { query?: string; bucket?: Bucket | null }
-  'knowledge.get': { id: string }
+  'knowledge.get': {
+    id: string
+    original?: boolean
+    source_id?: string
+    version?: string
+    page?: number
+  }
   'knowledge.save': NoteInput
   'knowledge.delete': { id: string }
   'knowledge.bucket': { id: string; bucket: Bucket | null }

@@ -150,7 +150,15 @@ const knowledge = object<Knowledge>({
   provider_name: optional(nullable(string)),
   theme: optional(string),
   version: optional(string),
-  supplements: optional(array(supplement))
+  supplements: optional(array(supplement)),
+  canonical_id: optional(string),
+  original_sources: optional(
+    array(object({ source_id: string, version: string, title: string, chunks: number }))
+  ),
+  read_only: optional(boolean),
+  original_locator: optional(string),
+  original_page: optional(number),
+  original_total: optional(number)
 })
 const attachment = object<Attachment>({
   id: string,

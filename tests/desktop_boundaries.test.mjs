@@ -354,4 +354,36 @@ test('library tree and restructure reject damaged responses', () => {
   assert.throws(() =>
     validation.decodeResult('library.restructure.apply', { applied: true, count: 1 })
   )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.plan', {
+      ...summary,
+      workers: [{ agent: 'A', covered: '1' }]
+    })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.preview', {
+      outline: [],
+      suggestions: [],
+      total: 1,
+      page: 0,
+      records: [{ source_id: 's', attempt_ids: [123] }]
+    })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.preview', {
+      outline: [],
+      suggestions: [],
+      total: 1,
+      page: 0,
+      duplicates: [{ decision: 'auto-merge' }]
+    })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.apply', {
+      applied: true,
+      count: 1,
+      backup: 'recovery',
+      source_count: -1
+    })
+  )
 })

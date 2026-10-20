@@ -7,6 +7,7 @@ import { useAppContext } from '../../app/AppContext'
 
 import { AnswerHeading } from './AnswerHeading'
 import { CitationList } from './CitationList'
+import { OriginalSources } from './OriginalSources'
 import { NoteFooter } from './NoteFooter'
 import { MarkdownContent } from './MarkdownContent'
 import { SupplementList } from './SupplementList'
@@ -25,6 +26,7 @@ export function AnswerPanel() {
       {selected && <SupplementList />}
       {visibleCitations.length > 0 && <CitationList />}
       {answer?.notice && <p className="result-notice">{answer.notice}</p>}
+      {selected && <OriginalSources />}
       {selected && <NoteFooter />}
     </article>
   )

@@ -26,7 +26,7 @@ class TopicStorage:
     @traced
     def taxonomy_summary(self, query: str) -> dict:
         rows = self.db.execute(
-            "SELECT coalesce(t.theme,'未分类') AS theme,COUNT(*) AS count FROM knowledge k LEFT JOIN topic_links t ON k.id=t.knowledge_id GROUP BY coalesce(t.theme,'未分类')"
+            "SELECT coalesce(t.theme,'未分类') AS theme,COUNT(*) AS count FROM knowledge k LEFT JOIN topic_links t ON k.id=t.knowledge_id WHERE k.id NOT IN (SELECT source_id FROM knowledge_merges) GROUP BY coalesce(t.theme,'未分类')"
         ).fetchall()
         paths = [{**classification(row["theme"]), "count": row["count"]} for row in rows]
         paths.sort(key=lambda p: (-relevance(query, p["theme"], ""), p["theme"]))
@@ -52,6 +52,7 @@ class TopicStorage:
                 self.db.execute("DELETE FROM search_fts")
             self.db.execute("DELETE FROM search_documents")
             populate_index(self.db)
+            self.populate_original_index()
 
     # 补充按创建顺序读取；引用的保留状态取当前资料，而非历史快照。
     def topic_details(self, item_id: str) -> dict:
@@ -127,6 +128,7 @@ class TopicStorage:
                     }
                 matches.append((score, hit))
         matches.sort(key=lambda pair: (-pair[0], pair[1]["id"]))
+        matches = self.canonical_matches(matches)
         record("search.matches", matches=len(matches), page=page)
         return {
             "items": [hit for _, hit in matches[page * 30 : (page + 1) * 30]],
@@ -150,6 +152,8 @@ class TopicStorage:
                 return self.get(receipt[0])
             target = draft.get("target_id")
             if target:
+                target = self.canonical_id(target)
+            if target:
                 current = self.get(target)
                 if current["version"] != draft["version"]:
                     raise ValueError("知识已被修改，请重新打开并生成补充；未覆盖旧内容")
@@ -164,6 +168,7 @@ class TopicStorage:
 
     # 同目标的完全相同内容复用；原正文和手工修改始终不受生成覆盖。
     def _append_supplement(self, target: str, title: str, content: str, draft: dict) -> None:
+        target = self.canonical_id(target)
         current = self.get(target)
         if content == current["content"].strip():
             return
@@ -225,7 +230,7 @@ class TopicStorage:
     # 补充维护显式校验版本，失败不影响原正文，重复正文冲突给出受控错误。
     @traced
     def maintain_supplement(self, params: dict, delete: bool = False) -> dict:
-        target = params["knowledge_id"]
+        target = self.canonical_id(params["knowledge_id"])
         current = self.get(target)
         if current["version"] != params.get("version"):
             raise ValueError("知识已变化，请重新打开后编辑补充")

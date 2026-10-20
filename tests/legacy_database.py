@@ -11,6 +11,9 @@ def downgrade_topics(store: Store) -> None:
     for row in triggers:
         store.db.execute('DROP TRIGGER "' + row[0].replace('"', '""') + '"')
     for table in (
+        "knowledge_merges",
+        "restructure_provenance",
+        "restructure_originals",
         "search_fts",
         "search_documents",
         "capture_receipts",

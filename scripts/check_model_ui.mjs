@@ -11,7 +11,7 @@ import { checkLibraryUi } from './check_library_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
-  const state = { posts: [], slow: null, response: null }
+  const state = { posts: [], slow: null, response: null, pending: [] }
   const server = createServer(async (request, response) => {
     assert.equal(request.headers.authorization, 'Bearer synthetic-ui-model-key')
     if (request.method === 'GET') {
@@ -32,7 +32,9 @@ async function fixtureServer() {
     state.posts.push(JSON.parse(body))
     state.response = response
     if (state.reply) {
-      finish({ state }, state.reply(state.posts.at(-1)))
+      finish({ state: { response } }, state.reply(state.posts.at(-1)))
+    } else {
+      state.pending.push({ response, body: state.posts.at(-1) })
     }
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
@@ -323,8 +325,15 @@ async function verifyResponsive({ ui, screenshot }) {
 
 // 完整终态经真实 SSE 返回，目录与正文复用相同传输但各自独立记账。
 function finish(fixture, value) {
-  fixture.state.response.setHeader('Content-Type', 'text/event-stream')
-  fixture.state.response.end(
+  const pending = fixture.state.pending?.filter(
+    (entry) => !entry.response.destroyed && !entry.response.writableEnded
+  )
+  if (pending) {
+    fixture.state.pending = pending
+  }
+  const response = pending?.shift()?.response ?? fixture.state.response
+  response.setHeader('Content-Type', 'text/event-stream')
+  response.end(
     [
       { type: 'response.output_text.delta', delta: JSON.stringify(value) },
       { type: 'response.completed', response: { usage: { input_tokens: 10, output_tokens: 20 } } }

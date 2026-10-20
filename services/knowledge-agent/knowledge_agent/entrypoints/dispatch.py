@@ -74,6 +74,8 @@ async def dispatch(
     if operation == "knowledge.list":
         return store.list_knowledge(str(params.get("query", "")), params.get("bucket"))
     if operation == "knowledge.get":
+        if params.get("original") is True:
+            return store.get_original(params["id"], params)
         return store.get(params["id"], active_use=True)
     if operation == "knowledge.save":
         return store.save(
@@ -119,6 +121,8 @@ async def dispatch_library(
 ) -> dict:
     service.library.client = service.client
     if operation == "library.restructure.plan":
+        if "review" in params:
+            return service.library.review(params)
         if params.get("advance") is True:
             return await service.library.advance(params, emit)
         return service.library.begin(params)
@@ -129,7 +133,7 @@ async def dispatch_library(
     if operation == "library.restructure.apply":
         return await service.library.apply(params)
     if operation == "library.restructure.discard":
-        return service.library.discard(params)
+        return await service.library.discard(params)
     raise ValueError("不支持的操作")
 
 

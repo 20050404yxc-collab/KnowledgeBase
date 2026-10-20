@@ -205,8 +205,9 @@ def test_red_summary_error_preserves_state_and_records_rule(
         item = service.store.save("private-note-title", "private-note-body")
         value = call(service, "library.restructure.plan")
         with logs.request_context("summary-failure", "library.restructure.plan"):
-            with pytest.raises(ValueError, match="知识点知识要点无效，未采用模型目录"):
-                call(service, "library.restructure.plan", {**value, "advance": True})
+            result = call(service, "library.restructure.plan", {**value, "advance": True})
+            assert result["status"] == "paused"
+            assert "知识要点无效" in result["errors"][0]
         assert service.library.summary()["covered"] == 0
         assert service.library.draft["busy"] is False
         assert service.library.draft["summaries"] == {}

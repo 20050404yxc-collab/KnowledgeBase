@@ -3,6 +3,7 @@
 // 作用：展示重构目录、逐项内容差异与两阶段确认动作。
 // 说明：所有模型文本按普通文本显示，不执行 HTML 或来源指令。
 import { useAppContext } from '../../app/AppContext'
+import { OutlineEdit, RestructureReview } from './RestructureReview'
 
 // 目录预览保留旧路径与理由，分页不隐含用户同意。
 function OutlinePreview() {
@@ -18,6 +19,10 @@ function OutlinePreview() {
           <p>
             原位置：{point.old_path.join(' → ')} · {point.reason}
           </p>
+          <OutlineEdit
+            key={point.id + point.title + point.category + point.subcategory}
+            point={point}
+          />
         </div>
       ))}
       <PreviewPages kind="outline" size={30} />
@@ -73,9 +78,18 @@ function SuggestionPreview() {
               }}
             />
             {item.title} ·{' '}
-            {item.mode === 'replace' ? '替换未编辑的生成正文' : '原文保留，追加整理建议'}
+            {item.kind === 'model-explanation'
+              ? '模型补充解释（未独立核实）'
+              : item.mode === 'replace'
+                ? '原文提取，替换未编辑的生成正文'
+                : '原文提取，原文保留并追加整理'}
           </label>
           <p>{item.reason}</p>
+          {item.provenance?.map((source, index) => (
+            <p key={index}>
+              来源 {source.source_id} · 版本 {source.version} · {source.locator}
+            </p>
+          ))}
           <div className="content-comparison">
             <div>
               <h4>原文</h4>
@@ -110,9 +124,12 @@ export function RestructurePanel() {
       <h2>重构知识库</h2>
       <p>
         概览 {draft.covered}/{draft.total} · 已归类 {draft.classified}/{draft.total} · 已准备更新{' '}
-        {draft.prepared}/{draft.total}
+        {draft.prepared}/{draft.target_count ?? draft.total}
       </p>
-      {(draft.status === 'planning' || draft.status === 'preparing') && (
+      <RestructureReview />
+      {(draft.status === 'planning' ||
+        draft.status === 'preparing' ||
+        draft.status === 'paused') && (
         <button disabled={!!busy} onClick={() => void model.resumeRestructure()}>
           继续未完成阶段
         </button>
@@ -146,8 +163,15 @@ export function RestructurePanel() {
           <button onClick={() => void model.previewRestructure('suggestions', 0)}>
             查看内容差异
           </button>
-          {model.restructurePreview.outline.length ? <OutlinePreview /> : <SuggestionPreview />}
-          <button disabled={!!busy} onClick={() => void model.applyRestructure(true)}>
+          {model.restructurePreview.kind === 'outline' ? (
+            <OutlinePreview />
+          ) : model.restructurePreview.kind === 'suggestions' ? (
+            <SuggestionPreview />
+          ) : null}
+          <button
+            disabled={!!busy || (!!draft.groups && draft.target_count !== draft.classified)}
+            onClick={() => void model.applyRestructure(true)}
+          >
             仅应用目录
           </button>
           <button

@@ -5,6 +5,8 @@
 import { useRef, useState } from 'react'
 import type {
   GenerationOptions,
+  PreviewKind,
+  StructureReview,
   RestructureSummary,
   RestructurePreview
 } from '../../../../../../contracts/desktop'
@@ -22,7 +24,6 @@ export function useRestructure(options: Options) {
   const {
     draft,
     setDraft,
-    preview,
     setPreview,
     selectedUpdates,
     setSelectedUpdates,
@@ -47,7 +48,7 @@ export function useRestructure(options: Options) {
   const resume = () =>
     options.runTask(async () => {
       if (draft) {
-        await advance(draft, draft.status === 'preparing')
+        await advance(draft, draft.phase === 'preparing', true)
       }
     })
   const prepare = () =>
@@ -82,9 +83,11 @@ export function useRestructure(options: Options) {
         setSelectedUpdates([])
       }
     })
+  const review = useStructureReview(options, state, { advance, showPreview })
   return {
+    reviewRestructure: review,
     restructureDraft: draft,
-    restructurePreview: preview,
+    restructurePreview: state.preview,
     selectedUpdates,
     setSelectedUpdates,
     restructureFeedback: feedback,
@@ -94,8 +97,8 @@ export function useRestructure(options: Options) {
     prepareRestructure: prepare,
     applyRestructure: apply,
     discardRestructure: discard,
-    previewRestructure: (kind: 'outline' | 'suggestions', page: number) =>
-      options.guarded(() => showPreview(draft, kind, page))
+    previewRestructure: (kind: PreviewKind, page: number, evidencePage = 0) =>
+      options.guarded(() => showPreview(draft, kind, page, evidencePage))
   }
 }
 
@@ -125,34 +128,99 @@ function useRestructureState() {
 function useRestructureProgress(options: Options, state: ReturnType<typeof useRestructureState>) {
   async function showPreview(
     value = state.draft,
-    kind: 'outline' | 'suggestions' = 'outline',
-    page = 0
+    kind: PreviewKind = 'outline',
+    page = 0,
+    evidencePage = 0
   ) {
     if (!value) {
       return
     }
     const sequence = ++state.previewSequence.current
-    const result = await api.request('library.restructure.preview', { ...value, kind, page })
+    const result = await api.request('library.restructure.preview', {
+      ...value,
+      kind,
+      page,
+      evidence_page: evidencePage
+    })
     if (
       sequence === state.previewSequence.current &&
-      state.activeDraft.current?.draft_id === value.draft_id
+      state.activeDraft.current?.draft_id === value.draft_id &&
+      state.activeDraft.current.revision === value.revision
     ) {
       state.setPreview(result)
     }
   }
   // 模型每次请求独立超时；同一会话任务约束全部阶段。
-  async function advance(current: RestructureSummary, prepare = false) {
+  async function advance(current: RestructureSummary, prepare = false, retry = false) {
     let value = current
-    while (
-      prepare ? ['outline', 'preparing'].includes(value.status) : value.status === 'planning'
-    ) {
-      value = prepare
-        ? await options.taskRequest('library.restructure.prepare', value)
-        : await options.taskRequest('library.restructure.plan', { ...value, advance: true })
-      state.activeDraft.current = value
-      state.setDraft(value)
+    try {
+      while (
+        (retry && value.status === 'paused') ||
+        (prepare ? ['outline', 'preparing'].includes(value.status) : value.status === 'planning')
+      ) {
+        value = prepare
+          ? await options.taskRequest('library.restructure.prepare', { ...value, retry })
+          : await options.taskRequest('library.restructure.plan', {
+              ...value,
+              advance: true,
+              retry
+            })
+        retry = false
+        state.activeDraft.current = value
+        state.setDraft(value)
+      }
+    } catch (error) {
+      try {
+        const result = await api.request('library.restructure.preview', {
+          ...value,
+          kind: 'summary'
+        })
+        if (result.summary && state.activeDraft.current?.revision === value.revision) {
+          state.activeDraft.current = result.summary
+          state.setDraft(result.summary)
+        }
+      } catch {
+        // 后台退出或草案失效时保留原始请求错误。
+      }
+      throw error
     }
-    await showPreview(value, prepare ? 'suggestions' : 'outline', 0)
+    await showPreview(
+      value,
+      value.status === 'paused' ? 'records' : prepare ? 'suggestions' : 'outline',
+      0
+    )
   }
   return { advance, showPreview }
+}
+
+// 结构纠正只影响当前修订，清除内容选择后再更新相关分页。
+function useStructureReview(
+  options: Options,
+  state: ReturnType<typeof useRestructureState>,
+  progress: ReturnType<typeof useRestructureProgress>
+) {
+  const { draft, setDraft, setSelectedUpdates, setPreview } = state
+  const { advance, showPreview } = progress
+  // 结构纠正立即更新修订并清除最终选择，继续分析仍受单任务约束。
+  const review = (review: StructureReview) =>
+    options.runTask(async () => {
+      if (!draft) {
+        return
+      }
+      const value = await options.taskRequest('library.restructure.plan', { ...draft, review })
+      state.activeDraft.current = value
+      setDraft(value)
+      setSelectedUpdates([])
+      setPreview(EMPTY_PREVIEW)
+      if (value.status === 'planning') {
+        await advance(value)
+      } else {
+        await showPreview(
+          value,
+          review.action === 'point' ? 'outline' : 'duplicates',
+          review.action === 'point' ? 0 : state.preview.page
+        )
+      }
+    })
+  return review
 }
