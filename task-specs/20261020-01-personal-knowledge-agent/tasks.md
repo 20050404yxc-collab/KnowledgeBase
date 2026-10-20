@@ -2,6 +2,31 @@
 
 Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Revision 4 was authorized with "开始修改", implemented and locally verified. Historical development/Git authorizations remain scoped to earlier increments. Full-v1 launch acceptance remains outstanding.
 
+## Revision 6 independent pages and hierarchical classification (implemented)
+
+- [x] R6.1 Inspect page composition/navigation/reading/list refresh/async callbacks and existing taxonomy/planning/storage chain; record diagnosis.
+- [x] R6.2 Integrate requested additions and retained R5 scope into existing human pages with wireframe/sequence and task records; no product edits.
+- [x] R6.3 Implementation authorization is recorded by the user instruction “进行开发”.
+- [x] R6.4 Implement independent page composition/state/feedback/scroll and list ownership; protect slow/late requests, cancellation and drafts; R6-01.
+- [x] R6.5 Implement scoped full-library taxonomy summaries, explicit category/subcategory planning/review and directory tree; R6-02.
+- [x] R6.6 Preserve compatible paths across capture/read/search/supplement/restart, legacy identity and frequency policy; R6-03.
+- [x] R6.7 Complete retained R5 implementation steps below, new mocked/desktop cases, `npm run check`, `npm run test:ui`, visual QA and current docs/evidence.
+
+R6 handoff: authorized implementation and local checks completed. See verification.md for command results and scope. Real model/GitHub quality and production data remain unverified. No commit, release or version change.
+
+## Revision 5 retained qualification and project-context work (included in revision 6)
+
+- [x] R5.1 Read effective standard and related human/code chains; reproduce malformed-bold behavior with current dependencies; R5-01..05.
+- [x] R5.2 Update existing human pages, wireframe/sequence, overview and English records in place; no product edits.
+- [x] R5.3 Covered by the R6 authorization and implemented.
+- [x] R5.4 Implement independent qualification, zero-point results, reasons and non-knowledge capture guards including direct/related paths; R5-01.
+- [x] R5.5 Add validated per-point project material/sufficiency/consent states and UI; preserve strict scope and request lifecycle; R5-02/03.
+- [x] R5.6 Add injected bounded GitHub public-project retrieval, provenance/candidate selection and explicitly labeled explanations; mock-only validation; R5-03/04.
+- [x] R5.7 Implement conservative display-only Markdown repair and generation formatting instructions; R5-05.
+- [x] R5.8 Run affected behavior/contract/HTTP/DOM tests, `npm run check`, `npm run test:ui`, visual QA; reconcile docs and actual evidence.
+
+Historical R5 handoff (superseded by R6 above): documentation-only proposal; product files and user data unchanged. Structural qualification/project-gate gaps and malformed-bold reproduction remain valid evidence, but R6.3 now owns approval of the full combined scope. R4 completion below retains its original scope.
+
 ## Revision 4 knowledge workflow (completed locally)
 
 - [x] R4.1 Inspect applicable standard, existing human docs and direct rendering/search/question/validation/persistence/caching chains; record confirmed diagnosis and unverified model behavior.

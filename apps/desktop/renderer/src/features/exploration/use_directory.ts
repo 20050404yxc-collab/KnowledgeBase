@@ -8,6 +8,7 @@ import type {
   GenerationOptions,
   LearnInput,
   QuestionPlan,
+  ProjectContext,
   RequestMap,
   SearchResult
 } from '../../../../../../contracts/desktop'
@@ -33,6 +34,7 @@ export function useDirectory(options: Options) {
   const [selectedPoint, setSelectedPoint] = useState<DirectoryPoint | null>(null)
   const [targetId, setTargetId] = useState('')
   const [reviewing, setReviewing] = useState(false)
+  const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
   const searchParams = useRef<RequestMap['knowledge.search']>({ query: '', page: 0 })
   const { ownRequest, mounted, run } = useDirectoryRequests(options)
 
@@ -47,15 +49,20 @@ export function useDirectory(options: Options) {
     setTargetId,
     reviewing,
     setReviewing,
+    projectContext,
+    setProjectContext,
     searchParams,
     ownRequest,
     mounted
   }
+  useProjectRevocation(options, directory, selectedPoint, setProjectContext, targetId)
   return {
     ...state,
     cancelTask: async () => {
       // 撤销后续步骤和详情所有权，即使取消刚好发生在两次请求之间也有效。
       options.selectionSequence.current++
+      revokeProject(directory, selectedPoint)
+      setProjectContext(null)
       if (options.activeRequest.current) {
         await options.guarded(() => api.cancel(options.activeRequest.current ?? ''))
       }
@@ -80,7 +87,8 @@ export function useDirectory(options: Options) {
         await options.openItem(point.target_id)
       }
     },
-    learnPoint: (action: LearnInput['action']) => run(() => learnAction(options, state, action))
+    learnPoint: (action: LearnInput['action'], extra: Partial<LearnInput> = {}) =>
+      run(() => learnAction(options, state, action, extra))
   }
 }
 // 请求生命周期单独管理，取消或切页撤销晚到响应的所有权。
@@ -124,15 +132,17 @@ function useDirectoryRequests(options: Options) {
     try {
       await action()
     } catch (error) {
-      if (mounted.current) {
+      if (mounted.current && options.pageOwner.current === options.section) {
         options.setError(errorText(error))
       }
     } finally {
       if (ownRequest.current === id) {
         ownRequest.current = null
-        options.activeRequest.current = null
-        options.setBusy(null)
-        options.setProgress('')
+        if (options.activeRequest.current === id) {
+          options.activeRequest.current = null
+          options.setBusy(null)
+          options.setProgress('')
+        }
       }
     }
   }
@@ -150,6 +160,7 @@ type State = Pick<
   | 'setSelectedPoint'
   | 'targetId'
   | 'setReviewing'
+  | 'setProjectContext'
   | 'searchParams'
   | 'ownRequest'
   | 'mounted'
@@ -232,7 +243,12 @@ async function searchAction(options: Options, state: State, page?: number) {
 }
 
 // 补充先预览，确认后才提交；已保存内容刷新到同一目录项。
-async function learnAction(options: Options, state: State, action: LearnInput['action']) {
+async function learnAction(
+  options: Options,
+  state: State,
+  action: LearnInput['action'],
+  extra: Partial<LearnInput>
+) {
   if (!state.directory?.plan_id || !state.selectedPoint) {
     return
   }
@@ -245,7 +261,8 @@ async function learnAction(options: Options, state: State, action: LearnInput['a
       plan_id: state.directory.plan_id,
       point_id: point.id,
       action,
-      target_id: action === 'learn' ? '' : state.targetId
+      target_id: action === 'learn' ? '' : state.targetId,
+      ...extra
     },
     state.ownRequest.current ?? undefined
   )
@@ -267,10 +284,66 @@ async function learnAction(options: Options, state: State, action: LearnInput['a
     return
   }
   options.setAnswer(value)
+  if (value.project) {
+    state.setProjectContext(value.project)
+  }
   options.setSelected(value.knowledge ?? null)
   options.setRecommendations(value.recommendations)
   state.setReviewing(!!value.review)
   if (updated) {
     state.setSelectedPoint(updated)
+  }
+}
+
+// 页面、问题、范围或附件改变时撤销项目许可；阅读完成内容仍保留。
+function useProjectRevocation(
+  options: Options,
+  directory: QuestionPlan | null,
+  point: DirectoryPoint | null,
+  clear: (value: ProjectContext | null) => void,
+  targetId: string
+) {
+  const attachmentKey = options.attachments.map((a) => `${a.id}:${a.state}`).join('|')
+  useEffect(() => {
+    let current = true
+    clear(null)
+    // 进入或恢复项目点时重新领取挑战，旧许可不能随阅读快照恢复。
+    if (options.section === '探索') {
+      revokeProject(directory, point, (context) => {
+        if (current) {
+          clear(context)
+        }
+      })
+    }
+    return () => {
+      current = false
+      revokeProject(directory, point)
+    }
+  }, [
+    options.section,
+    options.query,
+    options.scope,
+    attachmentKey,
+    directory?.plan_id,
+    point?.id,
+    targetId
+  ])
+}
+
+// 撤销独立于学习请求，后台会在提交前再次复核许可。
+function revokeProject(
+  directory: QuestionPlan | null,
+  point: DirectoryPoint | null,
+  receive?: (value: ProjectContext | null) => void
+) {
+  if (directory?.plan_id && point?.project_required) {
+    void api
+      .request('knowledge.learn', {
+        plan_id: directory.plan_id,
+        point_id: point.id,
+        action: 'revoke'
+      })
+      .then((answer) => receive?.(answer.project ?? null))
+      .catch((error) => console.error('撤销项目许可失败', errorText(error)))
   }
 }

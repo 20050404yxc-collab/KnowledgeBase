@@ -11,6 +11,7 @@ from knowledge_agent.application.provider_settings import save_provider
 from knowledge_agent.bootstrap import create_client, create_service
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.infrastructure.sqlite_store import Store
+from review_fixtures import approved_question
 from test_knowledge import Vault
 from test_providers import parameters, sse
 
@@ -135,6 +136,8 @@ def test_waiting_question_uses_received_config_snapshot(tmp_path):
     class Client:
         # 返回完整学习内容，记录应用实际传下来的模型配置。
         async def generate(self, value, *_args):
+            if _args[1] == "question-review":
+                return approved_question()
             captured.append(value)
             return json.dumps({"title": "快照结果", "content": "完整知识正文", "citation_ids": []})
 

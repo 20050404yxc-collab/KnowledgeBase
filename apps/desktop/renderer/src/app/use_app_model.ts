@@ -14,10 +14,10 @@ import { useProviderForm } from '../features/providers/use_provider_form'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
 export function useAppModel() {
-  const feedback = useFeedback()
   const navigation = useNavigation()
+  const feedback = useFeedback(navigation.section)
   const library = useLibrary({ ...feedback, ...navigation })
-  const reading = useReading()
+  const reading = useReading(navigation.section)
   const knowledge = useKnowledge({ ...feedback, ...library, ...reading })
   const selection = useModelSelection(library.providers)
   const generationOptions = selection.optionsFor(library.activeProvider)
@@ -48,7 +48,7 @@ export function useAppModel() {
     ...directory,
     ...providerForm,
     ...selection,
-    openItem: directory.openLocalItem,
+    openItem: navigation.section === '探索' ? directory.openLocalItem : knowledge.openItem,
     generationOptions
   }
 }

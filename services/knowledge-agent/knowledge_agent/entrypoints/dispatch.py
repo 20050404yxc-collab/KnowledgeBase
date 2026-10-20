@@ -34,6 +34,13 @@ def validate_params(operation: str, params: dict) -> None:
         "provider_id",
         "model",
         "reasoning_effort",
+        "plan_id",
+        "point_id",
+        "action",
+        "target_id",
+        "search_terms",
+        "revision",
+        "candidate_id",
     ):
         if key in params and params[key] is not None and not isinstance(params[key], str):
             raise ValueError("请求参数类型无效")

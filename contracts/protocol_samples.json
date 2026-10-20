@@ -111,5 +111,72 @@
       "operation": "bootstrap",
       "params": []
     }
+  ],
+  "dto_samples": [
+    {
+      "operation": "question.plan",
+      "result": {
+        "plan_id": "plan-review",
+        "points": [
+          {
+            "id": "point-project",
+            "title": "工件流转实现",
+            "theme": "项目实践／上位机",
+            "category": "项目实践",
+            "subcategory": "上位机",
+            "reason": "具体实现需要相关项目依据",
+            "facet": "状态机与设备应答",
+            "target_id": "",
+            "status": "待项目资料",
+            "citation_ids": [],
+            "candidates": [],
+            "project_required": true,
+            "project_revision": "point-revision",
+            "material_request": "请提供流程说明和相关代码片段",
+            "search_terms": "Qt state machine device"
+          }
+        ],
+        "excluded": [
+          {
+            "title": "负责开发",
+            "decision": "exclude",
+            "reason": "职责描述不能独立学习"
+          }
+        ],
+        "search": {
+          "items": [],
+          "total": 0,
+          "page": 0,
+          "notice": "关键词检索"
+        },
+        "notice": "审核完成"
+      }
+    },
+    {
+      "operation": "knowledge.learn",
+      "result": {
+        "content": "请选择实际读取的公开示例",
+        "citations": [],
+        "recommendations": [],
+        "notice": "未收录。",
+        "project": {
+          "status": "candidates",
+          "revision": "next-revision",
+          "message": "选择示例后再学习",
+          "material_request": "项目相关说明",
+          "search_terms": "Qt state machine",
+          "candidates": [
+            {
+              "id": "example/project",
+              "name": "example/project",
+              "url": "https://github.com/example/project",
+              "locator": "docs/README.md",
+              "excerpt": "仅用于协议结构验证的合成项目摘录",
+              "retrieved_at": "2026-10-20T00:00:00+00:00"
+            }
+          ]
+        }
+      }
+    }
   ]
 }

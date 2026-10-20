@@ -11,7 +11,16 @@ import type { Bucket } from '../../../../../../contracts/desktop'
 
 // 显示回答标题、收录状态和手动保存入口。
 export function AnswerHeading() {
-  const { guarded, reload, selected, setSelected, answer, selectedPoint } = useAppContext()
+  const {
+    guarded,
+    reload,
+    selected,
+    setSelected,
+    answer,
+    selectedPoint,
+    section,
+    selectionSequence
+  } = useAppContext()
   let label = '未收录内容'
   if (selected) {
     label = selected.generated ? 'AI 学习内容' : '我的知识'
@@ -23,7 +32,9 @@ export function AnswerHeading() {
     <div className="answer-heading">
       <div>
         <span className="pill">{label}</span>
-        <h2>{selected?.title ?? selectedPoint?.title ?? '检索与回答'}</h2>
+        <h2>
+          {selected?.title ?? (section === '探索' ? selectedPoint?.title : null) ?? '检索与回答'}
+        </h2>
       </div>
       {selected && (
         <select
@@ -31,11 +42,14 @@ export function AnswerHeading() {
           value={selected.manual_bucket ?? 'auto'}
           onChange={(event) =>
             void guarded(async () => {
+              const sequence = selectionSequence.current
               const item = await api.request('knowledge.bucket', {
                 id: selected.id,
                 bucket: isBucket(event.target.value) ? event.target.value : null
               })
-              setSelected(item)
+              if (sequence === selectionSequence.current) {
+                setSelected(item)
+              }
               void reload()
             })
           }

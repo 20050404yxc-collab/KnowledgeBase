@@ -20,6 +20,8 @@ Emit = Callable[[dict], None]
 
 
 class KnowledgeRepository(Protocol):
+    # 汇总全库分类，匹配排序后发送有界摘要并报告覆盖量。
+    def taxonomy_summary(self, query: str) -> dict: ...
     # 全库词法搜索返回稳定分页和来源摘录，不调用模型。
     def search(self, params: dict) -> dict: ...
     # 原子新增主题知识或补充，校验幂等键和目标版本。
@@ -142,6 +144,11 @@ class ModelTransport(Protocol):
 class CatalogReader(Protocol):
     # 返回有界、去重的模型 ID；不能执行生成、写配置或读取本地凭据。
     async def list_models(self, config: ProviderDraft, secret: str) -> dict: ...
+
+
+class PublicProjectReader(Protocol):
+    # 单次授权最多一次仓库检索及三个 README，不克隆或执行项目。
+    async def search(self, terms: str) -> list[dict]: ...
 
 
 class SnapshotFiles(Protocol):

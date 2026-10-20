@@ -18,6 +18,95 @@ async function loadModule(relativePath) {
 }
 
 const validation = await loadModule('../apps/desktop/shared/protocol_validation.ts')
+const { markdownForDisplay } = await loadModule(
+  '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
+)
+
+// 只修复明确的普通标签；代码、转义、链接、数学符号和存储原文不变。
+test('display Markdown repairs a paired label without removing literal symbols', () => {
+  const raw = '- **整体开发与设备接入： **独立负责'
+  assert.equal(markdownForDisplay(raw), '- **整体开发与设备接入：** 独立负责')
+  const protectedText = [
+    '```cpp',
+    raw,
+    '```',
+    '`**标签： **代码`',
+    '\\**标签： **转义',
+    '[地址](https://example.test/a(**标签： **))',
+    '    **标签： **缩进代码',
+    'a ** b ** c',
+    '* 星号',
+    '## 标题',
+    '[ref]: https://example.test/**标签： **',
+    '<span>**标签： **HTML</span>'
+  ].join('\n')
+  assert.equal(markdownForDisplay(protectedText), protectedText)
+  assert.equal(raw, '- **整体开发与设备接入： **独立负责')
+})
+
+// 新增审核、层级分类与项目结果字段和旧样例兼容，损坏的新字段必须拒绝。
+test('review, taxonomy and project result fields are runtime checked', () => {
+  const answer = {
+    content: '',
+    citations: [],
+    recommendations: [],
+    notice: '',
+    project: {
+      status: 'candidates',
+      revision: 'r1',
+      message: '选择示例',
+      material_request: '项目代码',
+      search_terms: 'queue',
+      candidates: [
+        {
+          id: 'a/b',
+          name: 'a/b',
+          url: 'https://github.com/a/b',
+          locator: 'README.md',
+          excerpt: 'test',
+          retrieved_at: '2026-10-20'
+        }
+      ]
+    }
+  }
+  assert.equal(validation.decodeResult('knowledge.learn', answer), answer)
+  assert.throws(() =>
+    validation.decodeResult('knowledge.learn', {
+      ...answer,
+      project: { ...answer.project, revision: false }
+    })
+  )
+  assert.throws(() =>
+    validation.decodeResult('knowledge.learn', {
+      ...answer,
+      project: { ...answer.project, candidates: [{}] }
+    })
+  )
+  const point = {
+    id: 'p',
+    title: 'RAII',
+    theme: '编程语言／C++',
+    category: '编程语言',
+    subcategory: 'C++',
+    facet: '生命周期',
+    target_id: '',
+    status: '待学习',
+    citation_ids: [],
+    candidates: [],
+    project_required: false
+  }
+  const plan = {
+    plan_id: 's',
+    points: [point],
+    excluded: [{ title: '润色', decision: 'exclude', reason: '任务' }],
+    search: { items: [], total: 0, page: 0, notice: '' },
+    notice: ''
+  }
+  assert.equal(validation.decodeResult('question.plan', plan), plan)
+  assert.throws(() =>
+    validation.decodeResult('question.plan', { ...plan, points: [{ ...point, category: 3 }] })
+  )
+})
 const { RequestRegistry, REQUEST_TIMEOUT_MS } = await loadModule(
   '../apps/desktop/main/request_registry.ts'
 )
@@ -32,6 +121,9 @@ test('shared protocol samples pass operation and runtime result validation', asy
     assert.equal(validation.isWorkerMessage(response), true)
     assert.equal(response.id, request.id)
     assert.deepEqual(validation.decodeResult(request.operation, response.result), response.result)
+  }
+  for (const { operation, result } of samples.dto_samples) {
+    assert.deepEqual(validation.decodeResult(operation, result), result)
   }
 })
 

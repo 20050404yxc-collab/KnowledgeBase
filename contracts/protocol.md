@@ -2,7 +2,7 @@
 
 本文件描述 test0.03 已实现的本地 JSON Lines 协议。操作和数据类型以 [desktop.ts](desktop.ts) 为准；[protocol_samples.json](protocol_samples.json) 是 Python 和 TypeScript 测试共同读取的握手、离线提问、检索、目录和用量样例。
 
-简单说：两端检查同一份样例，搬动代码时不各自猜测返回格式。
+简单说：两端检查同一份离线样例，搬动代码时不各自猜测返回格式。`dto_samples` 另含合成的审核／分类／公开候选 DTO，由 TypeScript 运行时检查；它们不是实际联网结果。
 
 每行一个 UTF-8 JSON 对象。请求包含 `id`、`operation` 和对象 `params`（省略时为空对象）；ID 为 1–80 个 ASCII 字母、数字或连字符。输入帧最多 1,000,000 字节（含换行），同时最多 16 个业务请求；重复在途 ID 保留首个任务。无效结构返回不带 ID 的受控错误，未知操作返回关联错误，超大帧和 EOF 结束会话。
 
@@ -39,9 +39,11 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 简单说：不配置接口也能找本地内容；“本地检索”按钮查全库，问题目录的文件范围和分页则沿用该次选择。
 
-`question.plan` 接受原 `question` 参数，返回 `{plan_id, points, search, notice}`；模型只规划 1–16 个主题、短标题和具体学习侧面，不保存知识。无接口或规划结构失败保留本地结果，返回空目录。每个点附带候选目标、引用标识及待学习／待补充／待核对状态。会话最多保留 24 份，重启或淘汰后需重新拆解。原 `question` 操作继续兼容。
+`question.plan` 接受原 `question` 参数，返回 `{plan_id, points, excluded, search, notice}`；规划先结合授权范围内的全库分类摘要（`files` 范围跳过库内读取），再输出大类、小类和具体知识点。每个候选必须经过独立审核：可复用知识保留，职责／项目名／日期等非知识点排除，疑义项给出理由；允许零个合格点，审核失败返回空目录且不产生可学习计划。目录最多 16 点，会话最多保留 24 份，重启或淘汰后需重新拆解。
 
-`knowledge.learn` 输入 `{plan_id, point_id, action?, target_id?, provider_id?, model?, reasoning_effort?}`，动作包括 `learn/supplement/confirm/separate`。只生成选中的点；完整校验后新建主题知识，补充或冲突先返回 `review: true` 预览。`confirm` 不再调用模型，复核原目标版本后原子追加；`separate` 保存独立知识。补充候选必须来自该目录，不接受任意目标。单点已提交结果可幂等复用，后续新问题重新规划可继续积累。
+`knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。变更点、范围、附件、取消或切页会撤销旧许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
+
+`Knowledge`、`SearchHit`、`DirectoryPoint` 的 `category`／`subcategory` 为可选兼容字段；旧主题不猜测拆分，不做 R6 批量迁移。项目状态 DTO 使用 `materials`、`material-ready`、`candidates`、`public-ready`，公开候选包含仓库 URL、README 路径、摘录和 UTC 读取时间；解释引用进一步标注实际使用的字符范围；仅模型声称而无读取证据不得进入引用。
 
 简单说：先选目录项再学习；补充要核对后保存，原笔记不会被生成结果覆盖。取消前已经提交的知识仍然保留。
 

@@ -4,6 +4,8 @@
 // 说明：合成凭据在 finally 删除，不接触正式接口和用户数据。
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
+import { checkPageUi } from './check_page_ui.mjs'
+import { checkProjectUi, checkLatePage } from './check_project_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
@@ -159,6 +161,7 @@ async function generate(context) {
       { title: '错误处理', theme: '模型测试', facet: '异常恢复策略' }
     ]
   })
+  await finishReview(context, 2)
   await waitFor(
     () => ui.evaluate(`document.querySelectorAll('.directory-point').length === 2`),
     'point directory'
@@ -167,14 +170,14 @@ async function generate(context) {
   await screenshot('desktop-directory.png')
   await ui.evaluate(`document.querySelector('.directory-point').click()`)
   await click('学习这个知识点')
-  await waitFor(async () => fixture.state.posts.length === 2, 'lazy detail HTTP received')
+  await waitFor(async () => fixture.state.posts.length === 3, 'lazy detail HTTP received')
   await verifyMarkdown(context)
 }
 
 // 正文验证独立覆盖格式、引用、代码字面量和危险内容拦截。
 async function verifyMarkdown(context) {
   const { fixture, waitFor, ui } = context
-  const evidence = JSON.parse(fixture.state.posts[1].input).evidence
+  const evidence = JSON.parse(fixture.state.posts[2].input).evidence
   const citation = evidence[0]
   context.citation = citation
   const marker = citation ? `[${citation.id}]` : '[unknown]'
@@ -183,6 +186,7 @@ async function verifyMarkdown(context) {
     '',
     '**重点**：隔离服务生成的完整知识正文。',
     '',
+    '- **整体开发与设备接入： **独立负责',
     '- 按点学习',
     '- 保留原笔记',
     '',
@@ -191,6 +195,7 @@ async function verifyMarkdown(context) {
     '| fixture-b | 已验证 |',
     '',
     '```js',
+    '// **代码标签： **保留星号',
     `const literal = "${marker}"; // ${'longcode'.repeat(30)}`,
     '```',
     '',
@@ -246,13 +251,29 @@ async function verifyRenderedMarkdown(context, marker, citation) {
     )
     await ui.evaluate(`document.querySelector('[aria-label="关闭引用"]').click()`)
   }
+  assert.equal(
+    await ui.evaluate(
+      `Array.from(document.querySelectorAll('.markdown-content strong')).some((e) => e.innerText === '整体开发与设备接入：')`
+    ),
+    true
+  )
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.markdown-content code').innerText.includes('**代码标签： **')`
+    ),
+    true
+  )
   await screenshot('desktop-markdown.png')
   await verifyResponsive(context)
   context.generated = (
     await ui.evaluate(`window.knowledgeBase.request('knowledge.search', {query: '模型选择验证'})`)
   ).items.find((hit) => hit.kind === 'knowledge')
   assert.ok(context.generated)
-  assert.equal(fixture.state.posts.length, 2)
+  const stored = await ui.evaluate(
+    `window.knowledgeBase.request('knowledge.get', {id: ${JSON.stringify(context.generated.knowledge_id)}})`
+  )
+  assert.ok(stored.content.includes('**整体开发与设备接入： **独立负责'))
+  assert.equal(fixture.state.posts.length, 3)
   assert.equal((await providers(ui))[0].model, 'fixture-a')
   const attempts = await ui.evaluate(`window.knowledgeBase.request('usage.list')`)
   assert.equal(attempts[0].model, 'fixture-b')
@@ -309,7 +330,7 @@ async function supplement(context) {
   const { ui, fill, click, waitFor, fixture, screenshot, generated } = context
   await fill('#question', '模型选择验证有哪些新内容')
   await click('拆解并学习 ↗')
-  await waitFor(async () => fixture.state.posts.length === 3, 'supplement planning')
+  await waitFor(async () => fixture.state.posts.length === 4, 'supplement planning')
   finish(fixture, {
     points: [
       {
@@ -320,6 +341,7 @@ async function supplement(context) {
       }
     ]
   })
+  await finishReview(context, 5)
   await waitFor(
     () => ui.evaluate(`document.querySelectorAll('.directory-point').length === 1`),
     'supplement directory'
@@ -330,9 +352,9 @@ async function supplement(context) {
       ui.evaluate(`document.querySelector('.answer-panel')?.innerText.includes('隔离服务生成')`),
     'open original locally'
   )
-  assert.equal(fixture.state.posts.length, 3)
+  assert.equal(fixture.state.posts.length, 5)
   await click('生成补充')
-  await waitFor(async () => fixture.state.posts.length === 4, 'supplement generation')
+  await waitFor(async () => fixture.state.posts.length === 6, 'supplement generation')
   finish(fixture, {
     title: '补充说明',
     content: '### 增量补充\n\n**jitterstrategy**：增加退避抖动以分散请求。',
@@ -356,7 +378,7 @@ async function supplement(context) {
     () => ui.evaluate(`document.querySelectorAll('.supplement-item').length === 1`),
     'supplement saved'
   )
-  assert.equal(fixture.state.posts.length, 4)
+  assert.equal(fixture.state.posts.length, 6)
   assert.equal(
     await ui.evaluate(`document.querySelector('.answer-panel').innerText.includes('隔离服务生成')`),
     true
@@ -415,7 +437,7 @@ async function maintainSupplement(context) {
       ui.evaluate(`document.querySelector('.local-results')?.innerText.includes('模型选择验证')`),
     'independent local search'
   )
-  assert.equal(fixture.state.posts.length, 4)
+  assert.equal(fixture.state.posts.length, 6)
   assert.equal(await ui.evaluate(`document.querySelectorAll('.directory-point').length`), 0)
   context.report.checks.push(
     'directory lazy learning; safe Markdown table/code/reference; review, edit, delete and index supplement; independent zero-model search'
@@ -429,7 +451,10 @@ export async function checkModelUi(context) {
   try {
     await createDraft(value)
     await generate(value)
+    await checkPageUi(value)
     await supplement(value)
+    await checkProjectUi({ ...value, finish })
+    await checkLatePage({ ...value, finish })
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )
@@ -449,4 +474,21 @@ export async function checkModelUi(context) {
       await new Promise((resolve) => fixture.server.close(resolve))
     }
   }
+}
+
+// 独立审核请求使用该次候选ID；不把旧的规划响应复用为审核许可。
+async function finishReview(context, count) {
+  const { fixture, waitFor } = context
+  await waitFor(async () => fixture.state.posts.length === count, 'independent qualification HTTP')
+  const prompt = JSON.parse(fixture.state.posts[count - 1].input)
+  finish(fixture, {
+    decisions: prompt.points.map((p) => ({
+      id: p.id,
+      decision: 'keep',
+      reason: '可复用的技术方法',
+      category: '框架与工具',
+      subcategory: '模型测试',
+      project_required: false
+    }))
+  })
 }

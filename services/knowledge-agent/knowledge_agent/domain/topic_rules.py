@@ -44,8 +44,8 @@ def validate_plan(
     text: str, query: str, candidates: list[dict], evidence: list[dict]
 ) -> list[dict]:
     raw = json_object(text).get("points")
-    if not isinstance(raw, list) or not 1 <= len(raw) <= MAX_POINTS:
-        raise ValueError("目录须有 1–16 个知识点；请缩小问题，未静默截断")
+    if not isinstance(raw, list) or not 0 <= len(raw) <= MAX_POINTS:
+        raise ValueError("目录须有 0–16 个候选；请缩小问题，未静默截断")
     allowed = {item["id"]: item for item in candidates}
     citations = {item["id"] for item in evidence}
     result, seen = [], set()

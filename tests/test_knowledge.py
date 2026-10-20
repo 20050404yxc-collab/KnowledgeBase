@@ -11,6 +11,7 @@ import pytest
 from knowledge_agent.bootstrap import create_service
 from knowledge_agent.domain.knowledge_rules import bucket_for, identity
 from knowledge_agent.infrastructure.sqlite_store import Store
+from review_fixtures import approved_question
 
 
 class Vault:
@@ -179,6 +180,8 @@ def test_cancelled_generation_does_not_capture(service):
     class Client:
         # 仅使用选定证据生成，提交前响应取消并校验完整结果。
         async def generate(self, *_args):
+            if _args[2] == "question-review":
+                return approved_question()
             await asyncio.sleep(30)
 
     service.client = Client()
@@ -206,6 +209,8 @@ def test_duplicate_concurrent_generation_reuses_and_preserves_user_edits(service
 
         # 仅使用选定证据生成，提交前响应取消并校验完整结果。
         async def generate(self, *_args):
+            if _args[2] == "question-review":
+                return approved_question()
             self.calls += 1
             await asyncio.sleep(0.01)
             return json.dumps(
@@ -281,6 +286,8 @@ def test_invalid_citations_never_capture(service):
     class Client:
         # 仅使用选定证据生成，提交前响应取消并校验完整结果。
         async def generate(self, *_args):
+            if _args[2] == "question-review":
+                return approved_question()
             return json.dumps(
                 {"title": "假的引用", "content": "正文", "citation_ids": ["not-real"]}
             )
@@ -331,6 +338,8 @@ def test_same_title_different_answer_does_not_claim_new_content_saved(service):
     class Client:
         # 仅使用选定证据生成，提交前响应取消并校验完整结果。
         async def generate(self, *_args):
+            if _args[2] == "question-review":
+                return approved_question()
             return json.dumps(
                 {
                     "title": "事务",

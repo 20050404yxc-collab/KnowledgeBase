@@ -10,6 +10,7 @@ from knowledge_agent.application.topic_context import learning_context
 from knowledge_agent.bootstrap import create_service
 from knowledge_agent.domain.topic_rules import MAX_SESSIONS, validate_plan
 from knowledge_agent.entrypoints.dispatch import dispatch
+from review_fixtures import approved_points
 from test_knowledge import Vault, config
 
 
@@ -42,6 +43,8 @@ class Client:
                     ]
                 }
             )
+        if purpose == "topic-review":
+            return approved_points(value["points"])
         if self.gate:
             await self.gate.wait()
         if self.cancel:
@@ -117,7 +120,11 @@ def test_lazy_directory_and_concurrent_reuse(service):
         assert results[0]["knowledge"]["title"] == "重连退避"
         assert results[0]["recommendations"][0]["title"] == "抖动策略"
         assert len(service.store.list_knowledge()) == 1
-        assert [call[2] for call in service.client.calls] == ["topic-plan", "topic-learn"]
+        assert [call[2] for call in service.client.calls] == [
+            "topic-plan",
+            "topic-review",
+            "topic-learn",
+        ]
         assert service.store.db.execute("SELECT count(*) FROM uses").fetchone()[0] == 0
 
     asyncio.run(run())
@@ -191,7 +198,7 @@ def test_conflict_requires_review_and_separate_capture(service):
         with pytest.raises(ValueError, match="无补充目标"):
             await learn(service, directory, action="confirm")
         saved = await learn(service, directory, action="separate")
-        assert saved["knowledge"]["theme"] == "网络／独立补充"
+        assert saved["knowledge"]["theme"] == "网络／通用方法"
 
     asyncio.run(run())
 
@@ -209,7 +216,7 @@ def test_cancellation_preserves_prior_commits(service, boundary):
         if not boundary:
             service.client.gate = asyncio.Event()
         task = asyncio.create_task(learn(service, directory, index=1))
-        while len(service.client.calls) < 3:
+        while len(service.client.calls) < 4:
             await asyncio.sleep(0)
         if not boundary:
             task.cancel()

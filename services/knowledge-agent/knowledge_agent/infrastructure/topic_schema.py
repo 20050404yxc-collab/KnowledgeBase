@@ -2,16 +2,25 @@
 # 层：Python infrastructure
 # 作用：迁移主题、补充与可重建词法索引。
 # 说明：迁移事务前建立一致性恢复点，SQL 触发器同步所有写入路径。
+import re
 import sqlite3
 from contextlib import closing
 from pathlib import Path
 
 from knowledge_agent.domain.knowledge_rules import tokens
+from knowledge_agent.domain.taxonomy import PREFIX, classification
 
 
 # 分词函数由连接拥有，触发器与检索使用相同的中文双字及英文词规则。
 def register_tokens(db: sqlite3.Connection) -> None:
-    db.create_function("kb_tokens", 1, lambda value: " ".join(sorted(tokens(value or ""))))
+    # 只解码自身分类编码，让现有触发器仍索引人可读分类；旧数据无需迁移。
+    def tokenize(value: str | None) -> str:
+        text = re.sub(
+            re.escape(PREFIX) + r"[0-9a-f]+", lambda m: classification(m[0])["theme"], value or ""
+        )
+        return " ".join(sorted(tokens(text)))
+
+    db.create_function("kb_tokens", 1, tokenize)
 
 
 # 备份先落临时文件再改名，失败不会留下看似完整的恢复点。

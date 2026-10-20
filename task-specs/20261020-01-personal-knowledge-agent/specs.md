@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Revision 6 supersedes the earlier revision-5 draft and is implemented under the user authorization “进行开发”. R5-01..05 are retained with R6-01..03; R4 approval/evidence does not establish these new behaviors.
+
 Revision 4 implements safe reading, independent lexical retrieval, question-point directories and continuing supplements. The user selected lexical-only scope and authorized implementation with "开始修改". R4-01..R4-08 below are locally verified with isolated data and mocked providers; real-provider quality, production migration and semantic search are not claimed.
 
 Revision-3 API/model additions were authorized by "开始修改" and implemented on the test0.03 baseline. Current isolated evidence is in verification.md; prior test0.01 results remain historical and do not substitute for this validation.
@@ -409,6 +411,89 @@ The system SHALL migrate schema 2 to 3 only after a consistent recoverable backu
 - WHEN a schema-3 migration fails mid-transaction then is retried after recovery
 - THEN a consistent backup exists, the failure leaves version/data intact, and retry/reopen produces one valid migrated dataset
 - AND old data remains readable/searchable with unchanged IDs, original content and credential identity.
+
+## Revision 5 implemented requirements
+
+### Requirement: R5-01 Qualified reusable knowledge (AC-01/08/14)
+The system SHALL independently review planned candidates before presenting them as learnable knowledge. It SHALL retain reusable concepts, methods and practices, expose exclusion/uncertainty reasons, allow zero accepted points, and prevent unreviewed, rejected or uncertain candidates from automatic generation/capture. Non-knowledge answers SHALL remain viewable without automatic knowledge capture, including direct/related-generation paths.
+
+#### Scenario: Resume facts mixed with technical practices
+- GIVEN company names, dates, project names, responsibility statements and reusable technical methods
+- WHEN planning and qualification complete
+- THEN only qualified reusable points are learnable, with excluded reasons available
+- AND an all-task input yields zero points instead of inventing one; review failure preserves local results without bypassing qualification.
+
+### Requirement: R5-02 Relevant project context first (AC-03/05/08)
+Project-dependent explanation SHALL request relevant project material and verify its sufficiency before generation. General conceptual explanations SHALL NOT assert facts about an unseen user project.
+
+#### Scenario: Missing or irrelevant project material
+- GIVEN a point about how the user's project implements a state machine
+- WHEN no adequate related evidence is associated, including when unrelated files exist
+- THEN the user is asked for specific material and the backend blocks project-specific generation
+- AND adding supported files or snippets reevaluates adequacy without reading entire directories.
+
+### Requirement: R5-03 Explicit public-example consent (AC-05/13/14/15)
+Public-project search SHALL require explicit user permission bound to the current point, scope and visible query terms. Documents, models and ordinary learning actions SHALL NOT grant permission. Strict file-only scope SHALL remain closed to public sources until the user explicitly adds public-source permission for the current point and reconfirms the visible search terms.
+
+#### Scenario: Stale or fabricated permission
+- GIVEN an unconfirmed, cancelled, expired or different-point request
+- WHEN a client or model attempts search or explanation using old consent
+- THEN the backend rejects it without external project requests or capture
+- AND late results cannot update another selection; committed results retain accurate reporting.
+
+### Requirement: R5-04 Real bounded public-project evidence (AC-05/13/14/17)
+After consent the system SHALL perform bounded read-only public GitHub repository/README retrieval, show at most three source-backed candidates and explain the selected example only after user selection. It SHALL preserve source URLs, positions, excerpts and retrieval time, distinguish examples from user-project facts, and never pass private project material into search queries implicitly.
+
+#### Scenario: Retrieval unavailable or hostile
+- GIVEN timeout, rate limit, no suitable result, malicious redirects or source instructions
+- WHEN public-project lookup runs
+- THEN it fails observably or returns verified retrieved candidates without retry, arbitrary host access, cloning or execution
+- AND model memory cannot masquerade as retrieved evidence; public examples cannot become claims about the user's employment.
+
+### Requirement: R5-05 Readable malformed bold without data loss (AC-01/14/16)
+The reader SHALL conservatively repair unambiguous paired bold boundary whitespace in ordinary prose while preserving editable stored source, code, escapes, link targets, legitimate symbols, citations and existing active-content protections. It SHALL NOT delete symbols globally or rewrite old records.
+
+#### Scenario: Screenshot-style malformed Markdown
+- GIVEN `- **整体开发与设备接入： **独立负责` alongside code, escaped stars and references
+- WHEN viewing the document
+- THEN the prose label is bold without exposed formatting stars
+- AND code/escapes and source editing remain unchanged, citations are usable and unsafe content remains blocked.
+
+## Revision 6 implemented requirements
+
+### Requirement: R6-01 Independent page contents and request ownership (AC-01/13/15)
+Exploration, frequent, learning and archived sections SHALL have independent page contexts. Entering a bucket SHALL immediately show its own list/loading/empty view without exploration composer, directory, answer or recommendations. Filters, selections, scroll and reading state SHALL belong to each page; returning to exploration SHALL retain completed content and drafts. Unsaved note drafts SHALL NOT be silently discarded.
+
+#### Scenario: Search in exploration, then switch with slow requests
+- GIVEN exploration has search results and an answer, plus a pending list/detail request
+- WHEN the user switches among all three frequency sections and returns
+- THEN each initial view contains only that section's matched state, never old rows from another query/page
+- AND late success/error/progress/cleanup cannot overwrite another page, clear a new request or navigate back to exploration
+- AND precommit cancellation and completed-save reporting remain accurate, without deleting original files.
+
+### Requirement: R6-02 Library-informed category and subcategory planning (AC-02/05/08)
+Planning SHALL explicitly organize qualified points under category and subcategory. In an allowed library scope it SHALL prioritize semantically matching existing classification paths and related knowledge before inferring necessary new paths. Project-specific implementation SHALL remain distinct from reusable language/framework/method knowledge, with relationships rather than duplicate general concepts.
+
+#### Scenario: Mixed project, C++ and Qt question
+- GIVEN an existing library contains appropriate categories beyond the first six content hits
+- WHEN planning a mixed question
+- THEN the directory reuses relevant category/subcategory paths, infers missing classes as needed and displays concrete knowledge leaves
+- AND project names may supply category context but are not knowledge leaves by themselves; unknown classification stays reviewable instead of forced merging.
+
+#### Scenario: File-only scope and bounded context
+- GIVEN file-only scope or a taxonomy exceeding the context budget
+- WHEN building classification context
+- THEN file-only planning does not read/send library taxonomy, while other scopes disclose actual summary coverage
+- AND a partial set of note hits is not represented as full-library taxonomy.
+
+### Requirement: R6-03 Compatible durable classification independent of usage buckets (AC-08/11/16/19)
+New classifications SHALL survive capture, search, supplementation, restart and later planning without modifying usage-frequency policy. Existing flat themes, note identities and manual content SHALL remain compatible, with no automatic reclassification, movement or merging.
+
+#### Scenario: Save hierarchical knowledge beside a legacy theme
+- GIVEN legacy unstructured themes and a newly classified point
+- WHEN saving, restarting and planning a later related question
+- THEN the new category/subcategory remains available and reusable, and supplements retain the target classification
+- AND legacy themes are preserved without guessed splitting, category-name delimiter characters remain unambiguous, and frequency buckets do not become classification categories.
 
 ## REMOVED Requirements
 

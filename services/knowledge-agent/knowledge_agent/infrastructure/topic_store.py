@@ -8,6 +8,7 @@ import sqlite3
 import uuid
 
 from knowledge_agent.domain.knowledge_rules import identity, now, relevance, tokens, validate_note
+from knowledge_agent.domain.taxonomy import classification
 
 from .topic_schema import populate_index
 
@@ -20,6 +21,27 @@ def excerpt(text: str, query: str) -> str:
 
 
 class TopicStorage:
+    # 遍历完整分类集合后按相关度选入有界摘要，不把近期知识当成全库分类。
+    def taxonomy_summary(self, query: str) -> dict:
+        rows = self.db.execute(
+            "SELECT coalesce(t.theme,'未分类') AS theme,COUNT(*) AS count FROM knowledge k LEFT JOIN topic_links t ON k.id=t.knowledge_id GROUP BY coalesce(t.theme,'未分类')"
+        ).fetchall()
+        paths = [{**classification(row["theme"]), "count": row["count"]} for row in rows]
+        paths.sort(key=lambda p: (-relevance(query, p["theme"], ""), p["theme"]))
+        selected, size = [], 0
+        for path in paths:
+            length = len(json.dumps(path, ensure_ascii=False))
+            if size + length > 8000:
+                break
+            selected.append(path)
+            size += length
+        return {
+            "paths": selected,
+            "total": len(paths),
+            "included": len(selected),
+            "notice": f"遍历全库 {len(paths)} 个分类，按相关度提供 {len(selected)} 个；旧主题未拆分。",
+        }
+
     # 维护入口原子重建可派生索引，失败回滚且不修改用户知识。
     def rebuild_search_index(self) -> None:
         with self.db:
@@ -44,7 +66,7 @@ class TopicStorage:
             for citation in item["citations"]:
                 citation["retained"] = self.has_source(citation["source_id"])
             supplements.append(item)
-        return {"theme": link[0] if link else "未分类", "supplements": supplements}
+        return {**classification(link[0] if link else "未分类"), "supplements": supplements}
 
     # 原正文和补充的内容版本用于乐观并发校验，不依赖时间戳精度。
     def topic_version(self, item: dict) -> str:
@@ -75,7 +97,8 @@ class TopicStorage:
         while batch := cursor.fetchmany(200):
             # 每批只构造匹配摘要；完整排序稳定使用索引 ID 作为同分键。
             for row in batch:
-                score = relevance(query, row["theme"] + " " + row["title"], row["body"])
+                path = classification(row["theme"])
+                score = relevance(query, path["theme"] + " " + row["title"], row["body"])
                 if score <= 0:
                     continue
                 if params.get("bucket"):
@@ -85,6 +108,7 @@ class TopicStorage:
                     ):
                         continue
                 hit = {key: row[key] for key in ("id", "kind", "knowledge_id", "title", "theme")}
+                hit.update(path)
                 hit["knowledge_id"] = hit["knowledge_id"] or ""
                 hit["excerpt"] = excerpt(row["body"], query)
                 if row["kind"] == "source":

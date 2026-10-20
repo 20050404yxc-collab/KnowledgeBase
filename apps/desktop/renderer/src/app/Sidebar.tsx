@@ -8,7 +8,7 @@ import { sections, icons } from './navigation'
 
 // 显示知识分区导航并切换当前页面。
 export function Sidebar() {
-  const { section, setSection, setFilter, loadUsage } = useAppContext()
+  const { section, setSection, loadUsage } = useAppContext()
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -29,7 +29,6 @@ export function Sidebar() {
               className={`nav-item ${section === name ? 'active' : ''}`}
               onClick={() => {
                 setSection(name)
-                setFilter('')
                 if (name === '用量统计') {
                   void loadUsage()
                 }

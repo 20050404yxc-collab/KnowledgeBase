@@ -9,7 +9,7 @@ import { KnowledgeGrid } from './KnowledgeGrid'
 
 // 组合知识列表、空状态及新建入口。
 export function KnowledgeList() {
-  const { section, filter, setFilter, items, setEditor } = useAppContext()
+  const { section, filter, setFilter, items, setEditor, listLoading } = useAppContext()
   return (
     <section className="knowledge-section">
       <div className="section-title">
@@ -25,7 +25,9 @@ export function KnowledgeList() {
           onChange={(event) => setFilter(event.target.value)}
         />
       </div>
-      {items.length ? (
+      {listLoading ? (
+        <p role="status">正在加载本页知识…</p>
+      ) : items.length ? (
         <KnowledgeGrid />
       ) : (
         <div className="empty-state">

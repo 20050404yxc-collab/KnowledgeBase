@@ -4,6 +4,8 @@
 // 说明：每个 DTO 字段均由对应校验器覆盖，不信任 JSON 类型断言。
 import type {
   Answer,
+  ProjectContext,
+  PublicProject,
   Supplement,
   SearchHit,
   SearchResult,
@@ -85,6 +87,8 @@ const supplement = object<Supplement>({
 const kind: Check<SearchHit['kind']> = (value): value is SearchHit['kind'] =>
   value === 'knowledge' || value === 'supplement' || value === 'source'
 const searchHit = object<SearchHit>({
+  category: optional(string),
+  subcategory: optional(string),
   id: string,
   kind,
   knowledge_id: string,
@@ -100,6 +104,13 @@ const searchResult = object<SearchResult>({
   notice: string
 })
 const directoryPoint = object<DirectoryPoint>({
+  category: optional(string),
+  subcategory: optional(string),
+  reason: optional(string),
+  project_required: optional(boolean),
+  project_revision: optional(string),
+  material_request: optional(string),
+  search_terms: optional(string),
   id: string,
   title: string,
   theme: string,
@@ -110,12 +121,15 @@ const directoryPoint = object<DirectoryPoint>({
   candidates: array(object({ id: string, title: string, theme: string }))
 })
 const questionPlan = object<QuestionPlan>({
+  excluded: optional(array(object({ title: string, decision: string, reason: string }))),
   plan_id: string,
   points: array(directoryPoint),
   search: searchResult,
   notice: string
 })
 const knowledge = object<Knowledge>({
+  category: optional(string),
+  subcategory: optional(string),
   id: string,
   title: string,
   content: string,
@@ -183,7 +197,24 @@ const attempt = object<Attempt>({
   input_price: nullable(number),
   output_price: nullable(number)
 })
+const publicProject = object<PublicProject>({
+  id: string,
+  name: string,
+  url: string,
+  locator: string,
+  excerpt: string,
+  retrieved_at: string
+})
+const projectContext = object<ProjectContext>({
+  status: string,
+  revision: string,
+  message: string,
+  material_request: string,
+  search_terms: string,
+  candidates: array(publicProject)
+})
 const answer = object<Answer>({
+  project: optional(projectContext),
   content: string,
   knowledge: optional(nullable(knowledge)),
   citations: array(citation),

@@ -13,7 +13,11 @@ import type { Navigation } from './use_navigation'
 // 管理启动摘要、知识检索及资料、接口和用量列表。
 // 本 hook 只持有状态，动作通过显式能力对象访问。
 function useLibraryState() {
-  const [items, setItems] = useState<Knowledge[]>([])
+  const [pageLists, setPageLists] = useState<Record<string, { key: string; items: Knowledge[] }>>(
+    {}
+  )
+  const [failedKey, setFailedKey] = useState('')
+  const currentListKey = useRef('')
   const [sources, setSources] = useState<Source[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [attempts, setAttempts] = useState<Attempt[]>([])
@@ -21,8 +25,11 @@ function useLibraryState() {
   const [dataDir, setDataDir] = useState('')
   const loadSequence = useRef(0)
   return {
-    items,
-    setItems,
+    pageLists,
+    setPageLists,
+    failedKey,
+    setFailedKey,
+    currentListKey,
     sources,
     setSources,
     providers,
@@ -44,6 +51,7 @@ export function useLibrary(options: Feedback & Navigation) {
   const combined = { ...options, ...state }
   const { ready, loadSequence, providers } = state
   const { section, filter } = options
+  state.currentListKey.current = JSON.stringify([section, filter])
   const boot = () => bootAction(combined)
   const reload = () => reloadAction(combined)
   const loadUsage = () => loadUsageAction(combined)
@@ -64,17 +72,42 @@ export function useLibrary(options: Feedback & Navigation) {
     }
   }, [filter, section, ready])
   const activeProvider = providers.find((p) => p.active)
-  return { ...state, boot, reload, loadUsage, activeProvider }
+  const currentKey = JSON.stringify([section, filter])
+  const listLoading = state.pageLists[section]?.key !== currentKey && state.failedKey !== currentKey
+  return {
+    ...state,
+    items: state.pageLists[section]?.key === currentKey ? state.pageLists[section].items : [],
+    listLoading,
+    boot,
+    reload,
+    loadUsage,
+    activeProvider
+  }
 }
 
 // 读取启动摘要，失败保留可重试状态。
 async function bootAction(state: Feedback & Navigation & LibraryState) {
-  const { setError, setItems, setSources, setProviders, setReady, setDataDir } = state
+  const {
+    setError,
+    setPageLists,
+    section,
+    filter,
+    setSources,
+    setProviders,
+    setReady,
+    setDataDir
+  } = state
 
   setError('')
   try {
     const value = await api.request('bootstrap')
-    setItems(value.knowledge)
+    // 启动摘要只适合探索无筛选列表，不能将全库摘要放进其他分区。
+    if (section === '探索' && !filter) {
+      setPageLists((current) => ({
+        ...current,
+        [section]: { key: JSON.stringify([section, filter]), items: value.knowledge }
+      }))
+    }
     setSources(value.sources)
     setProviders(value.providers)
     setDataDir(value.data_dir)
@@ -87,19 +120,30 @@ async function bootAction(state: Feedback & Navigation & LibraryState) {
 
 // 只接纳当前筛选条件对应的最后一次响应。
 async function reloadAction(state: Feedback & Navigation & LibraryState) {
-  const { setError, section, filter, setItems, loadSequence } = state
+  const { setError, section, filter, loadSequence, currentListKey, setPageLists, setFailedKey } =
+    state
+  const key = JSON.stringify([section, filter])
+  // 旧页面的保存回调只能触发原页面刷新，不能抢走当前列表请求。
+  if (key !== currentListKey.current) {
+    return
+  }
 
   const sequence = ++loadSequence.current
+  setFailedKey('')
   try {
     const value = await api.request('knowledge.list', {
       query: filter,
       bucket: isBucket(section) ? section : null
     })
-    if (sequence === loadSequence.current) {
-      setItems(value)
+    if (sequence === loadSequence.current && key === currentListKey.current) {
+      setPageLists((current) => ({ ...current, [section]: { key, items: value } }))
     }
   } catch (err) {
-    setError(errorText(err))
+    // 过期失败与成功一样不能覆盖新页面。
+    if (sequence === loadSequence.current && key === currentListKey.current) {
+      setError(errorText(err))
+      setFailedKey(key)
+    }
   }
 }
 

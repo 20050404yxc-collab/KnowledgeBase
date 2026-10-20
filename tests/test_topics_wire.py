@@ -10,6 +10,7 @@ import pytest
 from knowledge_agent.application.provider_settings import save_provider
 from knowledge_agent.bootstrap import create_client, create_service
 from knowledge_agent.entrypoints.dispatch import dispatch
+from review_fixtures import approved_points
 from test_knowledge import Vault
 from test_providers import parameters, sse
 
@@ -56,6 +57,10 @@ def test_topic_instructions_and_accounting(tmp_path, protocol):
             text = json.dumps(
                 {"points": [{"theme": "网络", "title": "重连退避", "facet": "失败退避"}]}
             )
+        elif len(bodies) == 2:
+            assert '"decisions"' in instructions
+            prompt = body.get("input") or body["messages"][-1]["content"]
+            text = approved_points(json.loads(prompt)["points"])
         else:
             assert "conflict" in instructions
             text = json.dumps(
@@ -87,10 +92,10 @@ def test_topic_instructions_and_accounting(tmp_path, protocol):
 
     try:
         answer = asyncio.run(run())
-        assert len(bodies) == 2 and all(b["model"] == saved["model"] for b in bodies)
+        assert len(bodies) == 3 and all(b["model"] == saved["model"] for b in bodies)
         assert answer["knowledge"]["model"] == saved["model"]
         attempts = service.store.list_attempts()
-        assert {a["purpose"] for a in attempts} == {"topic-plan", "topic-learn"}
+        assert {a["purpose"] for a in attempts} == {"topic-plan", "topic-review", "topic-learn"}
         assert all(a["status"] == "success" and a["cost"] is None for a in attempts)
         assert "_instructions" not in service.store.provider()
     finally:

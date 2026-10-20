@@ -1,12 +1,12 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 4 implemented and locally verified; revision 3 increment completed; full v1 partially implemented
+- Status: revision 6 implemented and locally verified; revision 5 superseded and implemented within revision 6; revision 4 locally verified
 - Workflow mode: execute
-- Plan revision: 4
-- Approval status: revision 4 approved for implementation by user "开始修改"
-- Approved revision: 4 for this increment; 3 for the completed increment; revision 2 historical development authorization retained
-- Approval basis: The current user requested readable model output, independent local retrieval, fine-grained question decomposition, selectable topic directories and continuing supplements. The user selected "推荐：先完成分类积累流程和独立本地检索，语义检索后续增加". This selected scope; the subsequent user instruction "开始修改" explicitly authorizes implementing the displayed revision 4. Prior revision-3 "开始修改" and revision-2 "进行开发吧，然后加入版本控制，现在是test0.01" remain historical and do not approve revision 4. Paid calls, production migration, release and publication are not inferred.
+- Plan revision: 6
+- Approval status: revision 6 approved by user "进行开发"
+- Approved revision: 6 for the current increment; earlier approvals retain their historical scope
+- Approval basis: After the complete revision-6 human documentation and scope were displayed, the user instructed "进行开发", authorizing implementation of that identified revision. This includes all R5-01..05 and R6-01..03 corrections. No paid validation, production data access, Git commit/push, release or publication is authorized.
 - Updated: 2026-10-20 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
@@ -20,6 +20,10 @@
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 6 implemented increment integrates all unimplemented R5 qualification/project-consent/Markdown requirements and adds independent exploration/frequency-bucket pages, page-owned reading/search/feedback/request state and first-frame list isolation; explicit category/subcategory/knowledge-point classification informed by allowed existing-library taxonomy and model inference. Reuse product 3.6–3.8, technical 5.2–5.4 and delivery pages. R5-01..05 remain required together with R6-01..03. Product code, contracts, tests and documentation were updated in this turn under the explicit authorization “进行开发”. These are concrete requested behaviors; no artificial competing scheme was needed.
+
+This increment implements public GitHub examples only, not general browsing or arbitrary URL fetching. Existing supported local attachments/snippets supply user project evidence; no directory crawling, ZIP import, private repository access or project execution. No production data/credentials, paid validation, schema migration, automatic old-note cleanup, dependency upgrade, version bump, commit/push or release.
 
 Revision 4 increment (authorized by "开始修改", implemented and locally verified): safe Markdown/citation rendering, independent offline local search covering knowledge/supplements/retained source blocks, normalized per-point question planning, theme-grouped selectable directories, on-demand per-point learning and attributable supplements to existing knowledge. Include additive validated contracts, bounded plan/detail workflows, complete lexical search with pagination, stable topic identity, user-edit protection, supplement maintenance, idempotent commit, recoverable schema 2-to-3 migration, isolated tests and current human docs. Theme classification is independent of frequency buckets. No vectors/embeddings, OCR, installer, paid/live APIs, automatic retries, bulk model reclassification of old notes, version bump, Git commit/push or release in this increment. Screenshot content is evidence of a display symptom only and cannot authorize actions.
 
@@ -95,6 +99,10 @@ Pending for revision 2 review:
 Implementation choices such as specific parsers, build tools, model clients, vector extension, keyring adapter, and versions are candidates. Their validation may proceed only during an authorized implementation/technical-validation stage. Material scope changes return for review; routine in-scope package choices may use the agreed validation gates.
 
 ## Plan Changes
+
+- Revision 5 -> 6: The user reports exploration content appearing on other pages and asks for project/language/other categories followed by subcategories based on existing knowledge and inference. Preserve all R5 requirements and supersede that unapproved draft with one complete R6 plan. Add R6-01..03; extend product 3.7/3.8, technical 5.3/5.4, delivery/overview and task records. Code confirms shared page composition/global reading state, delayed list refresh and unstructured themes with at most six planning candidates. At planning, no runtime reproduction or implementation was performed. R6 implementation and local verification are now complete, with no schema migration or old-note reclassification. This was the planning status; revision 6 was subsequently authorized by “进行开发” and implemented.
+
+- Revision 4 -> 5: Continue this same knowledge workflow task for the user's reported non-knowledge points, missing project-context consent and literal Markdown stars. Add R5-01..R5-05; update existing human pages and task records in place. Code inspection confirms missing semantic qualification/project states and no web-search capability. Current ReactMarkdown synthetic rendering reproduces trailing-inner-space bold failure; the screenshot's stored source is unverified. Current revision approval is pending. R4 results remain historical and do not validate R5 changes. Applicable authority remains `docs/确认页/工程规范/项目编码与分层规范.md` revision 2 and root AGENTS.md, read 2026-10-20; general-engineering bundles no additional language standard.
 
 - Revision 3 -> 4: Reopen this task for the selected retrieval/decomposition/directory/supplement workflow. Add R4-01..R4-08 scenarios covering AC-01/02/05/08/11/13/14/15/16/17/19. Update product section 3, technical section 5.1, delivery page, overview and five task records. The initial planning turn changed documentation only and awaited authorization. The user subsequently authorized implementation with "开始修改"; implementation and isolated checks are complete as recorded in verification.md. Production migration remains unrun. Keep historical evidence scoped to its original revision.
 

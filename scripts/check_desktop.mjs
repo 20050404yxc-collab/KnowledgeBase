@@ -274,6 +274,10 @@ try {
   await closeApp(ui)
   report.checks.push('graceful Electron shutdown')
   ui = await launch()
+  await waitFor(
+    () => ui.evaluate(`document.querySelector('.knowledge-card') !== null`),
+    'initial page list loaded after restart'
+  )
   assert.ok(
     await ui.evaluate(
       `document.querySelector('.knowledge-card')?.innerText.includes('数据库事务与一致性')`
@@ -291,7 +295,7 @@ try {
     'usage screen'
   )
   report.checks.push('offline operations incur no API attempts')
-  await checkModelUi({ ui, fill, click, waitFor, screenshot, report })
+  await checkModelUi({ ui, fill, click, waitFor, screenshot, report, attachmentPath: fixture })
   const processes = await new Promise((resolve, reject) => {
     const probe = spawn(
       'powershell.exe',

@@ -9,6 +9,8 @@ from collections import OrderedDict
 
 from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.provider_rules import resolve_generation
+from knowledge_agent.domain.taxonomy import encode_path
+from knowledge_agent.domain.topic_review import review_points
 from knowledge_agent.domain.topic_rules import (
     MAX_SESSIONS,
     json_object,
@@ -16,7 +18,8 @@ from knowledge_agent.domain.topic_rules import (
     validate_plan,
 )
 
-from .ports import Emit, Generator, QuestionRepository
+from .ports import Emit, Generator, PublicProjectReader, QuestionRepository
+from .project_learning import ProjectLearning
 from .question_locks import QuestionLocks
 from .questions import Questions, select_evidence, validate_question
 from .topic_context import file_hits, learning_context, require_attachments
@@ -36,12 +39,19 @@ def detail_result(item: dict | None, draft: dict, notice: str, review: bool = Fa
 
 class TopicWorkflow:
     # 会话与互斥只归本用例所有，应用关闭即释放，不作为正式知识存储。
-    def __init__(self, store: QuestionRepository, client: Generator, questions: Questions) -> None:
+    def __init__(
+        self,
+        store: QuestionRepository,
+        client: Generator,
+        questions: Questions,
+        projects: PublicProjectReader,
+    ) -> None:
         self.store = store
         self.client = client
         self.questions = questions
         self.sessions: OrderedDict[str, dict] = OrderedDict()
         self.locks = QuestionLocks()
+        self.projects = ProjectLearning(projects, questions.documents)
 
     # 独立搜索默认全库；显式附件范围按本次文件优先、知识库随后稳定分页。
     def search(self, params: dict) -> dict:
@@ -126,6 +136,8 @@ class TopicWorkflow:
         if not config:
             return response
         config = resolve_generation(config, params)
+        taxonomy = self.store.taxonomy_summary(query) if scope != "files" else None
+        coverage += (" " + taxonomy["notice"]) if taxonomy else ""
         emit({"type": "progress", "message": "正在细化问题并组织知识目录"})
         prompt = {
             "question": query,
@@ -133,6 +145,7 @@ class TopicWorkflow:
             "scope": scope,
             "evidence": evidence,
             "coverage_notice": coverage,
+            "taxonomy": taxonomy,
             "candidates": [
                 {"id": k["id"], "title": k["title"], "theme": k["theme"]} for k in local
             ],
@@ -142,13 +155,29 @@ class TopicWorkflow:
                 config, json.dumps(prompt, ensure_ascii=False), "topic-plan", emit
             )
             points = validate_plan(text, query, local, evidence)
+            emit({"type": "progress", "message": "正在独立判断知识点资格、项目依赖与两级分类"})
+            review = await self.client.generate(
+                config,
+                json.dumps({**prompt, "points": points}, ensure_ascii=False),
+                "topic-review",
+                emit,
+            )
+            points, rejected = review_points(review, points)
         except (ValueError, TypeError):
-            response["notice"] = "知识点拆解失败，本地检索结果已保留；请重试或更换模型。"
+            response["notice"] = (
+                "知识点拆解失败或审核未通过，未放行未审核知识点；本地结果保留，请重试。"
+            )
             return response
         session_id = str(uuid.uuid4())
+        for point in points:
+            # 许可挑战由程序颁发，模型无法在规划响应中生成有效授权。
+            if point.get("project_required"):
+                point["project_revision"] = str(uuid.uuid4())
         # 有界会话淘汰后拒绝晚到写入，界面应重新拆解。
         while len(self.sessions) >= MAX_SESSIONS:
-            self.sessions.popitem(last=False)
+            _, expired = self.sessions.popitem(last=False)
+            expired["projects"].clear()
+            expired["pending"].clear()
         self.sessions[session_id] = {
             "query": query,
             "scope": scope,
@@ -160,20 +189,49 @@ class TopicWorkflow:
             "coverage_notice": coverage,
             "pending": {},
             "completed": {},
+            "projects": {},
         }
         return {
             **response,
             "plan_id": session_id,
             "points": points,
-            "notice": "目录已整理；选择知识点查看或学习。目录标签尚未收录。" + coverage,
+            "excluded": rejected,
+            "notice": ("目录已独立审核；选择知识点学习。" if points else "没有合格的可学习知识点。")
+            + coverage,
         }
 
-    # 同一目录项串行处理，目标变更时存储在提交边界再次校验。
+    # 取消也撤销项目许可，不能让后续普通学习沿用取消前的公开授权。
     async def learn(self, params: dict, emit: Emit) -> dict:
+        try:
+            return await self._learn(params, emit)
+        except asyncio.CancelledError:
+            session = self.sessions.get(params.get("plan_id"))
+            point = (
+                next((p for p in session["points"] if p["id"] == params.get("point_id")), None)
+                if session
+                else None
+            )
+            if point and point.get("project_required"):
+                self.projects.revoke(session, point)
+            raise
+
+    # 同一目录项串行处理，目标变更时存储在提交边界再次校验。
+    async def _learn(self, params: dict, emit: Emit) -> dict:
         config = self.store.provider(params.get("provider_id"))
         session_id, point_id = params.get("plan_id"), params.get("point_id")
         if not isinstance(session_id, str) or not isinstance(point_id, str):
             raise ValueError("目录标识无效")
+        # 撤销必须越过生成锁，不能等网络返回之后才撤销提交许可。
+        if params.get("action") == "revoke":
+            session = self.sessions.get(session_id)
+            point = (
+                next((p for p in session["points"] if p["id"] == point_id), None)
+                if session
+                else None
+            )
+            if not point or not point.get("project_required"):
+                raise ValueError("项目目录已过期")
+            return self.projects.revoke(session, point)
         async with self.locks.acquire(session_id + ":" + point_id):
             session = self.sessions.get(session_id)
             if not session:
@@ -188,11 +246,19 @@ class TopicWorkflow:
             action = params.get("action", "learn")
             if action in ("confirm", "separate"):
                 return await self.confirm(session_id, session, point, action)
-            if action not in ("learn", "supplement"):
+            if action not in ("learn", "supplement", "materials", "public-search", "public-select"):
                 raise ValueError("无效学习操作")
             if not config:
                 raise ValueError("尚未配置生成接口；已有知识仍可直接阅读")
             config = resolve_generation(config, params)
+            if point.get("project_required"):
+                gate = await self.projects.prepare(
+                    session, point, params, self.client, config, emit
+                )
+                if gate:
+                    return gate
+            elif action not in ("learn", "supplement"):
+                raise ValueError("此知识点不需要项目操作")
             return await self.generate(session_id, session, point, params, config, emit)
 
     # 针对明确选中的侧面生成，保守地将所有目标补充先交用户核对。
@@ -206,14 +272,22 @@ class TopicWorkflow:
         if params.get("action") == "supplement" and not target:
             raise ValueError("请先选择补充到哪条已有知识")
         current = self.store.get(target) if target else None
-        evidence, existing, coverage = learning_context(session, current)
+        context, project_state = (
+            self.projects.context(session, point)
+            if point.get("project_required")
+            else (session, None)
+        )
+        evidence, existing, coverage = learning_context(context, current)
         prompt = {
             "question": session["query"],
-            "scope": session["scope"],
+            "scope": "public-example"
+            if project_state and project_state["status"] == "public-ready"
+            else session["scope"],
             "point": point,
             "evidence": evidence,
             "existing": existing,
             "coverage_notice": coverage,
+            "project_mode": project_state["status"] if project_state else "general",
             "task": "只生成选中侧面的新知识；已有知识只补缺口，不重写原文；冲突请明确标注",
         }
         emit({"type": "progress", "message": "正在生成选中的知识点；完整校验后才可收录"})
@@ -223,11 +297,18 @@ class TopicWorkflow:
         raw = json_object(text)
         if "conflict" in raw and type(raw["conflict"]) is not bool:
             raise ValueError("冲突状态无效，未收录")
-        result = validate_answer(text, evidence, session["scope"] == "files")
+        result = validate_answer(text, evidence, session["scope"] == "files" or bool(project_state))
+        # 外部示例的标识由程序加入正文，不能依靠模型自觉区分用户经历。
+        if project_state and project_state["status"] == "public-ready":
+            c = project_state["selected"]
+            result["content"] = (
+                f"公开项目示例：{c['name']}。以下解释仅针对公开资料，不代表你的项目或工作经历。\n\n"
+                + result["content"]
+            )
         draft = {
             **result,
             "title": point["title"],
-            "theme": point["theme"],
+            "theme": point.get("storage_theme", point["theme"]),
             "model": config["model"],
             "provider_name": config["name"],
             "target_id": target,
@@ -239,6 +320,9 @@ class TopicWorkflow:
         if self.sessions.get(session_id) is not session:
             raise ValueError("目录已过期，结果未收录")
         require_attachments(self.questions.documents, session)
+        if project_state:
+            self.projects.check(session, point, project_state)
+            draft["project_revision"] = project_state["revision"]
         if result.get("insufficient"):
             return self.result(None, draft, "依据不足，未收录。")
         if target or raw.get("conflict"):
@@ -256,13 +340,22 @@ class TopicWorkflow:
         draft = dict(draft)
         if action == "separate":
             draft["target_id"] = ""
-            draft["theme"] += "／独立补充"
+            # 编码分类保持完整；独立保存通过标题区分，不破坏两级路径。
+            if point.get("category"):
+                draft["theme"] = encode_path(point["category"], point["subcategory"])
+                draft["title"] += "（独立补充）"
+            else:
+                draft["theme"] += "／独立补充"
         elif not draft["target_id"]:
             raise ValueError("无补充目标，请选择独立保存")
         await asyncio.sleep(0)
         if self.sessions.get(session_id) is not session:
             raise ValueError("目录已过期，未提交")
         require_attachments(self.questions.documents, session)
+        if point.get("project_required"):
+            _, state = self.projects.context(session, point)
+            if not state or draft.get("project_revision") != state["revision"]:
+                raise ValueError("项目依据或授权已变化，请重新生成")
         item = self.store.capture_topic(draft)
         session["completed"][point["id"]] = item["id"]
         session["pending"].pop(point["id"], None)

@@ -58,7 +58,7 @@ export function useKnowledge(options: Feedback & Library & Reading) {
         setAnswer(null)
         setRecommendations([])
       }
-      setEditor(null)
+      setEditor((current) => (current === editor ? null : current))
       setMessage('知识已保存')
       void reload()
     })

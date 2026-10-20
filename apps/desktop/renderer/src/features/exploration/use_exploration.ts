@@ -87,7 +87,6 @@ async function askAction(
   const {
     setError,
     setMessage,
-    setSection,
     reload,
     setAnswer,
     setSelected,
@@ -142,14 +141,18 @@ async function askAction(
     // 只在完整终态到达后展示知识和推荐，流片段不表示收录。
     setSelected(value.knowledge ?? null)
     setRecommendations(value.recommendations)
-    setSection('探索')
   } catch (err) {
-    setError(errorText(err))
+    // 选择已改变时只结束原请求，不将错误写入当前阅读流程。
+    if (sequence === state.selectionSequence.current) {
+      setError(errorText(err))
+    }
   } finally {
-    // 所有终态释放忙碌状态，旧事件之后不会再被认作当前请求。
-    activeRequest.current = null
-    setBusy(null)
-    setProgress('')
+    // 只释放自己的请求；旧终态不得清空新请求。
+    if (activeRequest.current === id) {
+      activeRequest.current = null
+      setBusy(null)
+      setProgress('')
+    }
   }
 }
 

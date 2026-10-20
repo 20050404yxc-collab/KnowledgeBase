@@ -18,6 +18,7 @@ from knowledge_agent.bootstrap import create_service
 from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.entrypoints.dispatch import dispatch
 from knowledge_agent.entrypoints.protocol_runtime import parse_message
+from review_fixtures import approved_question
 from test_knowledge import Vault, config
 
 
@@ -29,6 +30,8 @@ def test_cancel_at_final_commit_checkpoint(tmp_path):
     class Client:
         # 将取消排入当前任务，模拟完整文本到达时用户同时点击取消。
         async def generate(self, *_args):
+            if _args[2] == "question-review":
+                return approved_question()
             asyncio.current_task().cancel()
             return json.dumps({"title": "提交边界", "content": "完整正文", "citation_ids": []})
 

@@ -9,6 +9,8 @@ import { useAppContext } from './AppContext'
 import { Sidebar } from './Sidebar'
 import { Topbar } from './Topbar'
 import { ExplorationPage } from '../features/exploration/ExplorationPage'
+import { KnowledgePage } from '../features/knowledge/KnowledgePage'
+import { isBucket } from '../../../shared/protocol_validation'
 import { SourcesPage } from '../features/sources/SourcesPage'
 import { ProvidersPage } from '../features/providers/ProvidersPage'
 import { UsagePage } from '../features/usage/UsagePage'
@@ -30,14 +32,14 @@ export function App() {
 }
 // 根布局只组合导航、页面与对话框。
 function AppShell() {
-  const { setError, bodySection, editor, citation, busy, pathEntry, addFiles } = useAppContext()
+  const { setError, section, editor, citation, busy, pathEntry, addFiles } = useAppContext()
   return (
     <div
       className="app"
       onDragOver={(event) => event.preventDefault()}
       onDrop={(event) => {
         event.preventDefault()
-        if (!bodySection || busy) {
+        if (section !== '探索' || busy) {
           return
         }
         try {
@@ -54,15 +56,14 @@ function AppShell() {
       </main>
       {editor && <NoteEditor />}
       {citation && <CitationDialog />}
-      {pathEntry !== null && <PathDialog />}
+      {section === '探索' && pathEntry !== null && <PathDialog />}
     </div>
   )
 }
 
 // 内容区负责页面选择，具体功能由各页面处理。
 function AppContent() {
-  const { error, setError, message, setMessage, ready, boot, section, bodySection } =
-    useAppContext()
+  const { error, setError, message, setMessage, ready, boot, section } = useAppContext()
   return (
     <div className="content">
       {error && (
@@ -87,7 +88,8 @@ function AppContent() {
           <button onClick={() => void boot()}>重新连接</button>
         </div>
       )}
-      {bodySection && <ExplorationPage />}
+      {section === '探索' && <ExplorationPage />}
+      {isBucket(section) && <KnowledgePage key={section} />}
       {section === '资料库' && <SourcesPage />}
       {section === 'API 配置' && <ProvidersPage />}
       {section === '用量统计' && <UsagePage />}

@@ -13,6 +13,8 @@ export interface Citation {
   retained?: boolean
 }
 export interface Knowledge {
+  category?: string
+  subcategory?: string
   id: string
   title: string
   content: string
@@ -42,6 +44,8 @@ export interface Supplement {
   edited: boolean
 }
 export interface SearchHit {
+  category?: string
+  subcategory?: string
   id: string
   kind: 'knowledge' | 'supplement' | 'source'
   knowledge_id: string
@@ -57,6 +61,13 @@ export interface SearchResult {
   notice: string
 }
 export interface DirectoryPoint {
+  category?: string
+  subcategory?: string
+  reason?: string
+  project_required?: boolean
+  project_revision?: string
+  material_request?: string
+  search_terms?: string
   id: string
   title: string
   theme: string
@@ -67,6 +78,7 @@ export interface DirectoryPoint {
   candidates: { id: string; title: string; theme: string }[]
 }
 export interface QuestionPlan {
+  excluded?: { title: string; decision: string; reason: string }[]
   plan_id: string
   points: DirectoryPoint[]
   search: SearchResult
@@ -75,8 +87,38 @@ export interface QuestionPlan {
 export interface LearnInput extends GenerationOptions {
   plan_id: string
   point_id: string
-  action: 'learn' | 'supplement' | 'confirm' | 'separate'
+  action:
+    | 'learn'
+    | 'supplement'
+    | 'confirm'
+    | 'separate'
+    | 'materials'
+    | 'public-search'
+    | 'public-select'
+    | 'revoke'
   target_id?: string
+  attachment_ids?: string[]
+  consent?: boolean
+  public_scope?: boolean
+  search_terms?: string
+  revision?: string
+  candidate_id?: string
+}
+export interface PublicProject {
+  id: string
+  name: string
+  url: string
+  locator: string
+  excerpt: string
+  retrieved_at: string
+}
+export interface ProjectContext {
+  status: string
+  revision: string
+  message: string
+  material_request: string
+  search_terms: string
+  candidates: PublicProject[]
 }
 export interface SupplementInput {
   id: string
@@ -135,6 +177,7 @@ export interface Attempt {
   output_price: number | null
 }
 export interface Answer {
+  project?: ProjectContext
   content: string
   knowledge?: Knowledge | null
   citations: Citation[]

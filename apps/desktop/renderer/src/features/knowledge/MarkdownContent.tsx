@@ -5,6 +5,7 @@
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Citation } from '../../../../../../contracts/desktop'
+import { markdownForDisplay } from './markdown_display'
 
 interface MarkdownNode {
   type: string
@@ -91,7 +92,7 @@ export function MarkdownContent({
           }
         }}
       >
-        {content}
+        {markdownForDisplay(content)}
       </ReactMarkdown>
     </div>
   )

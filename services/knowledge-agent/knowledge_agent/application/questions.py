@@ -11,6 +11,7 @@ from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.knowledge_rules import identity, relevance
 from knowledge_agent.domain.limits import MAX_ATTACHMENTS, MAX_CONTEXT_CHARS, MAX_QUERY_CHARS
 from knowledge_agent.domain.provider_rules import resolve_generation
+from knowledge_agent.domain.topic_review import review_question
 
 from .ports import Emit, Generator, QuestionRepository
 from .question_locks import QuestionLocks
@@ -142,6 +143,25 @@ class Questions:
         if config is None:
             raise ValueError("未配置生成接口")
         config = resolve_generation(config, params)
+        review = review_question(
+            await self.client.generate(
+                config,
+                json.dumps({"question": query, "scope": scope}, ensure_ascii=False),
+                "question-review",
+                emit,
+            )
+        )
+        if review["project_required"]:
+            return {
+                "content": "请使用“拆解并学习”，选择项目知识点并提供相关项目资料，核对充分后再解释。\n\n"
+                + review["reason"],
+                "citations": [],
+                "recommendations": [],
+                "notice": "项目依据尚未核对，未生成、未收录。",
+            }
+        params["_eligible"] = review["eligible"]
+        if not review["eligible"]:
+            notice.append("本次不是可复用知识：" + review["reason"])
         return await self.generate(
             params, emit, query, scope, attachment_ids, selected, notice, config
         )
@@ -252,12 +272,13 @@ class Questions:
         # 这是同步原子提交前的最后取消点；提交之后只能报告实际保存结果。
         await asyncio.sleep(0)
         # 结构合法仍可能依据不足，这条路径返回内容但不执行正式收录。
-        if result.get("insufficient"):
+        if result.get("insufficient") or not params.get("_eligible"):
             return {
-                "content": "文档中未找到足够依据。\n\n" + result["content"],
+                "content": ("文档中未找到足够依据。\n\n" if result.get("insufficient") else "")
+                + result["content"],
                 "citations": result["citations"],
                 "recommendations": [],
-                "notice": "依据不足，未自动收录。" + " ".join(notice),
+                "notice": "依据不足或不属于知识点，未自动收录。" + " ".join(notice),
             }
         # 此后没有异步让出点，原子保存完成就按实际结果报告。
         return self.capture(result, config, query, scope, attachment_ids, notice)

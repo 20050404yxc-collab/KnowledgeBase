@@ -8,8 +8,16 @@ import { useAppContext } from '../../app/AppContext'
 
 // 提供笔记保存、删除及分区设置操作。
 export function NoteFooter() {
-  const { guarded, reload, setAnswer, selected, setSelected, setRecommendations, setEditor } =
-    useAppContext()
+  const {
+    guarded,
+    reload,
+    setAnswer,
+    selected,
+    setSelected,
+    setRecommendations,
+    setEditor,
+    selectionSequence
+  } = useAppContext()
   if (!selected) {
     return null
   }
@@ -33,10 +41,14 @@ export function NoteFooter() {
           onClick={() => {
             if (confirm('删除这条知识？所属补充、索引与使用记录会一并删除，此操作不可撤销。')) {
               void guarded(async () => {
+                const sequence = selectionSequence.current
                 await api.request('knowledge.delete', { id: selected.id })
-                setSelected(null)
-                setAnswer(null)
-                setRecommendations([])
+                // 删除原条目成功也不能清空之后主动选择的另一条知识。
+                if (sequence === selectionSequence.current) {
+                  setSelected(null)
+                  setAnswer(null)
+                  setRecommendations([])
+                }
                 void reload()
               })
             }

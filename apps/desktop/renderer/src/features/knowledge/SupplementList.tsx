@@ -10,38 +10,8 @@ import { MarkdownContent } from './MarkdownContent'
 
 // 每个补充单独管理编辑状态，不替换原笔记。
 function SupplementItem({ item }: { item: Supplement }) {
-  const { selected, setSelected, setCitation, guarded, reload, selectionSequence } = useAppContext()
-  const [draft, setDraft] = useState<string | null>(null)
-  const [saving, setSaving] = useState(false)
-  // 并发版本由后台复核；失败保留输入供用户恢复。
-  async function maintain(remove: boolean) {
-    if (!selected?.version || saving) {
-      return
-    }
-    if (remove && !confirm('删除这条补充？原笔记保留，删除后将同步移除该补充的检索记录。')) {
-      return
-    }
-    setSaving(true)
-    const sequence = selectionSequence.current
-    try {
-      await guarded(async () => {
-        const value = await api.request(remove ? 'supplements.delete' : 'supplements.save', {
-          id: item.id,
-          knowledge_id: selected.id,
-          version: selected.version ?? '',
-          title: item.title,
-          content: draft ?? item.content
-        })
-        if (sequence === selectionSequence.current) {
-          setSelected(value)
-          setDraft(null)
-        }
-        await reload()
-      })
-    } finally {
-      setSaving(false)
-    }
-  }
+  const { draft, setDraft, saving, maintain } = useSupplementEdit(item)
+  const { setCitation } = useAppContext()
   return (
     <section className="supplement-item">
       <h3>新增补充 · {item.title}</h3>
@@ -109,4 +79,51 @@ export function SupplementList() {
       ))}
     </>
   )
+}
+
+// 编辑草稿归页面所有，切页卸载展示组件后仍可恢复。
+function useSupplementEdit(item: Supplement) {
+  const {
+    selected,
+    setSelected,
+    guarded,
+    reload,
+    selectionSequence,
+    supplementDrafts,
+    setSupplementDrafts
+  } = useAppContext()
+  const draft = supplementDrafts[item.id] ?? null
+  const setDraft = (value: string | null) =>
+    setSupplementDrafts((current) => ({ ...current, [item.id]: value }))
+  const [saving, setSaving] = useState(false)
+  // 并发版本由后台复核；失败保留输入供用户恢复。
+  async function maintain(remove: boolean) {
+    if (!selected?.version || saving) {
+      return
+    }
+    if (remove && !confirm('删除这条补充？原笔记保留，删除后将同步移除该补充的检索记录。')) {
+      return
+    }
+    setSaving(true)
+    const sequence = selectionSequence.current
+    try {
+      await guarded(async () => {
+        const value = await api.request(remove ? 'supplements.delete' : 'supplements.save', {
+          id: item.id,
+          knowledge_id: selected.id,
+          version: selected.version ?? '',
+          title: item.title,
+          content: draft ?? item.content
+        })
+        if (sequence === selectionSequence.current) {
+          setSelected(value)
+          setDraft(null)
+        }
+        await reload()
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+  return { draft, setDraft, saving, maintain }
 }

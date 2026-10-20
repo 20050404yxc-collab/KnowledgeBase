@@ -8,7 +8,15 @@ from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .attachments import Attachments
 from .model_catalog import discover_models
-from .ports import CatalogReader, CredentialVault, Emit, Generator, Repository, SnapshotFiles
+from .ports import (
+    CatalogReader,
+    CredentialVault,
+    Emit,
+    Generator,
+    PublicProjectReader,
+    Repository,
+    SnapshotFiles,
+)
 from .questions import Questions
 from .recommendations import Recommendations
 from .topic_workflow import TopicWorkflow
@@ -24,6 +32,7 @@ class KnowledgeService:
         snapshots: SnapshotFiles,
         data_dir: str,
         catalog: CatalogReader,
+        projects: PublicProjectReader,
     ) -> None:
         self.store = store
         self.vault = vault
@@ -34,7 +43,7 @@ class KnowledgeService:
         self.attachments = self.attachment_usecase.documents
         self.cards = Recommendations(store)
         self.questions = Questions(store, client, self.attachments, self.cards)
-        self.topics = TopicWorkflow(store, client, self.questions)
+        self.topics = TopicWorkflow(store, client, self.questions, projects)
         self.closed = False
         self.catalog = catalog
 

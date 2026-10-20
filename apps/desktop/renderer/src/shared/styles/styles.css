@@ -1427,6 +1427,43 @@ td small {
   display: flex;
   gap: 12px;
 }
+.directory-subgroup {
+  margin-left: 12px;
+  border-left: 2px solid #d9dfd4;
+  padding-left: 12px;
+}
+.project-context {
+  margin-top: 16px;
+  padding: 14px;
+  background: #f4f6ef;
+  border: 1px solid #d9dfd4;
+  border-radius: 12px;
+}
+.project-context label {
+  display: block;
+  margin: 12px 0;
+}
+.project-context input:not([type='checkbox']) {
+  width: 100%;
+  min-width: 0;
+  margin-top: 6px;
+}
+.public-project {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px solid #d9dfd4;
+}
+.public-project pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 180px;
+  overflow: auto;
+}
+.excluded-points {
+  padding: 12px;
+  font-size: 13px;
+  color: #686e60;
+}
 @media (max-width: 1050px) {
   .knowledge-workspace {
     grid-template-columns: minmax(0, 1fr);

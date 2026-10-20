@@ -8,10 +8,11 @@ import httpx
 
 from .application.generation import ProviderClient
 from .application.knowledge_service import KnowledgeService
-from .application.ports import CredentialVault, Generator
+from .application.ports import CredentialVault, Generator, PublicProjectReader
 from .infrastructure.file_snapshots import FileSnapshots
 from .infrastructure.model_catalog import ModelCatalog
 from .infrastructure.model_transport import ModelTransport
+from .infrastructure.public_projects import PublicProjects
 from .infrastructure.secret_vault import SecretVault
 from .infrastructure.sqlite_store import Store
 
@@ -25,7 +26,10 @@ def create_client(
 
 # 装配失败也关闭已经创建的资源，防止残留数据库连接。
 def create_service(
-    data_dir: Path, vault: CredentialVault | None = None, client: Generator | None = None
+    data_dir: Path,
+    vault: CredentialVault | None = None,
+    client: Generator | None = None,
+    projects: PublicProjectReader | None = None,
 ) -> KnowledgeService:
     store = Store(data_dir)
     snapshots = None
@@ -34,7 +38,13 @@ def create_service(
         snapshots = FileSnapshots(store.root)
         generator = client if client is not None else create_client(store, credentials)
         return KnowledgeService(
-            store, credentials, generator, snapshots, str(store.root), ModelCatalog()
+            store,
+            credentials,
+            generator,
+            snapshots,
+            str(store.root),
+            ModelCatalog(),
+            projects if projects is not None else PublicProjects(),
         )
     except Exception:
         store.close()

@@ -5,6 +5,7 @@
 import type { SearchHit } from '../../../../../../contracts/desktop'
 import { useAppContext } from '../../app/AppContext'
 import { MarkdownContent } from '../knowledge'
+import { ProjectPanel } from './ProjectPanel'
 
 // 本地结果明确标识类型与摘录，分页条件保留于搜索请求中。
 function LocalResults() {
@@ -93,6 +94,8 @@ function PointActions() {
     <section className="point-actions">
       <h3>{selectedPoint.title}</h3>
       <p>{selectedPoint.facet}</p>
+      <p className="result-notice">{selectedPoint.reason}</p>
+      <ProjectPanel key={selectedPoint.id} />
       {selectedPoint.candidates.length > 0 && (
         <label>
           关联到已有知识
@@ -147,28 +150,54 @@ export function DirectoryPanel() {
   if (!directory && !searchResult) {
     return null
   }
-  const themes = [...new Set(directory?.points.map((point) => point.theme) ?? [])]
+  const categories = [
+    ...new Set(directory?.points.map((point) => point.category ?? point.theme) ?? [])
+  ]
   return (
     <aside className="directory-panel" aria-label="知识目录">
       <h2>知识目录</h2>
-      {themes.map((theme) => (
-        <section key={theme} className="directory-group">
-          <h3>{theme}</h3>
-          {directory?.points
-            .filter((point) => point.theme === theme)
-            .map((point) => (
-              <button
-                key={point.id}
-                className={`directory-point ${selectedPoint?.id === point.id ? 'active' : ''}`}
-                disabled={!!busy}
-                onClick={() => void selectPoint(point)}
-              >
-                <strong>{point.title}</strong>
-                <small>{point.status}</small>
-              </button>
-            ))}
+      {categories.map((category) => (
+        <section key={category} className="directory-group">
+          <h3>{category}</h3>
+          {[
+            ...new Set(
+              directory?.points
+                .filter((p) => (p.category ?? p.theme) === category)
+                .map((p) => p.subcategory ?? '未细分')
+            )
+          ].map((sub) => (
+            <section key={sub} className="directory-subgroup">
+              <h4>{sub}</h4>
+              {directory?.points
+                .filter(
+                  (p) => (p.category ?? p.theme) === category && (p.subcategory ?? '未细分') === sub
+                )
+                .map((point) => (
+                  <button
+                    key={point.id}
+                    className={`directory-point ${selectedPoint?.id === point.id ? 'active' : ''}`}
+                    disabled={!!busy}
+                    onClick={() => void selectPoint(point)}
+                  >
+                    <strong>{point.title}</strong>
+                    <small>{point.status}</small>
+                  </button>
+                ))}
+            </section>
+          ))}
         </section>
       ))}
+      {directory?.excluded?.length ? (
+        <section className="excluded-points">
+          <h3>未纳入学习</h3>
+          {directory.excluded.map((p, i) => (
+            <p key={i}>
+              <strong>{p.title}</strong> · {p.decision === 'clarify' ? '待澄清' : '已排除'}：
+              {p.reason}
+            </p>
+          ))}
+        </section>
+      ) : null}
       <PointActions />
       <LocalResults />
     </aside>
