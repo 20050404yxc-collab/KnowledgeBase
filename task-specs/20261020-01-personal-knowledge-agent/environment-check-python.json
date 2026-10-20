@@ -1,0 +1,27 @@
+{
+  "status": "passed",
+  "python": "3.13.14 (tags/v3.13.14:fd17997, Jun 10 2026, 13:03:48) [MSC v.1944 64 bit (AMD64)]",
+  "sqlite": "3.50.4",
+  "keyring_backend": "keyring.backends.Windows",
+  "ocr_text": "环境检查  Knowledge 123",
+  "ocr_smoke_seconds": 3.542,
+  "checks": [
+    "Pydantic validation and httpx mock transport",
+    "Markdown and DOCX synthetic document roundtrip",
+    "PDF text extraction and PDFium page rendering",
+    "SQLite FTS5 and sqlite-vec Windows extension (English fixture)",
+    "Windows credential synthetic write/read/delete",
+    "RapidOCR CPU offline Chinese/English synthetic image"
+  ],
+  "versions": {
+    "rapidocr": "3.10.0",
+    "onnxruntime": "1.31.0",
+    "pypdfium2": "5.14.0",
+    "pdfplumber": "0.11.10",
+    "pydantic": "2.14.1",
+    "pyinstaller": "6.22.3",
+    "pytest": "9.1.1",
+    "ruff": "0.17.1"
+  },
+  "limitations": "Synthetic environment checks only; no product, real-document quality, Chinese search, provider or installer acceptance."
+}

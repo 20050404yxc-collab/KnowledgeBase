@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "node": "v24.18.0",
+  "electron": "44.9.1",
+  "chromium": "152.0.7977.167",
+  "react": "19.3.1",
+  "typescript": "7.0.2",
+  "checks": [
+    "React rendering",
+    "SWC TSX/native binary",
+    "Vite in-memory bundle",
+    "electron-vite config import",
+    "Electron runtime"
+  ]
+}

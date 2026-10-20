@@ -1,0 +1,30 @@
+{
+  "name": "knowledgebase-development-environment",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Development dependencies only; application implementation is pending.",
+  "engines": {
+    "node": ">=24.18.0 <25",
+    "npm": ">=11 <12"
+  },
+  "packageManager": "npm@11.16.0",
+  "scripts": {
+    "check:env:node": "node scripts/check-node.mjs",
+    "check:env:python": ".venv\\Scripts\\python.exe scripts/check-python.py"
+  },
+  "dependencies": {
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@swc/core": "1.16.18",
+    "@types/node": "24.19.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react-swc": "4.3.3",
+    "electron": "44.9.1",
+    "electron-vite": "6.0.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.4"
+  }
+}

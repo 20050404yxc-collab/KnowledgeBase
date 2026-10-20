@@ -1,0 +1,14 @@
+# Evaluation dependencies; not a final shipping/runtime selection.
+pydantic==2.14.1
+httpx==0.28.1
+keyring==25.7.0
+pyinstaller==6.22.3
+markdown-it-py==4.2.0
+python-docx==1.2.0
+pdfplumber==0.11.10
+sqlite-vec==0.1.9
+rapidocr==3.10.0
+onnxruntime==1.31.0
+pypdfium2==5.14.0
+pytest==9.1.1
+ruff==0.17.1
