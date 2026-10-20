@@ -33,7 +33,15 @@ def test_cancel_at_final_commit_checkpoint(tmp_path):
             if _args[2] == "question-review":
                 return approved_question()
             asyncio.current_task().cancel()
-            return json.dumps({"title": "提交边界", "content": "完整正文", "citation_ids": []})
+            return json.dumps(
+                {
+                    "category": "计算机基础",
+                    "subcategory": "数据库",
+                    "title": "提交边界",
+                    "content": "完整正文",
+                    "citation_ids": [],
+                }
+            )
 
     service.client = Client()
     try:

@@ -24,7 +24,7 @@ export function Sidebar() {
       <nav>
         {sections.map((name, index) => (
           <React.Fragment key={name}>
-            {index === 5 && <div className="nav-divider" />}
+            {name === 'API 配置' && <div className="nav-divider" />}
             <button
               className={`nav-item ${section === name ? 'active' : ''}`}
               onClick={() => {

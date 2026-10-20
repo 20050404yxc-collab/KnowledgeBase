@@ -7,7 +7,10 @@ import { useAppContext } from '../../app/AppContext'
 
 // 显示当前请求进度和已接收文本字符数。
 export function WorkingStatus() {
-  const { progress, streamChars } = useAppContext()
+  const { progress, streamChars, taskOwner, section } = useAppContext()
+  if (taskOwner !== section) {
+    return null
+  }
   return (
     <div className="working" role="status">
       <span className="spinner" />

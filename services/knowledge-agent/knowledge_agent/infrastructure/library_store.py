@@ -1,0 +1,177 @@
+# 文件：library_store.py
+# 层：Python infrastructure
+# 作用：查询完整分层目录并原子应用经确认的知识重构。
+# 说明：复用既有表；恢复点及 SQLite 连接均由仓库拥有。
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+import uuid
+from contextlib import closing
+
+from knowledge_agent.domain.knowledge_rules import BUCKETS, bucket_for, identity, now, relevance
+from knowledge_agent.domain.library_rules import display_path, inventory_version
+from knowledge_agent.domain.taxonomy import classification, encode_path
+
+# 所有分页共享相同边界，树与预览均不发送完整全库正文。
+TREE_PAGE_SIZE = 50
+
+
+class LibraryStorage:
+    # 全量快照按稳定 ID 排序，读取不会增加使用日。
+    def library_inventory(self) -> list[dict]:
+        return [self.get(row[0]) for row in self.db.execute("SELECT id FROM knowledge ORDER BY id")]
+
+    # 先分区和搜索过滤，再按路径聚合；没有旧卡片列表的 200 条限制。
+    def library_tree(self, params: dict) -> dict:
+        query, bucket, path = tree_params(params)
+        grouped, total = {}, 0
+        rows = self.db.execute("""SELECT k.id,k.title,k.content,k.created_at,k.updated_at,
+            k.manual_bucket,t.theme,group_concat(u.day) AS days FROM knowledge k
+            LEFT JOIN topic_links t ON t.knowledge_id=k.id
+            LEFT JOIN uses u ON u.knowledge_id=k.id GROUP BY k.id ORDER BY k.id""")
+        for row in rows:
+            # 频率和正文查询均以完整集合为依据，补充同样可以成为命中来源。
+            current_bucket = bucket_for(
+                row["created_at"],
+                (row["days"] or "").split(",") if row["days"] else [],
+                row["manual_bucket"],
+            )
+            route = display_path(classification(row["theme"] or "未分类"))
+            if bucket and current_bucket != bucket or route[: len(path)] != path:
+                continue
+            if query and not self._library_matches(row, query, route):
+                continue
+            total += 1
+            key = route[len(path)] if len(path) < 2 else row["id"]
+            node = grouped.setdefault(
+                key,
+                {
+                    "key": key,
+                    "label": route[len(path)] if len(path) < 2 else row["title"],
+                    "count": 0,
+                    "id": row["id"] if len(path) == 2 else "",
+                    "bucket": current_bucket if len(path) == 2 else "",
+                },
+            )
+            node["count"] += 1
+        values = sorted(grouped.values(), key=lambda node: (node["label"], node["key"]))
+        revision = hashlib.sha256(json.dumps(values, ensure_ascii=False).encode()).hexdigest()
+        offset = tree_offset(params.get("cursor", ""), revision)
+        end = offset + TREE_PAGE_SIZE
+        return {
+            "nodes": values[offset:end],
+            "total": total,
+            "revision": revision,
+            "next_cursor": f"{revision}:{end}" if end < len(values) else "",
+        }
+
+    # 避免将补充全文传给界面，但搜索覆盖全部补充内容。
+    def _library_matches(self, row: sqlite3.Row, query: str, route: list[str]) -> bool:
+        if relevance(query, row["title"] + " ".join(route), row["content"]) > 0:
+            return True
+        return any(
+            relevance(query, value[0], value[1]) > 0
+            for value in self.db.execute(
+                "SELECT title,content FROM supplements WHERE knowledge_id=?", (row["id"],)
+            )
+        )
+
+    # 备份先落临时文件，只有完整备份才成为本次恢复点；不覆盖其他恢复点。
+    def library_backup(self) -> str:
+        target = self.root / f"before-restructure-{uuid.uuid4()}.sqlite3"
+        temporary = target.with_suffix(".pending")
+        try:
+            with closing(sqlite3.connect(temporary)) as destination:
+                self.db.backup(destination)
+            temporary.replace(target)
+        except Exception:
+            temporary.unlink(missing_ok=True)
+            raise
+        return target.name
+
+    # 统一提交分类、所选更新和索引，任一步失败都回滚；恢复点保留供排查。
+    def apply_library(self, draft: dict, selected: list[str]) -> dict:
+        if inventory_version(self.library_inventory()) != draft["snapshot"]:
+            raise ValueError("知识库已变化，请重新规划；未覆盖新内容")
+        backup = self.library_backup()
+        with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            if inventory_version(self.library_inventory()) != draft["snapshot"]:
+                raise ValueError("知识库已变化，请重新规划；未修改知识库")
+            # 先删除全部旧关系，避免合法的分类交换被旧唯一约束误拦。
+            self.db.execute("DELETE FROM topic_links")
+            for point in draft["outline"]:
+                self._apply_library_point(point)
+            for suggestion in draft["suggestions"]:
+                if suggestion["id"] in selected:
+                    self._apply_library_suggestion(suggestion, draft["config"])
+            # 现有触发器只处理关系插入；全部重建可派生索引确保补充也同步。
+            if self.db.execute("SELECT 1 FROM sqlite_master WHERE name='search_fts'").fetchone():
+                self.db.execute("DELETE FROM search_fts")
+            self.db.execute("DELETE FROM search_documents")
+            self.populate_library_index()
+        return {"applied": True, "count": len(draft["outline"]), "backup": backup}
+
+    # 关系不改变知识身份、创建时间、正文与手工分区。
+    def _apply_library_point(self, point: dict) -> None:
+        theme = encode_path(point["category"], point["subcategory"])
+        self.db.execute(
+            "INSERT INTO topic_links VALUES (?,?,?,?)",
+            (point["id"], theme, identity(theme), identity(point["title"])),
+        )
+
+    # 手工内容只能追加建议；正文替换仍保留所有原引用及补充。
+    def _apply_library_suggestion(self, suggestion: dict, config: dict) -> None:
+        item = self.get(suggestion["id"])
+        content = suggestion["content"]
+        if suggestion["mode"] == "replace":
+            if not item["generated"] or item["edited"]:
+                raise ValueError("手工内容不能被重构替换")
+            self.db.execute(
+                "UPDATE knowledge SET content=?,digest=?,updated_at=? WHERE id=?",
+                (content, hashlib.sha256(content.encode()).hexdigest(), now(), item["id"]),
+            )
+        else:
+            self._append_supplement(
+                item["id"],
+                "重构整理要点",
+                content,
+                {
+                    "citations": item["citations"],
+                    "model": config["model"],
+                    "provider_name": config["name"],
+                },
+            )
+
+
+# 严格验证树请求，不从字符串强转分页或容忍未知分区。
+def tree_params(params: dict) -> tuple[str, str | None, list[str]]:
+    query, bucket, path = params.get("query", ""), params.get("bucket"), params.get("path", [])
+    if (
+        not isinstance(query, str)
+        or len(query) > 12000
+        or bucket is not None
+        and bucket not in BUCKETS
+    ):
+        raise ValueError("目录筛选无效")
+    if (
+        not isinstance(path, list)
+        or len(path) > 2
+        or any(not isinstance(p, str) or not p or len(p) > 2000 for p in path)
+    ):
+        raise ValueError("目录路径无效")
+    return query.strip(), bucket, path
+
+
+# 游标绑定本级目录版本，变化时拒绝跳页而不是静默遗漏。
+def tree_offset(cursor: str, revision: str) -> int:
+    if not isinstance(cursor, str) or len(cursor) > 100:
+        raise ValueError("目录分页无效")
+    if not cursor:
+        return 0
+    prefix, separator, offset = cursor.partition(":")
+    if prefix != revision or not separator or not offset.isdecimal():
+        raise ValueError("目录已变化，请刷新后展开")
+    return int(offset)

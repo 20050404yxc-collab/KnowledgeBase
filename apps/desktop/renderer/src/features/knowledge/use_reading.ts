@@ -17,12 +17,12 @@ const EMPTY_DRAFTS: Record<string, string | null> = {}
 
 // 持有当前知识、回答、引用弹窗及笔记编辑状态。
 export function useReading(page: string) {
-  const selectionSequence = useRef(0)
+  const sequences = useRef<Record<string, { current: number }>>({})
+  const pageSequence = (sequences.current[page] ??= { current: 0 })
   const owner = useRef(page)
-  // 导航渲染立即撤销旧选择的所有权，不等待 effect 才隐藏旧页面内容。
+  // 阅读序号按页保存；导航只更新当前阅读页标记。
   if (owner.current !== page) {
     owner.current = page
-    selectionSequence.current++
   }
   const [answer, setAnswer] = usePageState<Answer | null>(page, null)
   const [selected, setSelected] = usePageState<Knowledge | null>(page, null)
@@ -38,7 +38,7 @@ export function useReading(page: string) {
   const visibleCitations = answer?.citations ?? selected?.citations ?? []
 
   return {
-    selectionSequence,
+    selectionSequence: pageSequence,
     pageOwner: owner,
     answer,
     setAnswer,

@@ -57,6 +57,24 @@ export async function checkBatchUi(context) {
   )
   await click('生成所选知识点')
   await waitFor(async () => fixture.state.posts.length === count + 1, 'batch first generation')
+  await ui.evaluate(`document.querySelectorAll('.directory-point')[2].click()`)
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `document.querySelector('.directory-detail').innerText.includes('批量校验幂等提交')`
+      ),
+    'reading selection changes during generation'
+  )
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('知识库')).click()`
+  )
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `!!document.querySelector('.session-task') && !!document.querySelector('[aria-label="知识库页面"]')`
+      ),
+    'batch remains active on library'
+  )
   finish(fixture, {
     title: '第一项',
     content: '批量保存成功的第一项完整知识。',
@@ -64,6 +82,15 @@ export async function checkBatchUi(context) {
     recommendations: []
   })
   await waitFor(async () => fixture.state.posts.length === count + 2, 'batch second generation')
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.session-task strong').innerText`),
+    '探索'
+  )
+  await ui.evaluate(`document.querySelector('.session-task button').click()`)
+  await waitFor(
+    () => ui.evaluate(`!!document.querySelector('.batch-panel')`),
+    'return to running batch'
+  )
   const slowResponse = fixture.state.response
   await ui.evaluate(`document.querySelector('.batch-panel button:last-child').click()`)
   await waitFor(
@@ -95,7 +122,7 @@ export async function checkBatchUi(context) {
   )
   await screenshot('desktop-batch-cancel.png')
   report.checks.push(
-    'category multiselect; sequential batch cancellation stops later points and retains committed first point; right-side controls'
+    'category multiselect; reading and navigation preserve sequential generation; explicit cancellation stops later points and retains committed first point; right-side controls'
   )
   await checkProjectBatch(context)
   await checkBucketQuestions(context)
@@ -201,7 +228,9 @@ async function checkBucketQuestions(context) {
   const { ui, fill, click, waitFor, fixture, finish, screenshot, report } = context
   const exploration = await ui.evaluate(`document.querySelector('#question').value`)
   for (let index = 1; index <= 3; index++) {
-    await ui.evaluate(`document.querySelectorAll('.nav-item')[${index}].click()`)
+    await ui.evaluate(
+      `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith(${JSON.stringify(['常用', '在学', '归档'][index - 1])})).click()`
+    )
     await waitFor(
       () => ui.evaluate(`!!document.querySelector('[aria-label="知识提问内容"]')`),
       'compact bucket question'

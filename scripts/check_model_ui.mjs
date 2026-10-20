@@ -7,6 +7,7 @@ import { createServer } from 'node:http'
 import { checkPageUi } from './check_page_ui.mjs'
 import { checkProjectUi, checkLatePage } from './check_project_ui.mjs'
 import { checkBatchUi } from './check_batch_ui.mjs'
+import { checkLibraryUi } from './check_library_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
@@ -30,6 +31,9 @@ async function fixtureServer() {
     }
     state.posts.push(JSON.parse(body))
     state.response = response
+    if (state.reply) {
+      finish({ state }, state.reply(state.posts.at(-1)))
+    }
   })
   await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve))
   return { ...state, state, server, url: `http://127.0.0.1:${server.address().port}/v1` }
@@ -53,7 +57,9 @@ async function providers(ui) {
 // 获取、去重和手动目录只修改草稿；地址变化取消旧结果，默认可留空。
 async function createDraft(context) {
   const { ui, fill, click, waitFor, fixture } = context
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[5].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+  )
   await fill('.provider-form input[placeholder="例如：我的 GPT 接口"]', 'UI 模型测试')
   await fill('.provider-form input[type=url]', fixture.url.replace('/v1', '/slow/v1'))
   await fill('.provider-form input[type=password]', 'synthetic-ui-model-key')
@@ -133,7 +139,9 @@ async function generate(context) {
     'missing model error'
   )
   assert.equal(fixture.state.posts.length, 0)
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[5].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+  )
   await editDraft(context)
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await select(ui, '.composer-caption [aria-label="生成模型"]', 'fixture-b')
@@ -457,6 +465,7 @@ export async function checkModelUi(context) {
     await checkProjectUi({ ...value, finish })
     await checkLatePage({ ...value, finish })
     await checkBatchUi({ ...value, finish })
+    await checkLibraryUi({ ...value, finish })
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )

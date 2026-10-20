@@ -12,6 +12,7 @@ from knowledge_agent.domain.knowledge_rules import identity, relevance
 from knowledge_agent.domain.limits import MAX_ATTACHMENTS, MAX_CONTEXT_CHARS, MAX_QUERY_CHARS
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.domain.topic_review import review_question
+from knowledge_agent.domain.topic_rules import short_field
 
 from .ports import Emit, Generator, QuestionRepository
 from .question_locks import QuestionLocks
@@ -262,6 +263,7 @@ class Questions:
                 "scope": scope,
                 "evidence": selected,
                 "coverage_notice": " ".join(notice),
+                "taxonomy": self.store.taxonomy_summary(query) if scope != "files" else None,
             },
             ensure_ascii=False,
         )
@@ -269,6 +271,10 @@ class Questions:
             config, prompt, str(params.get("purpose", "question")), emit
         )
         result = validate_answer(text, selected, scope == "files")
+        # 只有将正式收录的回答必须具备两级分类；无效分类不保存为知识。
+        if params.get("_eligible") and not result.get("insufficient"):
+            result["category"] = short_field(result.get("category"), "大类", 80)
+            result["subcategory"] = short_field(result.get("subcategory"), "小类", 80)
         # 这是同步原子提交前的最后取消点；提交之后只能报告实际保存结果。
         await asyncio.sleep(0)
         # 结构合法仍可能依据不足，这条路径返回内容但不执行正式收录。
@@ -301,6 +307,7 @@ class Questions:
             model=config["model"],
             provider_name=config["name"],
             capture_key=identity(query) if not attachment_ids and scope != "files" else None,
+            classification_path=(result["category"], result["subcategory"]),
         )
         cards = self.cards.recommend(
             item["title"], item["content"], result["recommendations"], item["id"]

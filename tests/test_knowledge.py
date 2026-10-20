@@ -215,6 +215,8 @@ def test_duplicate_concurrent_generation_reuses_and_preserves_user_edits(service
             await asyncio.sleep(0.01)
             return json.dumps(
                 {
+                    "category": "计算机基础",
+                    "subcategory": "数据库",
                     "title": "数据库事务",
                     "content": "完整的学习正文与示例。",
                     "citation_ids": [],
@@ -343,6 +345,8 @@ def test_same_title_different_answer_does_not_claim_new_content_saved(service):
             return json.dumps(
                 {
                     "title": "事务",
+                    "category": "计算机基础",
+                    "subcategory": "数据库",
                     "content": "这是根据新文档生成的不同内容。",
                     "citation_ids": ["b1"],
                 }

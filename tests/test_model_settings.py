@@ -139,7 +139,15 @@ def test_waiting_question_uses_received_config_snapshot(tmp_path):
             if _args[1] == "question-review":
                 return approved_question()
             captured.append(value)
-            return json.dumps({"title": "快照结果", "content": "完整知识正文", "citation_ids": []})
+            return json.dumps(
+                {
+                    "category": "计算机基础",
+                    "subcategory": "数据库",
+                    "title": "快照结果",
+                    "content": "完整知识正文",
+                    "citation_ids": [],
+                }
+            )
 
     service.client = Client()
 

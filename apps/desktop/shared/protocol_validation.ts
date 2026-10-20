@@ -2,6 +2,12 @@
 // 层：桌面宿主／协议边界
 // 作用：校验 IPC、后台消息及操作结果的未知数据。
 // 说明：每个 DTO 字段均由对应校验器覆盖，不信任 JSON 类型断言。
+import {
+  isLibraryTree,
+  isRestructureSummary,
+  isRestructurePreview,
+  isRestructureReceipt
+} from './library_validation'
 import type {
   Answer,
   ProjectContext,
@@ -231,6 +237,12 @@ const bootstrap = object<Bootstrap>({
   notice: string
 })
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
+  'knowledge.tree': isLibraryTree,
+  'library.restructure.plan': isRestructureSummary,
+  'library.restructure.prepare': isRestructureSummary,
+  'library.restructure.preview': isRestructurePreview,
+  'library.restructure.apply': isRestructureReceipt,
+  'library.restructure.discard': object({ discarded: boolean }),
   bootstrap,
   'knowledge.search': searchResult,
   'question.plan': questionPlan,

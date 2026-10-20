@@ -24,6 +24,7 @@ function useLibraryState() {
   const [ready, setReady] = useState(false)
   const [dataDir, setDataDir] = useState('')
   const loadSequence = useRef(0)
+  const [dataRevision, setDataRevision] = useState(0)
   return {
     pageLists,
     setPageLists,
@@ -40,7 +41,9 @@ function useLibraryState() {
     setReady,
     dataDir,
     setDataDir,
-    loadSequence
+    loadSequence,
+    dataRevision,
+    setDataRevision
   }
 }
 type LibraryState = ReturnType<typeof useLibraryState>
@@ -53,7 +56,10 @@ export function useLibrary(options: Feedback & Navigation) {
   const { section, filter } = options
   state.currentListKey.current = JSON.stringify([section, filter])
   const boot = () => bootAction(combined)
-  const reload = () => reloadAction(combined)
+  const reload = () => {
+    state.setDataRevision((value) => value + 1)
+    return reloadAction(combined)
+  }
   const loadUsage = () => loadUsageAction(combined)
 
   useEffect(() => {
@@ -64,7 +70,7 @@ export function useLibrary(options: Feedback & Navigation) {
       return
     }
     const timer = setTimeout(() => {
-      void reload()
+      void reloadAction(combined)
     }, 160)
     return () => {
       clearTimeout(timer)

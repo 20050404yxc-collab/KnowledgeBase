@@ -28,12 +28,17 @@ from knowledge_agent.domain.models import (
     SourceSummary,
 )
 
+from .library_store import LibraryStorage
 from .model_catalog_schema import migrate_catalog
-from .topic_schema import migrate_topics, register_tokens
+from .topic_schema import migrate_topics, populate_index, register_tokens
 from .topic_store import TopicStorage
 
 
-class Store(TopicStorage):
+class Store(TopicStorage, LibraryStorage):
+    # 重构事务内部重建索引，不开启另一层提交。
+    def populate_library_index(self) -> None:
+        populate_index(self.db)
+
     # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
     def __init__(self, data_dir: Path) -> None:
         self.root = data_dir.resolve()
@@ -176,6 +181,7 @@ class Store(TopicStorage):
         model: str = "",
         provider_name: str = "",
         capture_key: str | None = None,
+        classification_path: tuple[str, str] | None = None,
     ) -> dict:
         title, content, concept = validate_note(title, content)
         # 主题知识使用独立身份键，编辑标题不退回全库标题唯一规则。
@@ -234,6 +240,15 @@ class Store(TopicStorage):
                     provider_name,
                 ),
             )
+            if classification_path:
+                self._apply_library_point(
+                    {
+                        "id": item_id,
+                        "title": title,
+                        "category": classification_path[0],
+                        "subcategory": classification_path[1],
+                    }
+                )
             if capture_key:
                 self.db.execute(
                     "INSERT OR IGNORE INTO generation_keys VALUES (?,?)", (capture_key, item_id)

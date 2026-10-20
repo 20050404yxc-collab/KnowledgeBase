@@ -41,7 +41,7 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 `question.plan` 接受原 `question` 参数，返回 `{plan_id, points, excluded, search, notice}`；规划先结合授权范围内的全库分类摘要（`files` 范围跳过库内读取），再输出大类、小类和具体知识点。每个候选必须经过独立审核：可复用知识保留，职责／项目名／日期等非知识点排除，疑义项给出理由；允许零个合格点，审核失败返回空目录且不产生可学习计划。目录最多 16 点，会话最多保留 24 份，重启或淘汰后需重新拆解。
 
-`knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, public_only?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。切换知识点撤销公开许可；范围、附件、取消或切页撤销旧项目依据。`revoke` 可带 `public_only: true`，仅保留仍有效的已核对材料及其补充预览，默认完整撤销；公开候选和已选公开示例不能因该标志继续获得许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
+`knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, public_only?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。切换知识点撤销公开许可；范围、附件或明确取消撤销受影响项目依据，切页保留正在执行任务的依据。`revoke` 可带 `public_only: true`，仅保留仍有效的已核对材料及其补充预览，默认完整撤销；公开候选和已选公开示例不能因该标志继续获得许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
 
 `Knowledge`、`SearchHit`、`DirectoryPoint` 的 `category`／`subcategory` 为可选兼容字段；旧主题不猜测拆分，不做 R6 批量迁移。项目状态 DTO 使用 `materials`、`material-ready`、`candidates`、`public-ready`，公开候选包含仓库 URL、README 路径、摘录和 UTC 读取时间；解释引用进一步标注实际使用的字符范围；仅模型声称而无读取证据不得进入引用。
 
@@ -53,6 +53,26 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 ## 多点生成与分区提问（修订 7）
 
-批量沿用 `knowledge.learn`，界面串行对所选未保存点发出单点请求；每项使用独立的实际调用记录，整体停止不是已提交内容回滚。项目资料一次用户提交后对每点执行 `materials`，只在该点返回 `material-ready` 时继续生成，未充分点保留门禁。补充仍返回 review，禁止自动 confirm。界面在每阶段间检查选择版本，切页／取消后不得继续启动下一项。
+批量沿用 `knowledge.learn`，界面串行对所选未保存点发出单点请求；每项使用独立的实际调用记录，整体停止不是已提交内容回滚。项目资料一次用户提交后对每点执行 `materials`，只在该点返回 `material-ready` 时继续生成，未充分点保留门禁。补充仍返回 review，禁止自动 confirm。界面在每阶段间检查任务取消标志；切页和普通阅读不停止后续项，明确取消后不再启动下一项。
 
 常用／在学／归档的简洁提问同样使用 `question.plan`，继承探索的模型与范围设置；问题、目录、预览和阅读按页隔离。没有新操作名、协议版本或数据库升级。
+
+## 分层知识库与确认式重构（修订 8）
+
+契约位于 [library.ts](library.ts)。导航只切换显示，根会话持有任务和实际阶段请求 ID；一个生成流程可包含多个请求，显式取消、请求超时或后台中断阻止后续阶段。详情阅读版本按页隔离，不用来判定批量是否继续。
+
+`knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径长度 0/1/2 分别返回大类、小类、知识点，最多 50 节点，结果为 `{nodes,total,revision,next_cursor}`。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定当前层结果摘要，目录变化拒绝旧游标。叶子只有 ID、标题与分区，详情仍走 `knowledge.get`；展开不增加使用日。
+
+| 操作 | 参数和状态 |
+|---|---|
+| `library.restructure.plan` | 模型选项及可选 `draft_id,revision,feedback,advance`；不带 advance 初始化或明确重规划，advance 每次处理一个摘要／分类阶段 |
+| `library.restructure.prepare` | `{draft_id,revision}`；明确确认目录后每次准备 1 条内容建议，只有 outline/preparing 可推进 |
+| `library.restructure.preview` | `{draft_id,revision,kind,page?}`；outline 每页 30 项，suggestions 每页 1 项，page 从 0 起 |
+| `library.restructure.apply` | `{draft_id,revision,selected:string[]}`；仅 ready 可提交，空数组仅改目录；重复提交返回原收据 |
+| `library.restructure.discard` | `{draft_id,revision}`；丢弃会话草案，晚到模型结果不能恢复它 |
+
+状态顺序为 `planning → outline → preparing → ready → applied`。后台最多一份草案，重规划产生新的草案与修订标识；旧确认失效。每条正文和补充按 7000 字符分块，累计摘要最多 1600 字符；分类每批 8 条，先前路径成为后批词表，分类输入超过 26000 字符受控停止，不自动重试。全量清单及正文快照存于内存，大库性能未实测。取消阶段可在当前会话显式继续，退出后草案不恢复。
+
+仅未编辑的生成正文且长度不超过 8000 字符可建议替换，其他仅建议追加；单条建议最多 20000 字符。差异默认不选择，已有手工正文、补充和引用保持。全库集合／正文／补充／分类摘要不一致时拒绝提交；使用日变化不构成正文冲突。提交创建唯一 SQLite 恢复点，然后事务内再次检查、写入路径及所选更新、重建搜索索引；异常整体回滚，模型等待不持有写事务。恢复方法见 [使用说明](../README.md#重构知识库)。本轮使用 schema 3，无迁移、协议版本或数据路径更改。
+
+普通 `question`／推荐拓展新增收录要求模型返回合法 `category/subcategory`，与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。

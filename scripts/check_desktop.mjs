@@ -256,12 +256,16 @@ try {
   report.checks.push(
     'local path attachment, offline scoped evidence, safe citation modal and source retention'
   )
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[4].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('资料库')).click()`
+  )
   await waitFor(
     () => ui.evaluate(`document.querySelector('.source-row') !== null`),
     'source library'
   )
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[5].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+  )
   await screenshot('desktop-settings.png')
   assert.equal(await ui.evaluate(`document.querySelector('input[type=password]') !== null`), true)
   report.checks.push('source and provider settings screens render')
@@ -289,7 +293,9 @@ try {
     'reopen durable edited note'
   )
   report.checks.push('restart retains edited note and source database')
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[6].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('用量统计')).click()`
+  )
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('还没有调用记录')`),
     'usage screen'

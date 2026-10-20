@@ -21,7 +21,19 @@ async function loadModule(relativePath, replacements = {}) {
   return import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))
 }
 
-const validation = await loadModule('../apps/desktop/shared/protocol_validation.ts')
+const librarySource = await readFile(
+  new URL('../apps/desktop/shared/library_validation.ts', import.meta.url),
+  'utf8'
+)
+const libraryCode = transformSync(librarySource, {
+  jsc: { target: 'es2022', parser: { syntax: 'typescript' } },
+  module: { type: 'es6' }
+}).code
+const validation = await loadModule('../apps/desktop/shared/protocol_validation.ts', {
+  "'./library_validation'": JSON.stringify(
+    'data:text/javascript;base64,' + Buffer.from(libraryCode).toString('base64')
+  )
+})
 const { markdownForDisplay } = await loadModule(
   '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
 )
@@ -44,7 +56,7 @@ async function batchFixture() {
 
 // 单项错误不能阻断其他选择，补充预览和资料不足都不能被自动确认保存。
 test('batch continues after failure and preserves review/material outcomes', async () => {
-  const { configure, generateBatch } = await batchFixture()
+  const { configure, generateBatch, api } = await batchFixture()
   const calls = []
   const outcomes = []
   configure(async (_operation, params) => {
@@ -64,7 +76,7 @@ test('batch continues after failure and preserves review/material outcomes', asy
     ],
     input: { plan_id: 'plan', model: 'fixed-model' },
     current: () => true,
-    requestId: () => 'request',
+    request: api.request,
     progress: () => {},
     receive: (value) => outcomes.push(value)
   })
@@ -82,7 +94,7 @@ test('batch continues after failure and preserves review/material outcomes', asy
 
 // 资料核对返回时恰好取消，不得再启动正文生成或后一个知识点。
 test('batch cancellation between material audit and generation stops subsequent requests', async () => {
-  const { configure, generateBatch } = await batchFixture()
+  const { configure, generateBatch, api } = await batchFixture()
   const calls = []
   let current = true
   configure(async (_operation, params) => {
@@ -98,7 +110,7 @@ test('batch cancellation between material audit and generation stops subsequent 
     input: { plan_id: 'plan' },
     attachmentIds: ['selected-project-file'],
     current: () => current,
-    requestId: () => 'request',
+    request: api.request,
     progress: () => {},
     receive: () => {}
   })
@@ -292,4 +304,54 @@ test('worker exit rejects all pending requests and permits retry', async () => {
   const retried = registry.register('one', () => {})
   registry.settle('one', 'ready')
   assert.equal(await retried, 'ready')
+})
+
+// 完整分类树和重构数据必须经过运行时验证，非法状态及正文模式不得触发流程。
+test('library tree and restructure reject damaged responses', () => {
+  assert.throws(() =>
+    validation.decodeResult('knowledge.tree', {
+      nodes: [{ key: 'k', label: '大类', count: -1, id: '', bucket: '' }],
+      total: 1,
+      revision: 'r',
+      next_cursor: ''
+    })
+  )
+  const summary = {
+    draft_id: 'd',
+    revision: 'r',
+    status: 'planning',
+    total: 1,
+    covered: 0,
+    classified: 0,
+    prepared: 0,
+    suggestions: 0
+  }
+  assert.equal(validation.decodeResult('library.restructure.plan', summary), summary)
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.plan', { ...summary, status: 'unknown' })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.prepare', { ...summary, prepared: '1' })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.preview', {
+      outline: [],
+      suggestions: [
+        {
+          id: 'k',
+          title: '事务',
+          mode: 'overwrite-manual',
+          original: '',
+          content: '建议',
+          reason: '理由',
+          diff: ''
+        }
+      ],
+      total: 1,
+      page: 0
+    })
+  )
+  assert.throws(() =>
+    validation.decodeResult('library.restructure.apply', { applied: true, count: 1 })
+  )
 })

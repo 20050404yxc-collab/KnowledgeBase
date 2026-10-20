@@ -7,6 +7,7 @@ from __future__ import annotations
 from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .attachments import Attachments
+from .library_restructure import LibraryRestructure
 from .model_catalog import discover_models
 from .ports import (
     CatalogReader,
@@ -44,6 +45,7 @@ class KnowledgeService:
         self.cards = Recommendations(store)
         self.questions = Questions(store, client, self.attachments, self.cards)
         self.topics = TopicWorkflow(store, client, self.questions, projects)
+        self.library = LibraryRestructure(store, client)
         self.closed = False
         self.catalog = catalog
 
@@ -52,6 +54,7 @@ class KnowledgeService:
         if self.closed:
             return
         self.closed = True
+        self.library.draft = None
         try:
             self.store.close()
         finally:

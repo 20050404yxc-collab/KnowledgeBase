@@ -10,27 +10,14 @@ import { blankProvider } from './provider_form'
 // 连接测试产生调用记录，参数在提交时固定；所有退出路径释放请求关联。
 export function useProviderActions() {
   const state = useAppContext()
-  const testProvider = async (provider: Provider) => {
-    if (state.activeRequest.current) {
-      return
-    }
-    const id = crypto.randomUUID()
-    state.activeRequest.current = id
-    state.setBusy(id)
-    try {
-      await state.guarded(async () => {
-        const value = await api.request(
-          'providers.test',
-          { id: provider.id, ...state.optionsFor(provider) },
-          id
-        )
-        state.setMessage(value.message)
+  const testProvider = (provider: Provider) =>
+    state.runTask(async () => {
+      const value = await state.taskRequest('providers.test', {
+        id: provider.id,
+        ...state.optionsFor(provider)
       })
-    } finally {
-      state.activeRequest.current = null
-      state.setBusy(null)
-    }
-  }
+      state.setMessage(value.message)
+    })
   const deleteProvider = async (provider: Provider) => {
     if (!confirm('删除接口配置和 Windows 中保存的凭据？知识不受影响。')) {
       return

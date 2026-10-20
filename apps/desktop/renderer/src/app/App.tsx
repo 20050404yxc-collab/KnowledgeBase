@@ -20,6 +20,8 @@ import { CitationDialog } from '../features/knowledge/CitationDialog'
 import { PathDialog } from '../features/exploration/PathDialog'
 import { AppContext } from './AppContext'
 import { useAppModel } from './use_app_model'
+import { LibraryPage } from '../features/knowledge/LibraryPage'
+import { TaskStatus } from './TaskStatus'
 
 // 组合会话上下文、导航、反馈与页面布局。
 export function App() {
@@ -53,6 +55,7 @@ function AppShell() {
       <main>
         <Topbar />
         <AppContent />
+        <TaskStatus />
       </main>
       {editor && <NoteEditor />}
       {citation && <CitationDialog />}
@@ -89,6 +92,7 @@ function AppContent() {
         </div>
       )}
       {section === '探索' && <ExplorationPage />}
+      {section === '知识库' && <LibraryPage />}
       {isBucket(section) && <KnowledgePage key={section} />}
       {section === '资料库' && <SourcesPage />}
       {section === 'API 配置' && <ProvidersPage />}

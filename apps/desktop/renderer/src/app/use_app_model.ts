@@ -11,21 +11,33 @@ import { useDirectory } from '../features/exploration/use_directory'
 import { useExploration } from '../features/exploration/use_exploration'
 import { useModelSelection } from '../features/providers'
 import { useProviderForm } from '../features/providers/use_provider_form'
+import { useSessionTask } from './use_session_task'
+import { useSavedTree } from '../features/knowledge/use_saved_tree'
+import { useRestructure } from '../features/knowledge/use_restructure'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
 export function useAppModel() {
   const navigation = useNavigation()
   const feedback = useFeedback(navigation.section)
+  const task = useSessionTask(navigation.section, feedback)
   const library = useLibrary({ ...feedback, ...navigation })
+  const tree = useSavedTree(navigation.section, navigation.filter, library.dataRevision)
   const reading = useReading(navigation.section)
   const knowledge = useKnowledge({ ...feedback, ...library, ...reading })
   const selection = useModelSelection(library.providers)
   const generationOptions = selection.optionsFor(library.activeProvider)
+  const restructure = useRestructure({
+    ...task,
+    ...feedback,
+    generationOptions,
+    reload: library.reload
+  })
   const exploration = useExploration({
     ...feedback,
     ...navigation,
     ...library,
     ...reading,
+    ...task,
     generationOptions
   })
   const directory = useDirectory({
@@ -48,7 +60,10 @@ export function useAppModel() {
     ...directory,
     ...providerForm,
     ...selection,
+    ...task,
     openItem: directory.openLocalItem,
+    ...tree,
+    ...restructure,
     generationOptions
   }
 }

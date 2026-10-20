@@ -1,6 +1,70 @@
 # Spec Deltas
 
+## Revision 8 requirements (implemented; isolated evidence in verification.md)
+
+### Requirement: R8-01 Navigation-independent task execution
+The system SHALL continue planning, learning, expansion, batch and restructuring tasks across page navigation using task-owned input, model, permissions and cancellation state. Progress/errors/results SHALL remain associated with the originating page/plan. Ordinary reading selections SHALL NOT stop a batch. One generation workflow at a time remains supported; a global task indicator SHALL offer return and explicit cancellation.
+
+#### Scenario: Navigate during a multi-stage batch
+- GIVEN a batch with pending items and an active model request
+- WHEN the user navigates to another page, reads knowledge and later returns
+- THEN remaining selected items continue without duplicate requests, the original page displays its outcomes, and the other page retains its own state.
+- AND cancellation between material audit and generation prevents the next stage; committed knowledge remains accurately reported.
+
+### Requirement: R8-02 Complete hierarchy in library and all buckets
+The library, 常用, 在学 and 归档 pages SHALL display saved knowledge by category/subcategory/point using the same classification. The library SHALL include all frequency buckets. Each bucket SHALL filter before counts, grouping, search and pagination, omit empty paths, and retain independent expansion/filter/cursor/reading/scroll state. Legacy/manual unclassified notes SHALL remain accessible. Candidate learning directories SHALL be visibly distinct from saved trees; existing bucket questions and editing SHALL remain available.
+
+#### Scenario: Inventory exceeds the old list limit
+- GIVEN more than 200 notes in each bucket, shared category names and unclassified notes
+- WHEN browsing/searching each page through all pages of leaves
+- THEN every matching saved ID is reachable exactly once in its path, counts match scope, and no out-of-bucket leaf/count leaks.
+- AND manual or time-based bucket changes move the leaf without changing its classification; tree expansion never records active use.
+
+### Requirement: R8-03 Full-inventory outline proposal before mutation
+Restructuring SHALL account for every knowledge ID and its supplements through bounded key-point summaries and model batches, report coverage and return a proposed complete category tree with old/new paths and reasons before formal mutation. Missing/duplicate/unknown IDs, incomplete results or unresolved identity/path collisions SHALL block confirmation. User adjustment requests SHALL invalidate prior outline confirmation.
+
+#### Scenario: Long-tail content and invalid model coverage
+- GIVEN notes with meaningful sections near the end and independently meaningful supplements
+- WHEN the model returns an incomplete, duplicate or colliding mapping
+- THEN the system identifies incomplete/conflicting coverage, cannot claim complete scanning and leaves formal knowledge unchanged.
+
+### Requirement: R8-04 Outline approval followed by selected content-diff approval
+Only explicit approval of the current outline revision SHALL permit preparation of necessary content suggestions. The system SHALL show old text, proposed text, differences and reasons and SHALL require final explicit acceptance of selected update IDs or directory-only application. Generated unedited bodies MAY be replaced only when selected; manually created/edited bodies and supplements SHALL be preserved, with separately accepted organizational supplements instead. Citations, IDs and prior supplements SHALL remain intact. Navigation SHALL preserve pending previews.
+
+#### Scenario: Accept directory but reject body changes
+- GIVEN an approved outline and generated-body/manual-note suggestions
+- WHEN the user applies directory-only, or selects only one eligible update
+- THEN no unselected body is changed, manual original text remains intact, and no official mutation occurred merely from preparing previews.
+
+### Requirement: R8-05 Recoverable atomic restructuring with stale-plan protection
+Final apply SHALL create a consistent pre-change recovery point, validate the complete inventory/content/supplement/classification snapshot, and atomically commit approved paths/updates plus all affected search indices. Changed inventory or content SHALL reject the stale plan. Repeated final confirmation SHALL be idempotent. No automatic merge/deletion is authorized. Frequency metadata and usage SHALL be preserved; summaries SHALL NOT count as active use.
+
+#### Scenario: Editing during review or storage failure
+- GIVEN a complete proposal awaiting final confirmation
+- WHEN a note is added/deleted/edited/reclassified, or a fault occurs during atomic application
+- THEN stale proposals are rejected or writes roll back entirely, original knowledge stays recoverable, and no false success appears.
+- AND a successful classification change is immediately reflected in knowledge/supplement search and all four page trees.
+
+### Requirement: R8-06 Automatic classification for new question/expansion captures
+New formal knowledge from normal questions, directory learning and recommendation expansions SHALL have validated category/subcategory paths committed atomically with content. Existing suitable paths SHALL be preferred when within allowed evidence scope; supplements SHALL inherit target classification. Files-only operations SHALL NOT read/send existing-library taxonomy. Reused knowledge SHALL NOT trigger redundant classification generation; invalid classification SHALL NOT be reported as saved success.
+
+#### Scenario: Expansion after restructuring
+- GIVEN an accepted reorganized library and a newly generated expansion
+- WHEN the expansion is captured
+- THEN its valid path follows the current suitable taxonomy and appears in all-library and appropriate frequency trees.
+- AND malformed classification produces an explicit unsaved outcome; files-only classification uses only authorized generated/file content.
+
+### Requirement: R8-07 Permission, cancellation and bounded resources
+Navigation SHALL NOT revoke an active task's already-approved material/public permission. Permission SHALL remain bound to its exact point/challenge/task, never authorize another task, and be invalidated on cancellation or relevant input/material changes. Completed points SHALL use idempotent results; still-pending supplement review MAY retain its valid material context, and changed reading selection SHALL revoke the previous public challenge after active work settles. Every stage SHALL have its own request ID. Existing request timeouts, application exit cleanup, per-attempt accounting and no automatic retry SHALL remain. No restart continuation is promised. Protocol pages SHALL respect the existing frame limit.
+
+#### Scenario: Cancel, change materials or close while away
+- GIVEN an in-progress task whose originating page is hidden
+- WHEN the user cancels, removes relevant materials, changes the source input, encounters timeout or closes the app
+- THEN no later stage starts, uncommitted fragments are not captured, committed data is honestly reported, and pending IDs/subscriptions/permissions/drafts are settled and released.
+
 ## Purpose
+
+Revision 8 is implemented under user authorization “开始改” and locally verified with isolated data and mocked models. R8-01..07 supersede navigation cancellation and flat saved-list requirements where explicitly stated; all other compatible R4..R7 protections remain. User selected diff-first content protection and later required all three bucket pages to be hierarchical as well as the new library page.
 
 Revision 6 supersedes the earlier revision-5 draft and is implemented under the user authorization “进行开发”. R5-01..05 are retained with R6-01..03; R4 approval/evidence does not establish these new behaviors.
 

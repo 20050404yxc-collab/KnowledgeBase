@@ -96,6 +96,25 @@
           "notice": "本地检索结果；尚未配置生成接口，未调用模型。"
         }
       }
+    },
+    {
+      "request": {
+        "id": "tree-sample",
+        "operation": "knowledge.tree",
+        "params": {
+          "path": []
+        }
+      },
+      "response": {
+        "id": "tree-sample",
+        "type": "result",
+        "result": {
+          "nodes": [],
+          "total": 0,
+          "revision": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+          "next_cursor": ""
+        }
+      }
     }
   ],
   "invalid_requests": [
@@ -176,6 +195,91 @@
             }
           ]
         }
+      }
+    },
+    {
+      "operation": "knowledge.tree",
+      "result": {
+        "nodes": [
+          {
+            "key": "计算机",
+            "label": "计算机",
+            "count": 1,
+            "id": "",
+            "bucket": ""
+          }
+        ],
+        "total": 1,
+        "revision": "tree",
+        "next_cursor": ""
+      }
+    },
+    {
+      "operation": "library.restructure.plan",
+      "result": {
+        "draft_id": "draft",
+        "revision": "revision",
+        "status": "outline",
+        "total": 1,
+        "covered": 1,
+        "classified": 1,
+        "prepared": 0,
+        "suggestions": 0
+      }
+    },
+    {
+      "operation": "library.restructure.prepare",
+      "result": {
+        "draft_id": "draft",
+        "revision": "revision",
+        "status": "ready",
+        "total": 1,
+        "covered": 1,
+        "classified": 1,
+        "prepared": 1,
+        "suggestions": 1
+      }
+    },
+    {
+      "operation": "library.restructure.preview",
+      "result": {
+        "outline": [
+          {
+            "id": "k",
+            "title": "事务",
+            "old_path": ["未分类／待整理", "未细分"],
+            "category": "计算机",
+            "subcategory": "数据库",
+            "reason": "按要点归类"
+          }
+        ],
+        "suggestions": [
+          {
+            "id": "k",
+            "title": "事务",
+            "mode": "append",
+            "original": "",
+            "content": "整理建议",
+            "reason": "整理结构",
+            "diff": "+ 整理建议"
+          }
+        ],
+        "total": 1,
+        "page": 0
+      }
+    },
+    {
+      "operation": "library.restructure.apply",
+      "result": {
+        "applied": true,
+        "count": 1,
+        "backup": "before-restructure-sample.sqlite3"
+      }
+    },
+    {
+      "operation": "library.restructure.discard",
+      "result": {
+        "discarded": true
       }
     }
   ]

@@ -2,6 +2,23 @@
 // 层：跨进程契约
 // 作用：声明操作、DTO、事件和受限桌面 API。
 // 说明：保留协议字段命名，不包含运行时实现。
+import type {
+  LibraryTree,
+  DraftReference,
+  RestructureSummary,
+  RestructurePreview,
+  RestructureReceipt
+} from './library'
+export type {
+  LibraryTree,
+  TreeNode,
+  DraftReference,
+  RestructureSummary,
+  RestructurePreview,
+  RestructureReceipt,
+  OutlinePoint,
+  ContentSuggestion
+} from './library'
 export type Bucket = '常用' | '在学' | '归档'
 export type Scope = 'mixed' | 'files' | 'knowledge'
 export interface Citation {
@@ -248,6 +265,17 @@ export interface ModelCatalog {
   partial: boolean
 }
 export interface RequestMap {
+  'knowledge.tree': { query?: string; bucket?: Bucket | null; path?: string[]; cursor?: string }
+  'library.restructure.plan': GenerationOptions & {
+    draft_id?: string
+    revision?: string
+    feedback?: string
+    advance?: boolean
+  }
+  'library.restructure.prepare': DraftReference
+  'library.restructure.preview': DraftReference & { kind: 'outline' | 'suggestions'; page?: number }
+  'library.restructure.apply': DraftReference & { selected: string[] }
+  'library.restructure.discard': DraftReference
   bootstrap: Record<string, never>
   'knowledge.search': {
     query: string
@@ -285,6 +313,12 @@ export interface RequestMap {
   recommendations: { id: string }
 }
 export interface ResultMap {
+  'knowledge.tree': LibraryTree
+  'library.restructure.plan': RestructureSummary
+  'library.restructure.prepare': RestructureSummary
+  'library.restructure.preview': RestructurePreview
+  'library.restructure.apply': RestructureReceipt
+  'library.restructure.discard': { discarded: boolean }
   bootstrap: Bootstrap
   'knowledge.search': SearchResult
   'question.plan': QuestionPlan

@@ -42,6 +42,8 @@ def validate_params(operation: str, params: dict) -> None:
         "revision",
         "candidate_id",
     ):
+        if key == "path" and operation == "knowledge.tree":
+            continue
         if key in params and params[key] is not None and not isinstance(params[key], str):
             raise ValueError("请求参数类型无效")
     bucket = params.get("bucket")
@@ -57,6 +59,10 @@ async def dispatch(
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation == "knowledge.tree":
+        return store.library_tree(params)
+    if operation.startswith("library.restructure."):
+        return await dispatch_library(service, operation, params, emit)
     if operation in {
         "knowledge.search",
         "question.plan",
@@ -104,6 +110,26 @@ async def dispatch(
     if operation == "recommendations":
         item = store.get(params["id"])
         return service.recommendations(item["title"], item["content"], exclude=item["id"])
+    raise ValueError("不支持的操作")
+
+
+# 草案操作仍须逐个白名单分发，前缀不能授权任意方法调用。
+async def dispatch_library(
+    service: KnowledgeService, operation: str, params: dict, emit: Emit
+) -> dict:
+    service.library.client = service.client
+    if operation == "library.restructure.plan":
+        if params.get("advance") is True:
+            return await service.library.advance(params, emit)
+        return service.library.begin(params)
+    if operation == "library.restructure.prepare":
+        return await service.library.advance(params, emit, prepare=True)
+    if operation == "library.restructure.preview":
+        return service.library.preview(params)
+    if operation == "library.restructure.apply":
+        return await service.library.apply(params)
+    if operation == "library.restructure.discard":
+        return service.library.discard(params)
     raise ValueError("不支持的操作")
 
 

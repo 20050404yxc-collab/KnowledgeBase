@@ -1,13 +1,13 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 7 implemented and locally verified; earlier verification remains historical
+- Status: revision 8 completed with local isolated verification; broader v1 real-environment acceptance remains open
 - Workflow mode: execute
-- Plan revision: 7
-- Approval status: revision 7 authorized by the current concrete implementation request
-- Approved revision: 7 for the current increment; earlier approvals retain their historical scope
-- Approval basis: The user requested right-side generation/material controls, multiselect/category generation, one project material submission generating all associated points, and compact questions in all three buckets. This request authorizes implementation within that scope; screenshot text is reference content, not instructions. No publication, production data access, paid tests or version change.
-- Updated: 2026-10-20 (Asia/Shanghai)
+- Plan revision: 8
+- Approval status: revision 8 approved for execution by user instruction “开始改” after the complete reviewable plan
+- Approved revision: 8; earlier approvals retain their historical scope
+- Approval basis: User requested navigation-independent work, a hierarchical all-library page, confirmed restructuring and automatic expansion classification. User explicitly selected classification/key-point organization with body diffs before confirmation, preserving hand edits and citations. The follow-up explicitly includes 常用/在学/归档 in hierarchical display and says continue; the subsequent instruction “开始改” explicitly authorizes this complete revision for implementation. No publication, production data access, paid tests or version change.
+- Updated: 2026-10-21 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
 - Human documentation: [overview](../../docs/确认页/确认文档总览.md), [product](../../docs/确认页/个人知识库/产品方案.md), [technical design](../../docs/确认页/个人知识库/技术设计.md), [delivery and acceptance](../../docs/确认页/个人知识库/实施与验收.md)
@@ -20,6 +20,8 @@
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 8 (implemented): session-owned tasks continue across navigation for planning, learning, expansion, sequential batches and restructuring; retain owner-page progress/results, explicit cancellation and resource/permission cleanup. Add a complete hierarchical knowledge library and replace flat saved-knowledge lists in all three frequency pages with the same category/subcategory/point tree, filtered before aggregation/pagination by each bucket. Keep page state isolated and existing compact questions/learning workspaces. Add bounded full-inventory summaries, directory preview/adjustment and approval, selected body-diff approval, recoverable atomic restructuring with optimistic whole-library validation and search-index consistency. Preserve manual text, original citations, IDs, supplements and frequency semantics. Classify newly captured normal questions and expansions atomically, preserving files-only scope. No automatic merging/deletion, schema migration, concurrency expansion, restart continuation or real-provider validation. Existing no-old-library-reclassification and page-cancel requirements are superseded only by the explicitly confirmed restructuring and navigation-continuation flows implemented here.
 
 Revision 7: move all point/material actions to the directory detail column; select multiple leaves or a whole category; process a bounded sequential batch using existing single-point contracts; collect project files once per visible category/subcategory group and verify each point before generating it; retain manual supplement review and per-item outcomes. Add one input and confirm button to each frequency page using the exact exploration planning workflow and current model/scope settings, with page-owned question drafts, directories and results. Add only the backward-compatible optional `public_only` flag to revoke: navigation between points may preserve validated material context, while public consent is revoked and input/page/file changes revoke all material states. No schema migration.
 
@@ -59,11 +61,15 @@ Use a controlled application workflow rather than unconstrained autonomous agent
 
 ## Acceptance Criteria
 
+Revision 8 adds R8-01..R8-07 in specs.md, mapped to AC-01/02/05/08/10/11/13/14/15/16/17/19. Isolated implementation evidence for these contracts is recorded in verification.md; live model semantics and performance are not accepted.
+
 The normative behavior contracts and scenarios are in [specs](specs.md): AC-01 desktop interaction, AC-02 retrieval, AC-03 file inputs, AC-04 parsing, AC-05 grounding/citations, AC-06 long/multiple documents, AC-07 retention, AC-08 capture, AC-09 recommendations, AC-10 expansion, AC-11 frequency, AC-12 provider configuration, AC-13 accounting, AC-14 offline fallback, AC-15 lifecycle, AC-16 maintenance, AC-17 data/credential boundaries, AC-18 installation, and AC-19 index/data consistency.
 
 Separately authorized environment criteria ENV-01 (confirmed isolation/locations) and ENV-02 (reproducible candidate readiness) are defined in the same specs file and completed in this pass. They do not establish any product AC or full-plan approval.
 
 ## Standards
+
+Revision-8 read date: 2026-10-21. Reused the complete user-selected project coding/layering standard and root instructions; checked the skill standards index (no bundled language standard). No new standards selection is needed. Only Markdown plans are changed now; implementation will require `npm run check` and `npm run test:ui` plus affected behavioral cases. No source fingerprint is claimed.
 
 | Source | Status and provenance | Applicability |
 |---|---|---|
@@ -76,6 +82,8 @@ Separately authorized environment criteria ENV-01 (confirmed isolation/locations
 No source standards are copied into unrelated global installations. Later supplied standards must be checked for impact before dependent implementation. No source-content fingerprint was calculated; provenance and read date are recorded without claiming synchronization guarantees.
 
 ## Decisions and Open Questions
+
+Revision 8 decisions: recommend keeping the existing one-generation-flow limit while allowing browsing; navigation is not cancellation. User selected the recommended conservative content policy over automatic generated-body optimization or unified rewriting: show diffs, explicitly accept chosen updates, preserve hand edits/citations. Later user steering requires hierarchy on all four saved-knowledge pages, not only the new all-library page. Use the existing task/pages because this directly extends the same knowledge lifecycle; the engineering-standard task is unrelated. User subsequently authorized execution with “开始改”. Additive DTOs are implemented in contracts/library.ts and validated at process boundaries.
 
 Revision-4 decision: recommend lexical search + model-assisted planning + directory-first reading + independent supplements. User selected this over adding local semantic retrieval in the same increment, because semantic retrieval adds embedding/runtime/index maintenance decisions. No fake alternative consisting of only cosmetic formatting was offered because it would not satisfy the requested knowledge workflow. New human docs are review material, not consent. Readability diagnosis, current code limitations, compatibility and migration risks are disclosed in product section 3 and technical section 5.1.
 
@@ -101,6 +109,8 @@ Pending for revision 2 review:
 Implementation choices such as specific parsers, build tools, model clients, vector extension, keyring adapter, and versions are candidates. Their validation may proceed only during an authorized implementation/technical-validation stage. Material scope changes return for review; routine in-scope package choices may use the agreed validation gates.
 
 ## Plan Changes
+
+- Revision 7 -> 8: Reopen the existing knowledge-workflow task for navigation-independent execution, complete hierarchy, confirmed old-library restructuring and expansion classification. Before finalization, user expanded hierarchy to all three frequency pages; incorporated into the same unapproved R8 draft, no approved revision invalidated. Update product 3.10, technical final section, acceptance/overview and five task records. Static diagnosis confirms explicit navigation cancellation, shared reading-version invalidation, project permission revocation and the 200-item list cap. Historical R7 evidence remains valid only for the former baseline; no R8 runtime test has run. R8 replaces conflicting cancellation/plain-list restrictions after implementation, not by editing production state during planning.
 
 - Revision 5 -> 6: The user reports exploration content appearing on other pages and asks for project/language/other categories followed by subcategories based on existing knowledge and inference. Preserve all R5 requirements and supersede that unapproved draft with one complete R6 plan. Add R6-01..03; extend product 3.7/3.8, technical 5.3/5.4, delivery/overview and task records. Code confirms shared page composition/global reading state, delayed list refresh and unstructured themes with at most six planning candidates. At planning, no runtime reproduction or implementation was performed. R6 implementation and local verification are now complete, with no schema migration or old-note reclassification. This was the planning status; revision 6 was subsequently authorized by “进行开发” and implemented.
 

@@ -7,7 +7,7 @@ import assert from 'node:assert/strict'
 // 导航后的首个绘制帧不允许出现探索内容或另一个分区的详情。
 async function navigate(ui, index) {
   const state = await ui.evaluate(`new Promise((resolve, reject) => {
-    const target = document.querySelectorAll('.nav-item')[${index}]
+    const target = [...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith(${JSON.stringify(['探索', '常用', '在学', '归档'][index])}))
     const snapshot = () => ({composer: !!document.querySelector('#question'), directory: !!document.querySelector('.directory-panel'),
       answer: !!document.querySelector('.answer-panel'), active: document.querySelector('.nav-item.active').innerText})
     if (target.classList.contains('active')) { resolve(snapshot()); return }
@@ -45,16 +45,26 @@ export async function checkPageUi(context) {
     assert.equal(first.answer, false)
     await fill('[aria-label="筛选已有知识"]', ['常用', '在学', '归档'][index - 1] + '页面专属')
     await waitFor(
-      () => ui.evaluate(`document.querySelectorAll('.knowledge-card').length === 1`),
+      () => ui.evaluate(`document.querySelectorAll('.saved-category').length === 1`),
       'owned bucket list'
+    )
+    await ui.evaluate(`document.querySelector('.saved-category').click()`)
+    await waitFor(
+      () => ui.evaluate(`document.querySelectorAll('.saved-category').length === 2`),
+      'subcategory'
+    )
+    await ui.evaluate(`document.querySelectorAll('.saved-category')[1].click()`)
+    await waitFor(
+      () => ui.evaluate(`document.querySelectorAll('.saved-leaf').length === 1`),
+      'saved leaf'
     )
     assert.equal(
       await ui.evaluate(
-        `document.querySelector('.knowledge-card').innerText.includes(${JSON.stringify(notes[index - 1].title)})`
+        `document.querySelector('.saved-leaf').innerText.includes(${JSON.stringify(notes[index - 1].title)})`
       ),
       true
     )
-    await ui.evaluate(`document.querySelector('.knowledge-card').click()`)
+    await ui.evaluate(`document.querySelector('.saved-leaf').click()`)
     await waitFor(
       () =>
         ui.evaluate(

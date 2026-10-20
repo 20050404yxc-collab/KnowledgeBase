@@ -20,6 +20,12 @@ Emit = Callable[[dict], None]
 
 
 class KnowledgeRepository(Protocol):
+    # 全量重构读取不改变使用日，树查询按分区先过滤再分页。
+    def library_inventory(self) -> list[dict]: ...
+    # 按两级路径分页聚合，筛选先于计数且不改变使用日。
+    def library_tree(self, params: dict) -> dict: ...
+    # 创建恢复点并原子校验提交，失败整体回滚。
+    def apply_library(self, draft: dict, selected: list[str]) -> dict: ...
     # 汇总全库分类，匹配排序后发送有界摘要并报告覆盖量。
     def taxonomy_summary(self, query: str) -> dict: ...
     # 全库词法搜索返回稳定分页和来源摘录，不调用模型。
@@ -46,6 +52,7 @@ class KnowledgeRepository(Protocol):
         model: str = "",
         provider_name: str = "",
         capture_key: str | None = None,
+        classification_path: tuple[str, str] | None = None,
     ) -> dict: ...
     # 固定有效分区或恢复自动计算，拒绝其他分区值。
     def set_bucket(self, item_id: str, bucket: str | None) -> dict: ...

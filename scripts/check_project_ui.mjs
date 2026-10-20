@@ -107,14 +107,16 @@ async function verifyInsufficientMaterials(context, count) {
   assert.equal(fixture.state.posts.length, count)
 }
 
-// 拆解未完成时切页，晚到终态不能改页面或将探索内容渲染到分区。
+// 拆解未完成时切页继续审核，终态写回探索且不渲染到其他分区。
 export async function checkLatePage(context) {
   const { ui, fill, click, waitFor, fixture, finish } = context
   const count = fixture.state.posts.length + 1
   await fill('#question', '等待时切页的独立目录')
   await click('拆解并学习 ↗')
   await waitFor(async () => fixture.state.posts.length === count, 'pending plan')
-  await ui.evaluate(`document.querySelectorAll('.nav-item')[1].click()`)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('常用')).click()`
+  )
   await waitFor(
     () => ui.evaluate(`document.querySelector('[aria-label="常用页面"]') !== null`),
     'switch during pending plan'
@@ -131,13 +133,36 @@ export async function checkLatePage(context) {
     ),
     true
   )
+  await waitFor(
+    async () => fixture.state.posts.length === count + 1,
+    'review continues while hidden'
+  )
+  const points = JSON.parse(fixture.state.posts.at(-1).input).points
+  finish(fixture, {
+    decisions: points.map((p) => ({
+      id: p.id,
+      decision: 'keep',
+      reason: '可复用概念',
+      category: '晚到主题',
+      subcategory: '通用方法',
+      project_required: false
+    }))
+  })
+  await waitFor(
+    () => ui.evaluate(`!document.querySelector('.session-task')`),
+    'hidden plan completes'
+  )
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await waitFor(
     () =>
       ui.evaluate(`!document.querySelector('.composer-caption [aria-label="生成模型"]').disabled`),
-    'cancelled request releases own controls'
+    'completed hidden request releases controls'
+  )
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.directory-point').innerText.includes('晚到知识')`),
+    true
   )
   context.report.checks.push(
-    'pending plan cancelled on navigation; late result cannot navigate or leak content, filters or errors into bucket page'
+    'pending plan and independent review continue across navigation; results remain on origin page without leaking into buckets'
   )
 }

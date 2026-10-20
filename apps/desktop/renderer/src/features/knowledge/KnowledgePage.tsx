@@ -3,7 +3,7 @@
 // 作用：只组合当前频率分区的列表与主动打开的知识详情。
 // 说明：简洁提问复用探索流程，目录、阅读和输入按页面隔离。
 import { useAppContext } from '../../app/AppContext'
-import { KnowledgeList } from './KnowledgeList'
+import { SavedKnowledgeTree } from './SavedKnowledgeTree'
 import { KnowledgeQuestion } from './KnowledgeQuestion'
 import { KnowledgeWorkspace, RelatedKnowledge, WorkingStatus } from '../exploration'
 
@@ -25,7 +25,7 @@ export function KnowledgePage() {
           ＋ 新建知识
         </button>
       </div>
-      <KnowledgeList />
+      <SavedKnowledgeTree />
       <KnowledgeQuestion />
       {busy && <WorkingStatus />}
       <KnowledgeWorkspace />

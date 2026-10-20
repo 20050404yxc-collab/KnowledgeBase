@@ -2,7 +2,8 @@
 // 层：React 交互 hook
 // 作用：协调附件状态、提问、请求事件和资料保留。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
+import type { useSessionTask } from '../../app/use_session_task'
 import type { GenerationOptions, Scope } from '../../../../../../contracts/desktop'
 import { api, errorText } from '../../shared/api/client'
 
@@ -18,11 +19,7 @@ function useExplorationState() {
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<Scope>('mixed')
   const [attachments, setAttachments] = useState<Attached[]>([])
-  const [busy, setBusy] = useState<string | null>(null)
-  const [progress, setProgress] = useState('')
-  const [streamChars, setStreamChars] = useState(0)
   const [pathEntry, setPathEntry] = useState<string | null>(null)
-  const activeRequest = useRef<string | null>(null)
   return {
     query,
     setQuery,
@@ -30,48 +27,29 @@ function useExplorationState() {
     setScope,
     attachments,
     setAttachments,
-    busy,
-    setBusy,
-    progress,
-    setProgress,
-    streamChars,
-    setStreamChars,
     pathEntry,
-    setPathEntry,
-    activeRequest
+    setPathEntry
   }
 }
 type ExplorationState = ReturnType<typeof useExplorationState>
 
 // 将提问、附件和请求事件绑定到当前应用会话。
 export function useExploration(
-  options: Feedback & Library & Reading & Navigation & { generationOptions: GenerationOptions }
+  options: Feedback &
+    Library &
+    Reading &
+    Navigation &
+    ReturnType<typeof useSessionTask> & { generationOptions: GenerationOptions }
 ) {
   const state = useExplorationState()
   const combined = { ...options, ...state }
-  const { activeRequest, setProgress, setStreamChars } = state
-  const ask = (text = state.query, expansion = false) => askAction(combined, text, expansion)
+  const ask = (text = state.query, expansion = false) =>
+    options.runTask(() => askAction(combined, text, expansion))
   const addFiles = (paths: string[]) => addFilesAction(combined, paths)
   const removeAttachment = (item: Attached) => removeAttachmentAction(combined, item)
   const retain = (item: Attached) => retainAction(combined, item)
 
-  useEffect(
-    // 按当前请求关联接收进度，effect 返回退订函数避免重复监听。
-    () =>
-      api.onEvent((event) => {
-        if (event.id !== activeRequest.current) {
-          return
-        }
-        if (event.type === 'progress') {
-          setProgress(event.message ?? '')
-        }
-        if (event.type === 'stream') {
-          setStreamChars((count) => count + (event.delta?.length ?? 0))
-        }
-      }),
-    [activeRequest, setProgress, setStreamChars]
-  )
-  return { ...state, ask, addFiles, removeAttachment, retain }
+  return { ...state, ...options, ask, addFiles, removeAttachment, retain }
 }
 
 // 完整回答到达前仅显示进度，终态统一释放忙碌状态。
@@ -80,7 +58,8 @@ async function askAction(
     Library &
     Reading &
     Navigation &
-    ExplorationState & { generationOptions: GenerationOptions },
+    ExplorationState &
+    ReturnType<typeof useSessionTask> & { generationOptions: GenerationOptions },
   text: string,
   expansion = false
 ) {
@@ -93,25 +72,20 @@ async function askAction(
     setRecommendations,
     scope,
     attachments,
-    setBusy,
     setProgress,
-    setStreamChars,
-    activeRequest
+    setStreamChars
   } = state
 
   // 空输入和重复提交在界面侧提前结束；附件未就绪时允许用户先移除。
-  if (!text.trim() || activeRequest.current) {
+  if (!text.trim()) {
     return
   }
   if (!expansion && attachments.some((a) => a.state === 'loading')) {
     setError('附件仍在解析，请等待完成或移除后提问')
     return
   }
-  const id = crypto.randomUUID()
   const sequence = ++state.selectionSequence.current
   // 提交时清空上一轮显示，并以本次 ID 关联后续事件与取消。
-  activeRequest.current = id
-  setBusy(id)
   setProgress('正在检索')
   setStreamChars(0)
   setError('')
@@ -120,19 +94,15 @@ async function askAction(
   setAnswer(null)
   setRecommendations([])
   try {
-    const value = await api.request(
-      'question',
-      {
-        query: text,
-        ...state.generationOptions,
-        scope: requestScope(scope, attachments, expansion),
-        attachment_ids: expansion
-          ? []
-          : attachments.filter((a) => a.state === 'ready').map(requireAttachmentId),
-        purpose: expansion ? 'expansion' : 'question'
-      },
-      id
-    )
+    const value = await state.taskRequest('question', {
+      query: text,
+      ...state.generationOptions,
+      scope: requestScope(scope, attachments, expansion),
+      attachment_ids: expansion
+        ? []
+        : attachments.filter((a) => a.state === 'ready').map(requireAttachmentId),
+      purpose: expansion ? 'expansion' : 'question'
+    })
     void reload()
     if (sequence !== state.selectionSequence.current) {
       return
@@ -145,13 +115,6 @@ async function askAction(
     // 选择已改变时只结束原请求，不将错误写入当前阅读流程。
     if (sequence === state.selectionSequence.current) {
       setError(errorText(err))
-    }
-  } finally {
-    // 只释放自己的请求；旧终态不得清空新请求。
-    if (activeRequest.current === id) {
-      activeRequest.current = null
-      setBusy(null)
-      setProgress('')
     }
   }
 }

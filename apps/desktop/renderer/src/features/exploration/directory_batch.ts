@@ -2,8 +2,13 @@
 // 层：React 交互流程
 // 作用：串行生成所选目录项，并汇总保存、待核对、缺资料及失败结果。
 // 说明：复用单点接口；项目资料逐点核验，取消后不再启动下一项。
-import type { Answer, DirectoryPoint, LearnInput } from '../../../../../../contracts/desktop'
-import { api, errorText } from '../../shared/api/client'
+import type {
+  Answer,
+  DirectoryPoint,
+  LearnInput,
+  DesktopAPI
+} from '../../../../../../contracts/desktop'
+import { errorText } from '../../shared/api/client'
 
 export interface BatchOutcome {
   point: DirectoryPoint
@@ -16,7 +21,7 @@ export interface BatchOptions {
   input: Omit<LearnInput, 'point_id' | 'action'>
   attachmentIds?: string[]
   current: () => boolean
-  requestId: () => string | undefined
+  request: DesktopAPI['request']
   progress: (text: string) => void
   receive: (outcome: BatchOutcome) => void
 }
@@ -37,15 +42,11 @@ async function generatePoint(options: BatchOptions, point: DirectoryPoint): Prom
   const params = { ...options.input, point_id: point.id }
   // 自动核对使用本次同组文件；资料不足时保留索要信息并跳过生成。
   if (point.project_required && options.attachmentIds) {
-    const checked = await api.request(
-      'knowledge.learn',
-      {
-        ...params,
-        action: 'materials',
-        attachment_ids: options.attachmentIds
-      },
-      options.requestId()
-    )
+    const checked = await options.request('knowledge.learn', {
+      ...params,
+      action: 'materials',
+      attachment_ids: options.attachmentIds
+    })
     if (!options.current() || checked.project?.status !== 'material-ready') {
       return checked
     }
@@ -54,21 +55,17 @@ async function generatePoint(options: BatchOptions, point: DirectoryPoint): Prom
   if (!options.current()) {
     throw new Error('批量生成已停止，已保存内容保留')
   }
-  return api.request(
-    'knowledge.learn',
-    {
-      ...params,
-      action: point.target_id ? 'supplement' : 'learn',
-      target_id: point.target_id
-    },
-    options.requestId()
-  )
+  return options.request('knowledge.learn', {
+    ...params,
+    action: point.target_id ? 'supplement' : 'learn',
+    target_id: point.target_id
+  })
 }
 
 // 单项失败继续处理其他明确选择的项；没有自动重试，也不替用户确认补充归属。
 export async function generateBatch(options: BatchOptions) {
   for (const [index, point] of options.points.entries()) {
-    // 切页、取消或重新拆解后不再发送下一项请求。
+    // 只有明确取消或任务依据失效才停止后续项，阅读和切页不影响执行。
     if (!options.current()) {
       break
     }

@@ -20,7 +20,7 @@ export function RelatedKnowledge() {
             <button
               key={card.title}
               className="related-card"
-              disabled={!!busy}
+              disabled={!!busy && !card.knowledge_id}
               onClick={() =>
                 card.knowledge_id ? void openItem(card.knowledge_id) : void ask(card.title, true)
               }

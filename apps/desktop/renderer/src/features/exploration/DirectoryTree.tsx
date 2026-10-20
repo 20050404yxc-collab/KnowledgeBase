@@ -54,7 +54,6 @@ function PointRow({ point }: { point: DirectoryPoint }) {
       />
       <button
         className={`directory-point ${selectedPoint?.id === point.id ? 'active' : ''}`}
-        disabled={!!busy}
         onClick={() => void selectPoint(point)}
       >
         <strong>{point.title}</strong>

@@ -1,5 +1,18 @@
 # Execution Tasks
 
+## Revision 8 planning and implementation
+
+- [x] R8.1 Reuse existing product task/pages; read selected project standard, relevant skill references and targeted navigation/request/permission/capture/storage chains.
+- [x] R8.2 Diagnose explicit page cancellation, selection invalidation, material revocation, unclassified legacy capture path and list cap without claiming runtime reproduction.
+- [x] R8.3 Record user's diff-first content choice and later all-bucket hierarchy requirement; reconcile Chinese product/design/acceptance/overview with English records.
+- [x] R8.4 User authorized implementation with “开始改” after reviewing the R8 plan and all-bucket hierarchy amendment.
+- [x] R8.5 Implement session tasks, independent reading ownership, unique stage requests, global controls and bounded permission/resource cleanup; R8-01/07.
+- [x] R8.6 Implement complete scoped tree queries and saved hierarchy for library plus all frequency pages; preserve compact questions and page-owned state; R8-02.
+- [x] R8.7 Implement bounded full-inventory summaries, outline validation, paged preview/adjustment and explicit preparation; R8-03/04.
+- [x] R8.8 Implement selected diff application, manual protection, consistent recovery point, atomic stale-plan checks, receipt and index synchronization; R8-04/05.
+- [x] R8.9 Classify normal question/expansion capture atomically with scoped taxonomy and preserve existing topic behavior; R8-06.
+- [x] R8.10 Run relevant isolated cases, `npm run check`, `npm run test:ui` and wide/narrow visual QA; reconcile docs with actual behavior and record limits.
+
 Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Revision 4 was authorized with "开始修改", implemented and locally verified. Historical development/Git authorizations remain scoped to earlier increments. Full-v1 launch acceptance remains outstanding.
 
 ## Revision 6 independent pages and hierarchical classification (implemented)
