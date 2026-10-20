@@ -7,6 +7,7 @@ import json
 import uuid
 from collections import OrderedDict
 
+from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.domain.taxonomy import encode_path
@@ -54,6 +55,7 @@ class TopicWorkflow:
         self.projects = ProjectLearning(projects, questions.documents)
 
     # 独立搜索默认全库；显式附件范围按本次文件优先、知识库随后稳定分页。
+    @traced
     def search(self, params: dict) -> dict:
         if not isinstance(params.get("query"), str):
             raise ValueError("请输入有效关键词")
@@ -94,6 +96,7 @@ class TopicWorkflow:
         return result
 
     # 分组本地检索在任何模型请求之前完成，文件范围严格不加入库内知识。
+    @traced
     def context(self, params: dict) -> tuple[str, str, list[dict], list[dict], dict, str]:
         query, scope, attachment_ids = validate_question(params)
         search = self.search(params)
@@ -122,6 +125,7 @@ class TopicWorkflow:
         return query, scope, local, evidence, search, " ".join(notices[1:])
 
     # 固定配置后规划，失败不丢弃本地命中；取消仍传播到协议层。
+    @traced
     async def plan(self, params: dict, emit: Emit) -> dict:
         config = self.store.provider(params.get("provider_id"))
         if params.get("provider_id") and not config:
@@ -154,7 +158,8 @@ class TopicWorkflow:
             text = await self.client.generate(
                 config, json.dumps(prompt, ensure_ascii=False), "topic-plan", emit
             )
-            points = validate_plan(text, query, local, evidence)
+            with step("topic.validate_plan"):
+                points = validate_plan(text, query, local, evidence)
             emit({"type": "progress", "message": "正在独立判断知识点资格、项目依赖与两级分类"})
             review = await self.client.generate(
                 config,
@@ -162,8 +167,10 @@ class TopicWorkflow:
                 "topic-review",
                 emit,
             )
-            points, rejected = review_points(review, points)
-        except (ValueError, TypeError):
+            with step("topic.validate_review"):
+                points, rejected = review_points(review, points)
+        except (ValueError, TypeError) as error:
+            record("topic.plan_fallback", error=error)
             response["notice"] = (
                 "知识点拆解失败或审核未通过，未放行未审核知识点；本地结果保留，请重试。"
             )
@@ -201,6 +208,7 @@ class TopicWorkflow:
         }
 
     # 取消也撤销项目许可，不能让后续普通学习沿用取消前的公开授权。
+    @traced
     async def learn(self, params: dict, emit: Emit) -> dict:
         try:
             return await self._learn(params, emit)
@@ -262,6 +270,7 @@ class TopicWorkflow:
             return await self.generate(session_id, session, point, params, config, emit)
 
     # 针对明确选中的侧面生成，保守地将所有目标补充先交用户核对。
+    @traced
     async def generate(
         self, session_id: str, session: dict, point: dict, params: dict, config: dict, emit: Emit
     ) -> dict:
@@ -324,8 +333,12 @@ class TopicWorkflow:
             self.projects.check(session, point, project_state)
             draft["project_revision"] = project_state["revision"]
         if result.get("insufficient"):
+            record("topic.insufficient")
             return self.result(None, draft, "依据不足，未收录。")
         if target or raw.get("conflict"):
+            record(
+                "topic.review_required", has_target=bool(target), conflict=bool(raw.get("conflict"))
+            )
             session["pending"][point["id"]] = draft
             return self.result(None, draft, "请核对归属及冲突后保存；原笔记未修改。", True)
         item = self.store.capture_topic(draft)
@@ -333,6 +346,7 @@ class TopicWorkflow:
         return self.result(item, draft, "已完整收录选中的知识点。")
 
     # 核对后提交仍需检查目标版本；另存独立点不再关联原目标。
+    @traced
     async def confirm(self, session_id: str, session: dict, point: dict, action: str) -> dict:
         draft = session["pending"].get(point["id"])
         if not draft:

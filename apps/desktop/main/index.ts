@@ -7,14 +7,15 @@ import { resolve } from 'node:path'
 import { registerIpc } from './ipc_gateway'
 import { createWindow } from './window_manager'
 import { WorkerBridge } from './worker_bridge'
+import { configureDiagnostics, diagnostic, flushDiagnostics } from './diagnostics'
 
 app.setName('KnowledgeBase')
 let window: BrowserWindow | null = null
 let bridge: WorkerBridge | undefined
 let quitting = false
-
 // 应用就绪后装配；窗口关闭触发后台有界退出。
 function startDesktop(): void {
+  diagnostic('desktop.ready')
   bridge = new WorkerBridge(
     resolve(__dirname, '../..'),
     process.env.KB_DATA_DIR || app.getPath('userData'),
@@ -23,6 +24,7 @@ function startDesktop(): void {
   registerIpc(() => window, bridge)
   window = createWindow()
   window.on('closed', () => {
+    diagnostic('window.closed')
     window = null
   })
 }
@@ -30,6 +32,20 @@ function startDesktop(): void {
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
+  // 取得单实例锁后才拥有日志文件，第二个启动器不能竞争轮转。
+  configureDiagnostics(process.env.KB_DATA_DIR || app.getPath('userData'))
+  diagnostic('desktop.start', {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    node: process.versions.node
+  })
+  // 异常仅提取代码位置；捕获器不擅自把未完成业务显示为成功。
+  process.on('uncaughtExceptionMonitor', (error) =>
+    diagnostic('desktop.uncaught_exception', {}, error)
+  )
+  process.on('unhandledRejection', (error: unknown) =>
+    diagnostic('desktop.unhandled_rejection', {}, error)
+  )
   app.on('second-instance', () => {
     if (window?.isMinimized()) {
       window.restore()
@@ -40,21 +56,26 @@ if (!app.requestSingleInstanceLock()) {
   void app
     .whenReady()
     .then(startDesktop)
-    .catch(() => {
+    .catch((error: unknown) => {
+      diagnostic('desktop.start_failed', {}, error)
       dialog.showErrorBox('启动失败', '无法初始化桌面程序，请检查运行环境后重新启动。')
       app.quit()
     })
   app.on('window-all-closed', () => app.quit())
   app.on('before-quit', (event) => {
-    if (quitting || !bridge) {
+    if (quitting) {
       return
     }
     event.preventDefault()
     quitting = true
-    void bridge
-      .stop()
-      .catch(() => {
-        console.error('后台关闭失败；请检查本应用后台是否已退出。')
+    diagnostic('desktop.stopping')
+    void (bridge?.stop() ?? Promise.resolve())
+      .catch((error: unknown) => {
+        diagnostic('desktop.stop_failed', {}, error)
+      })
+      .then(() => {
+        diagnostic('desktop.stopped')
+        return flushDiagnostics()
       })
       .finally(() => app.quit())
   })

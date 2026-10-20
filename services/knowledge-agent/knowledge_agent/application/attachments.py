@@ -4,6 +4,7 @@
 # 说明：文件访问和 SQL 均通过能力接口执行。
 from __future__ import annotations
 
+from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.models import Document
 
 from .ports import Emit, SnapshotFiles, SourceRepository
@@ -25,6 +26,7 @@ class Attachments:
         }
 
     # 解析完成才登记；重复内容复用首个附件并清理多余快照。
+    @traced
     async def add(self, params: dict, emit: Emit) -> dict:
         emit({"type": "progress", "message": "正在读取本地文档"})
         document = await self.snapshots.read(params.get("path", ""))
@@ -37,6 +39,7 @@ class Attachments:
         return self.info(document)
 
     # 保存顺序为复制、原子写入元数据；写入失败补偿副本。
+    @traced
     def retain(self, item_id: str) -> list[dict]:
         document = self.documents.get(item_id)
         if not document:
@@ -57,6 +60,7 @@ class Attachments:
         return self.store.list_sources()
 
     # 文件删除失败则不移除元数据，不报告资料删除成功。
+    @traced
     def delete_source(self, item_id: str) -> list[dict]:
         filename = self.store.source_filename(item_id)
         if filename:
@@ -67,6 +71,7 @@ class Attachments:
         return self.store.list_sources()
 
     # 只移除会话副本，已保留的资料和用户原件不受影响。
+    @traced
     def remove(self, item_id: str) -> dict:
         document = self.documents.get(item_id)
         if document:

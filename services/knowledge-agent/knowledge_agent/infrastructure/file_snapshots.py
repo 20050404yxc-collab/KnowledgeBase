@@ -10,6 +10,7 @@ import tempfile
 import uuid
 from pathlib import Path
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.models import Document
 
 from .document_parser import MAX_FILE_BYTES, parse_document, validate_path
@@ -17,6 +18,7 @@ from .document_parser import MAX_FILE_BYTES, parse_document, validate_path
 
 class FileSnapshots:
     # 单实例启动后清理上次崩溃留下的会话目录，保留资料由仓库恢复。
+    @traced
     def __init__(self, root: Path) -> None:
         self.sources_dir = root / "sources"
         self.sessions = root / "sessions"
@@ -28,6 +30,7 @@ class FileSnapshots:
         self.work: set[asyncio.Task] = set()
 
     # 复制和解析在同一线程；取消不能在复制完成前删除目标。
+    @traced
     def _read(self, source: Path, target: Path) -> Document:
         shutil.copyfile(source, target)
         if target.stat().st_size > MAX_FILE_BYTES:
@@ -35,6 +38,7 @@ class FileSnapshots:
         return parse_document(target, source.name)
 
     # 被取消的等待者不再持有结果；线程完成后由所有者回收快照。
+    @traced
     async def read(self, value: str) -> Document:
         path = validate_path(value)
         target = self.session / f"{uuid.uuid4()}{path.suffix.lower()}"
@@ -53,19 +57,25 @@ class FileSnapshots:
 
     # 清理失败仅补充上下文，保留复制或解析时的主错误供调用者处理。
     @staticmethod
+    @traced
     def _remove_failed_copy(target: Path, error: Exception) -> None:
         try:
             target.unlink(missing_ok=True)
-        except OSError:
+        except OSError as cleanup_error:
+            record("snapshot.cleanup_failed", error=cleanup_error)
             error.add_note("失败副本清理未完成；退出或下次启动时重新清理会话资源")
 
     # 消费后台异常，防止已取消解析任务留下未处理异常或临时文件。
+    @traced
     def _discard_result(self, task: asyncio.Task, target: Path) -> None:
         if not task.cancelled():
-            task.exception()
+            error = task.exception()
+            if error is not None:
+                record("snapshot.cancelled_work_failed", error=error)
         target.unlink(missing_ok=True)
 
     # 应用传入的路径也必须位于当前会话目录，拒绝越界清理。
+    @traced
     def remove_temporary(self, document: Document) -> None:
         path = Path(document["path"]).resolve()
         if path.parent != self.session.resolve():
@@ -77,6 +87,7 @@ class FileSnapshots:
         return document["id"] + Path(document["path"]).suffix
 
     # 复制失败也回收半写入文件，数据库失败由应用调用补偿删除。
+    @traced
     def copy_retained(self, document: Document, filename: str) -> None:
         target = self._retained_path(filename)
         try:
@@ -93,14 +104,20 @@ class FileSnapshots:
         return target
 
     # 删除仅影响应用持有的副本，保留知识中的引用摘录。
+    @traced
     def remove_retained(self, filename: str) -> None:
         self._retained_path(filename).unlink(missing_ok=True)
 
     # 正常同步关闭用于无在途解析的调用者；后台先等待线程再关闭。
+    @traced
     def close(self) -> None:
-        shutil.rmtree(self.session, ignore_errors=True)
+        shutil.rmtree(
+            self.session,
+            onexc=lambda _function, _path, error: record("snapshot.close_failed", error=error),
+        )
 
     # asyncio 线程不可强制中断，退出时等待有界解析完成再移除目录。
+    @traced
     async def settle(self) -> None:
         if self.work:
             await asyncio.gather(*self.work, return_exceptions=True)

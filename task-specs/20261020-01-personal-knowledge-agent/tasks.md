@@ -1,5 +1,37 @@
 # Execution Tasks
 
+## Revision 10 sphere navigation
+
+- [x] R10.1 Reuse current task and human pages; inspect saved-tree composition, direct page callers, typed nodes, page cache ownership and relevant styles.
+- [x] R10.2 Record the user's concrete three-level visual scheme, scope, wireframe, sequence, layout limits and independent authorization boundary; prepare an interactive synthetic-data illustration.
+- [ ] R10.3 Obtain implementation authorization for R10 sphere navigation; this does not authorize retained R9 restructuring.
+- [ ] R10.4 Implement scoped sphere/title/connector components and page-owned focus/pagination with existing tree and detail APIs; R10-01/02.
+- [ ] R10.5 Verify complete traversal, query/bucket isolation, invalid-path fallback, stale requests, retry, keyboard and reduced-motion interactions.
+- [ ] R10.6 Run `npm run check`, `npm run test:ui` and wide/narrow visual QA; reconcile current docs and actual evidence.
+
+Handoff: reviewable plan and standalone illustration only; product code is unchanged by this turn. R10-01/02 are not implemented or product-tested. Existing working-tree edits and R9 pending work are preserved.
+
+## Revision 9 planning and implementation
+
+- [x] R9.1 Reuse the existing task/pages; inspect current summarization, confirmation, storage, schema and canonical-read risks. Diagnose validation boundary without pretending to know the actual bad response.
+- [x] R9.2 Record user choices: duplicates require per-group confirmation; extract original content first and label optional model explanations separately. Write the complete reviewable plan, UI and sequence.
+- [ ] R9.3 Obtain review/execution authorization for revision 9; do not infer it from strategy answers or R8 approval.
+- [ ] R9.4 Implement two-worker claims/ledger, bounded calls, full coverage, precise validation and partial-failure resume; R9-01/02.
+- [ ] R9.5 Expand parent request-set cancellation, paged state synchronization and lifecycle tests; R9-02/07.
+- [ ] R9.6 Implement reconciled directory, cross-worker candidates, evidence/group validation, correction and source maps; R9-03.
+- [ ] R9.7 Implement source-based content extraction, unique/conflict retention, independent model explanations and group acceptance gates; R9-04/05.
+- [ ] R9.8 Implement isolated-tested recoverable schema 3-to-4 migration, retained originals/provenance, canonical read/search/reuse/frequency handling and group deletion guard; R9-06.
+- [ ] R9.9 Implement atomic checked apply/indices/receipt with recovery-point and fault tests; R9-05/06.
+- [ ] R9.10 Implement worker-record/duplicate/structure/source/diff UI and additive validated contracts, with explicit group/explanation selections; R9-03/05/07.
+- [ ] R9.11 Run meaningful isolated regression/fault tests, `npm run check`, `npm run test:ui`, wide/narrow visual QA and reconcile human docs/evidence; R9-01..07.
+
+### Revision 9 handoff
+
+- Current workflow: confirmation; plan 9 ready for user review, approved implementation baseline 8.
+- Actual changes: planning documents only. No product code, schema migration, paid call or production data access.
+- Next: review Chinese product section 3.10 and authorize this revision before implementing R9.4 onward.
+- Unverified: all new concurrency, output quality, merge/provenance/migration and UI behavior; no performance/cost guarantees. Records are session-local.
+
 ## Revision 8 planning and implementation
 
 - [x] R8.1 Reuse existing product task/pages; read selected project standard, relevant skill references and targeted navigation/request/permission/capture/storage chains.

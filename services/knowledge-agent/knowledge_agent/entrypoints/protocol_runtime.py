@@ -10,6 +10,7 @@ import re
 import sys
 
 from knowledge_agent.application.knowledge_service import KnowledgeService
+from knowledge_agent.diagnostics import record, request_context, step
 
 from .dispatch import dispatch
 
@@ -47,15 +48,32 @@ class ProtocolRuntime:
 
     # 所有请求结算并移除关联；异常体不泄漏网络和文档内容。
     async def execute(self, message: dict) -> None:
+        with request_context(message["id"], message["operation"]):
+            await self.execute_request(message)
+
+    # 进度和流式正文仅计数，步骤失败后由协议兜底给用户受控提示。
+    async def execute_request(self, message: dict) -> None:
         request_id = message["id"]
+        events = {"progress": 0, "stream": 0, "stream_chars": 0}
+
+        # 回调继承请求上下文；不把 progress message 或 delta 正文写入日志。
+        def emit(event: dict) -> None:
+            kind = event.get("type")
+            if kind in ("progress", "stream"):
+                events[kind] += 1
+                if kind == "stream":
+                    events["stream_chars"] += len(event.get("delta", ""))
+                else:
+                    record("request.progress", index=events["progress"])
+            send({**event, "id": request_id})
+
         try:
-            result = await dispatch(
-                self.service,
-                message["operation"],
-                message.get("params", {}),
-                lambda event: send({**event, "id": request_id}),
-            )
+            with step("request.dispatch"):
+                result = await dispatch(
+                    self.service, message["operation"], message.get("params", {}), emit
+                )
             send({"id": request_id, "type": "result", "result": result})
+            record("request.result_sent")
         except asyncio.CancelledError:
             send({"id": request_id, "type": "error", "error": "任务已取消，未收录残缺内容"})
         except (ValueError, FileNotFoundError, PermissionError) as exc:
@@ -71,6 +89,7 @@ class ProtocolRuntime:
                 }
             )
         finally:
+            record("request.finished", **events)
             self.tasks.pop(request_id, None)
 
     # 重复标识不能替换原任务；取消帧不占业务任务额度。
@@ -81,12 +100,17 @@ class ProtocolRuntime:
             target_id = message.get("params", {}).get("target")
             target = self.tasks.get(target_id) if isinstance(target_id, str) else None
             if target:
+                record("request.cancel", request_id=target_id)
                 target.cancel()
+            else:
+                record("request.cancel_inactive")
             return
         if request_id in self.tasks:
+            record("request.duplicate", request_id=request_id)
             # 忽略重复帧以保留首请求的终态归属，不能发送同 ID 错误误伤它。
             return
         if len(self.tasks) >= MAX_PENDING_REQUESTS:
+            record("request.overloaded", request_id=request_id, pending=len(self.tasks))
             # 并发达到上限直接报错，不再无界创建任务等待资源。
             send({"id": request_id, "type": "error", "error": "后台任务过多，请稍后重试"})
             return
@@ -95,21 +119,28 @@ class ProtocolRuntime:
     # EOF 和超大帧结束会话；格式错误可恢复，后续合法请求仍能执行。
     async def run(self) -> None:
         send({"type": "ready", "version": "test0.03"})
+        record("worker.ready")
         try:
             while True:
                 raw = await asyncio.to_thread(sys.stdin.buffer.readline, MAX_FRAME_BYTES + 1)
                 if not raw or len(raw) > MAX_FRAME_BYTES:
+                    record(
+                        "worker.input_closed" if not raw else "protocol.frame_too_large",
+                        bytes=len(raw),
+                    )
                     # EOF 或超大帧结束本会话，统一走下方资源收束路径。
                     break
                 try:
                     message = parse_message(raw)
-                except (ValueError, UnicodeError):
+                except (ValueError, UnicodeError) as error:
+                    record("protocol.invalid_frame", error=error, bytes=len(raw))
                     send({"type": "error", "error": "无效协议消息"})
                     continue
                 self.accept(message)
         finally:
             # 先取消业务并等待实际解析完成，再关闭数据库和会话目录。
             pending = list(self.tasks.values())
+            record("worker.shutdown", pending=len(pending))
             for task in pending:
                 task.cancel()
             await asyncio.gather(*pending, return_exceptions=True)

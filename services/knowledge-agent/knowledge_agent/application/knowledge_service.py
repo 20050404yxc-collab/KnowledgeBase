@@ -4,6 +4,7 @@
 # 说明：由 bootstrap 注入能力，协议分发位于入口层。
 from __future__ import annotations
 
+from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .attachments import Attachments
@@ -50,6 +51,7 @@ class KnowledgeService:
         self.catalog = catalog
 
     # 关闭可重复调用，先关闭数据库再清理会话；不删除保留资料。
+    @traced
     def close(self) -> None:
         if self.closed:
             return
@@ -61,10 +63,12 @@ class KnowledgeService:
             self.snapshots.close()
 
     # 入口退出时先收束解析线程，再执行同步资源释放。
+    @traced
     async def settle(self) -> None:
         await self.snapshots.settle()
 
     # 启动摘要仅含显示数据，不包含凭据或内部文件句柄。
+    @traced
     def info(self) -> dict:
         return {
             "version": "test0.03",
@@ -103,11 +107,13 @@ class KnowledgeService:
         return await self.questions.question(params, emit)
 
     # 删除凭据后才删除配置，失败不报告删除成功。
+    @traced
     def delete_provider(self, item_id: str) -> list[dict]:
         self.vault.delete(item_id)
         return self.store.delete_provider(item_id)
 
     # 测试生成也产生真实尝试记录，不宣称具备向量能力。
+    @traced
     async def test_provider(self, params: dict, emit: Emit) -> dict:
         config = self.store.provider(params["id"])
         if not config:
@@ -117,5 +123,6 @@ class KnowledgeService:
         return {"message": "生成接口已响应；此测试会产生调用记录，不表示具备向量能力。"}
 
     # 草稿目录发现不保存配置，也不创建生成尝试记录。
+    @traced
     async def discover_models(self, params: dict) -> dict:
         return await discover_models(self.store, self.vault, self.catalog, params)

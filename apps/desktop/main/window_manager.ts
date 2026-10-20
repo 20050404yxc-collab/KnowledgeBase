@@ -4,6 +4,7 @@
 // 说明：保持沙箱、上下文隔离及禁用 renderer Node。
 import { BrowserWindow, dialog } from 'electron'
 import { join } from 'node:path'
+import { diagnostic } from './diagnostics'
 
 // 只加载构建产物或开发服务器，不开放额外浏览器能力。
 export function createWindow(): BrowserWindow {
@@ -22,6 +23,15 @@ export function createWindow(): BrowserWindow {
       sandbox: true
     }
   })
+  diagnostic('window.created')
+  window.webContents.on('render-process-gone', (_event, details) => {
+    diagnostic('renderer.process_gone', { reason: details.reason, exit_code: details.exitCode })
+  })
+  window.webContents.on('unresponsive', () => diagnostic('renderer.unresponsive'))
+  window.webContents.on('did-finish-load', () => diagnostic('renderer.loaded'))
+  window.webContents.on('preload-error', (_event, _path, error) =>
+    diagnostic('renderer.preload_failed', {}, error)
+  )
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('will-attach-webview', (event) => event.preventDefault())
@@ -29,7 +39,8 @@ export function createWindow(): BrowserWindow {
   const loading = process.env.ELECTRON_RENDERER_URL
     ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
     : window.loadFile(join(__dirname, '../renderer/index.html'))
-  void loading.catch(() => {
+  void loading.catch((error: unknown) => {
+    diagnostic('renderer.load_failed', {}, error)
     if (!window.isDestroyed()) {
       dialog.showErrorBox('页面加载失败', '请重新构建项目并启动，或检查开发服务器是否可用。')
       window.close()

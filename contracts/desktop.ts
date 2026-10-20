@@ -221,6 +221,27 @@ export interface DesktopAPI {
   chooseFiles(): Promise<string[]>
   pathsForFiles(files: File[]): string[]
   onEvent(callback: (event: WorkerEvent) => void): () => void
+  reportDiagnostic(report: RendererDiagnostic): void
+}
+// 仅传输有界诊断元数据；不允许正文、密钥、任意日志消息和文件写入。
+export interface RendererDiagnostic {
+  event:
+    | 'ready'
+    | 'error'
+    | 'rejection'
+    | 'react_error'
+    | 'request_start'
+    | 'request_completed'
+    | 'request_failed'
+    | 'cancel'
+    | 'files_failed'
+    | 'feedback_error'
+  request_id?: string
+  operation?: Operation
+  elapsed_ms?: number
+  error_type?: string
+  frames?: string[]
+  reason?: 'request_failed' | 'attachments_pending' | 'task_running' | 'local_error'
 }
 export interface Bootstrap {
   version: string

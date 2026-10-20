@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 
+from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.knowledge_rules import identity, relevance
 from knowledge_agent.domain.limits import MAX_ATTACHMENTS, MAX_CONTEXT_CHARS, MAX_QUERY_CHARS
@@ -39,6 +40,7 @@ def validate_question(params: dict) -> tuple[str, str, list[str]]:
 
 
 # 按字符预算选取去重片段，全文覆盖不足则拒绝发送。
+@traced
 def select_evidence(
     evidence: list[dict], file_block_count: int, summary: bool, notice: list[str]
 ) -> list[dict]:
@@ -112,6 +114,7 @@ class Questions:
         self.locks = QuestionLocks()
 
     # 同一查询的检索、生成及提交处于同一把锁内，防止重复调用。
+    @traced
     async def question(self, params: dict, emit: Emit) -> dict:
         query, scope, attachment_ids = validate_question(params)
         # 在等待同问题锁之前固定配置，后续编辑或切换不改变本次请求。
@@ -125,6 +128,7 @@ class Questions:
             return await self.answer(params, emit, query, scope, attachment_ids)
 
     # 检索及无模型回退先执行，只有需要生成才请求外部接口。
+    @traced
     async def answer(
         self, params: dict, emit: Emit, query: str, scope: str, attachment_ids: list[str]
     ) -> dict:
@@ -133,13 +137,22 @@ class Questions:
         existing = self.reuse(query, scope, attachment_ids, local)
         # 已有同问题知识优先返回，避免无意义的再次付费生成。
         if existing:
+            record("question.reused")
             return existing
         evidence, file_count, summary, notice = self.collect(query, scope, attachment_ids, local)
         selected = select_evidence(evidence, file_count, summary, notice)
+        record(
+            "question.evidence",
+            available=len(evidence),
+            selected=len(selected),
+            file_blocks=file_count,
+            summary=summary,
+        )
         config = params["_config"]
         fallback = local_answer(scope, selected, notice, config)
         # 本地可完成的情况在请求模型前终结。
         if fallback:
+            record("question.local_fallback", configured=config is not None, evidence=len(selected))
             return fallback
         if config is None:
             raise ValueError("未配置生成接口")
@@ -168,6 +181,7 @@ class Questions:
         )
 
     # 优先复用问题映射与同标题知识，保留手工正文不再调用模型。
+    @traced
     def reuse(
         self, query: str, scope: str, attachment_ids: list[str], local: list[dict]
     ) -> dict | None:
@@ -192,6 +206,7 @@ class Questions:
         return None
 
     # 按检索范围构造证据，文件范围不得混入知识库来源。
+    @traced
     def collect(
         self, query: str, scope: str, attachment_ids: list[str], local: list[dict]
     ) -> tuple[list[dict], int, bool, list[str]]:
@@ -245,6 +260,7 @@ class Questions:
         return evidence, file_block_count, summary, notice
 
     # 仅使用选定证据生成，提交前响应取消并校验完整结果。
+    @traced
     async def generate(
         self,
         params: dict,
@@ -270,7 +286,8 @@ class Questions:
         text = await self.client.generate(
             config, prompt, str(params.get("purpose", "question")), emit
         )
-        result = validate_answer(text, selected, scope == "files")
+        with step("question.validate_answer"):
+            result = validate_answer(text, selected, scope == "files")
         # 只有将正式收录的回答必须具备两级分类；无效分类不保存为知识。
         if params.get("_eligible") and not result.get("insufficient"):
             result["category"] = short_field(result.get("category"), "大类", 80)
@@ -279,6 +296,11 @@ class Questions:
         await asyncio.sleep(0)
         # 结构合法仍可能依据不足，这条路径返回内容但不执行正式收录。
         if result.get("insufficient") or not params.get("_eligible"):
+            record(
+                "question.not_captured",
+                insufficient=bool(result.get("insufficient")),
+                eligible=bool(params.get("_eligible")),
+            )
             return {
                 "content": ("文档中未找到足够依据。\n\n" if result.get("insufficient") else "")
                 + result["content"],
@@ -290,6 +312,7 @@ class Questions:
         return self.capture(result, config, query, scope, attachment_ids, notice)
 
     # 原子收录合格结果，同标题不同正文不得谎报保存或覆盖。
+    @traced
     def capture(
         self,
         result: dict,
@@ -316,6 +339,7 @@ class Questions:
         if len(cards) < 3:
             notice.append(f"仅找到 {len(cards)} 条有效关联，未用无关条目补足。")
         reused_different = item["content"] != result["content"].strip()
+        record("question.capture_result", reused_different=reused_different)
         # 同标题已有正文受到保护，生成内容未保存时不能显示知识已收录。
         capture_notice = (
             "已有同标题知识，本次回答未新建条目、未覆盖原笔记；可手动新建不同标题保存补充。"

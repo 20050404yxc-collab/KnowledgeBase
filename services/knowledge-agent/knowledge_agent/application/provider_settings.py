@@ -6,12 +6,14 @@ from __future__ import annotations
 
 import uuid
 
+from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.provider_rules import validate_provider
 
 from .ports import CredentialVault, ProviderRepository
 
 
 # 先保存系统凭据，再写入配置；元数据失败时恢复原凭据。
+@traced
 def save_provider(store: ProviderRepository, vault: CredentialVault, params: dict) -> list[dict]:
     if "prices_confirmed" in params and not isinstance(params["prices_confirmed"], bool):
         raise ValueError("价格确认状态无效")

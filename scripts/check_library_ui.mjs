@@ -3,6 +3,65 @@
 // 作用：验证全库重构确认、跨页阶段推进和完整分类树。
 // 说明：仅隔离数据和本机模拟接口，不发送真实知识。
 import assert from 'node:assert/strict'
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+
+// 读取错误提示中的请求编号，编号缺失时立即让回归失败。
+async function readErrorRequestId(ui) {
+  const message = await ui.evaluate(`document.querySelector('.alert.error').innerText`)
+  const requestId = message.match(/日志请求 ID：([a-zA-Z0-9-]+)/)?.[1]
+  assert.ok(requestId)
+  return requestId
+}
+
+// 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
+async function assertSummaryFailure(logDir, requestId) {
+  const text = await readFile(join(logDir, 'worker.log'), 'utf8')
+  const rows = text.trim().split('\n').map(JSON.parse)
+  const failure = rows.find(
+    (row) =>
+      row.event === 'step.failed' &&
+      row.step === 'library.validate_summary' &&
+      row.request_id === requestId
+  )
+  assert.equal(failure.errors[0].validation.field, '知识要点')
+  assert.equal(failure.errors[0].validation.rule, 'required_text')
+  assert.equal(failure.errors[0].validation.actual_type, 'list')
+  assert.equal(failure.errors[0].validation.limit, 1600)
+  assert.ok(
+    rows.some((row) => row.event === 'library.summary_context' && row.request_id === requestId)
+  )
+  assert.ok(!text.includes('private-summary-body'))
+}
+
+// 重现截图中的红色摘要校验提示，编号必须关联到具体校验原因且原知识不变。
+async function checkSummaryFailure({ ui, click, waitFor, fixture, logDir, report, screenshot }) {
+  fixture.state.reply = () => ({ summary: ['private-summary-body'] })
+  await click('重构知识库')
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `document.querySelector('.alert.error')?.innerText.includes('知识点知识要点无效')`
+      ),
+    'invalid model summary produces visible red error'
+  )
+  const requestId = await readErrorRequestId(ui)
+  await waitFor(async () => {
+    const text = await readFile(join(logDir, 'desktop.log'), 'utf8')
+    return text
+      .trim()
+      .split('\n')
+      .map(JSON.parse)
+      .some((row) => row.kind === 'feedback_error' && row.request_id === requestId)
+  }, 'red error diagnostic persisted')
+  await assertSummaryFailure(logDir, requestId)
+  await screenshot('desktop-summary-error.png')
+  await click('取消并丢弃草案')
+  fixture.state.reply = null
+  report.checks.push(
+    'red model-summary error correlates visible request id, feedback event and safe validation rule'
+  )
+}
 
 // 导航按可见名称定位，新增页面不改变测试目标。
 async function go(ui, page) {
@@ -34,19 +93,9 @@ function reply(body) {
   }
 }
 
-// 先确认目录，再核对差异；未选更新保持原样，手工知识只追加。
-export async function checkLibraryUi(context) {
-  const { ui, click, waitFor, fixture, finish, screenshot, report } = context
-  const manual = await ui.evaluate(
-    `window.knowledgeBase.request('knowledge.save', {title:'重构手工保护',content:'手工正文逐字保留'})`
-  )
-  await go(ui, '知识库')
-  await waitFor(
-    () => ui.evaluate(`!!document.querySelector('[aria-label="知识库页面"]')`),
-    'library page'
-  )
-  const original = await ui.evaluate(`window.knowledgeBase.request('knowledge.list')`)
-  const count = fixture.state.posts.length
+// 执行目录预览、内容差异和原子应用，保留未选更新与手工知识正文。
+async function runRestructureFlow(context, manual, original, count) {
+  const { ui, click, waitFor, fixture, finish, screenshot } = context
   await click('重构知识库')
   await waitFor(async () => fixture.state.posts.length === count + 1, 'first overview stage')
   await go(ui, '资料库')
@@ -110,6 +159,23 @@ export async function checkLibraryUi(context) {
   }
   await click('关闭重构结果')
   fixture.state.reply = null
+}
+
+// 先确认目录，再核对差异；未选更新保持原样，手工知识只追加。
+export async function checkLibraryUi(context) {
+  const { ui, waitFor, fixture, report } = context
+  const manual = await ui.evaluate(
+    `window.knowledgeBase.request('knowledge.save', {title:'重构手工保护',content:'手工正文逐字保留'})`
+  )
+  await go(ui, '知识库')
+  await waitFor(
+    () => ui.evaluate(`!!document.querySelector('[aria-label="知识库页面"]')`),
+    'library page'
+  )
+  await checkSummaryFailure(context)
+  const original = await ui.evaluate(`window.knowledgeBase.request('knowledge.list')`)
+  const count = fixture.state.posts.length
+  await runRestructureFlow(context, manual, original, count)
   await verifyCompleteTree(context)
   report.checks.push(
     'library overview continues across pages; final directory confirmation precedes content preparation; diffs default unselected; selected manual suggestion appended; other bodies preserved; all four complete trees'

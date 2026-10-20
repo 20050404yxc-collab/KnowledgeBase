@@ -11,6 +11,8 @@ from urllib.parse import quote
 
 import httpx
 
+from knowledge_agent.diagnostics import record, traced
+
 MAX_RESPONSE_BYTES = 1_000_000
 MAX_README_BYTES = 20_000
 TIMEOUT_SECONDS = 15
@@ -22,6 +24,7 @@ class PublicProjects:
         self.transport = transport
 
     # 每次只请求一次搜索和最多三个 README，不自动重试。
+    @traced
     async def search(self, terms: str) -> list[dict]:
         async with httpx.AsyncClient(
             transport=self.transport,
@@ -49,12 +52,14 @@ class PublicProjects:
             return candidates
 
     # 同一请求的响应体有总量限制；HTTP 错误与跨主机重定向均拒绝。
+    @traced
     async def read(self, client: httpx.AsyncClient, path: str, missing: bool = False) -> dict:
         try:
             async with (
                 asyncio.timeout(TIMEOUT_SECONDS),
                 client.stream("GET", "https://api.github.com" + path) as response,
             ):
+                record("public_project.http_response", http_status=response.status_code)
                 if missing and response.status_code == 404:
                     return {}
                 response.raise_for_status()

@@ -10,6 +10,7 @@ import sqlite3
 import uuid
 from contextlib import closing
 
+from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.knowledge_rules import BUCKETS, bucket_for, identity, now, relevance
 from knowledge_agent.domain.library_rules import display_path, inventory_version
 from knowledge_agent.domain.taxonomy import classification, encode_path
@@ -20,10 +21,12 @@ TREE_PAGE_SIZE = 50
 
 class LibraryStorage:
     # 全量快照按稳定 ID 排序，读取不会增加使用日。
+    @traced
     def library_inventory(self) -> list[dict]:
         return [self.get(row[0]) for row in self.db.execute("SELECT id FROM knowledge ORDER BY id")]
 
     # 先分区和搜索过滤，再按路径聚合；没有旧卡片列表的 200 条限制。
+    @traced
     def library_tree(self, params: dict) -> dict:
         query, bucket, path = tree_params(params)
         grouped, total = {}, 0
@@ -79,6 +82,7 @@ class LibraryStorage:
         )
 
     # 备份先落临时文件，只有完整备份才成为本次恢复点；不覆盖其他恢复点。
+    @traced
     def library_backup(self) -> str:
         target = self.root / f"before-restructure-{uuid.uuid4()}.sqlite3"
         temporary = target.with_suffix(".pending")
@@ -92,6 +96,7 @@ class LibraryStorage:
         return target.name
 
     # 统一提交分类、所选更新和索引，任一步失败都回滚；恢复点保留供排查。
+    @traced
     def apply_library(self, draft: dict, selected: list[str]) -> dict:
         if inventory_version(self.library_inventory()) != draft["snapshot"]:
             raise ValueError("知识库已变化，请重新规划；未覆盖新内容")

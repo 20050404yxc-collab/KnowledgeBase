@@ -10,6 +10,7 @@ import httpx
 
 from knowledge_agent.application.generation_prompts import SYSTEM
 from knowledge_agent.application.ports import Emit
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.domain.models import ProviderConfig
 
@@ -120,6 +121,7 @@ class ModelTransport:
         self.transport = transport
 
     # 输出片段只发送进度，只有真实完成且非空才返回完整文本。
+    @traced
     async def generate(
         self,
         config: ProviderConfig,
@@ -142,6 +144,11 @@ class ModelTransport:
                     "POST", config["base_url"] + endpoint, headers=headers, json=payload
                 ) as response,
             ):
+                record(
+                    "model.http_response",
+                    http_status=response.status_code,
+                    protocol=config["protocol"],
+                )
                 if response.status_code != 200:
                     raise ValueError(
                         f"接口返回 HTTP {response.status_code}，请检查协议、模型、凭据与额度"
@@ -151,11 +158,13 @@ class ModelTransport:
             raise ValueError("网络连接失败或超时，请检查接口地址和网络；本地知识仍可使用") from exc
 
     # 无效结构、供应商失败和长度超限均拒绝，不透传私密响应体。
+    @traced
     async def read_stream(
         self, response: httpx.Response, protocol: str, state: GenerationState, emit: Emit
     ) -> str:
         output: list[str] = []
         chars = 0
+        first_chunk = True
         async for line in response.aiter_lines():
             # 每条 SSE 事件限长，忽略非 data 行和协议结束占位符。
             if len(line) > MAX_EVENT_CHARS:
@@ -173,6 +182,9 @@ class ModelTransport:
             except (json.JSONDecodeError, AttributeError, TypeError) as exc:
                 raise ValueError("接口返回无效的流数据") from exc
             if delta:
+                if first_chunk:
+                    record("model.first_chunk")
+                    first_chunk = False
                 # 先验证片段类型并累计总长度，超过预算不再向外报告完整结果。
                 if not isinstance(delta, str):
                     raise ValueError("接口文本格式不兼容")
@@ -185,4 +197,10 @@ class ModelTransport:
         # 必须同时满足供应商完成状态和非空正文，截断流不能进入收录流程。
         if not state.completed or not text.strip():
             raise ValueError("接口未返回完整文本，未保存内容")
+        record(
+            "model.stream_completed",
+            chars=chars,
+            input_tokens=state.input_tokens,
+            output_tokens=state.output_tokens,
+        )
         return text

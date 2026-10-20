@@ -3,7 +3,7 @@
 // 作用：验证对应开发环境或桌面流程。
 // 说明：使用隔离资源，不访问正式用户数据。
 import { spawn } from 'node:child_process'
-import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { createServer } from 'node:net'
@@ -153,6 +153,12 @@ async function closeApp(ui) {
 
 try {
   let ui = await launch()
+  // 在真实沙箱内触发失败与全局错误，验证日志通道不接受私密正文。
+  await ui.evaluate(`(async () => {
+    try { await window.knowledgeBase.request('knowledge.get', {id:'missing-diagnostic-fixture'}, 'diagnostic-ui-failure') } catch {}
+    window.dispatchEvent(new ErrorEvent('error', {error:new Error('private-ui-error-token')}));
+    window.dispatchEvent(new PromiseRejectionEvent('unhandledrejection', {promise:Promise.resolve(),reason:new Error('private-ui-rejection-token')}));
+  })()`)
   const click = async (text) =>
     ui.evaluate(
       `(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}); if (!button) throw Error('Missing button'); button.click() })()`
@@ -276,6 +282,28 @@ try {
   )
   await screenshot('desktop-knowledge.png')
   await closeApp(ui)
+  // 正常关闭已 flush，三端同一请求必须可关联，合成私密内容不得进入文件。
+  const desktopLog = await readFile(join(dataDir, 'logs', 'desktop.log'), 'utf8')
+  const workerLog = await readFile(join(dataDir, 'logs', 'worker.log'), 'utf8')
+  const desktopRows = desktopLog.trim().split('\n').map(JSON.parse)
+  const workerRows = workerLog.trim().split('\n').map(JSON.parse)
+  const desktopFailure = desktopRows.find(
+    (row) => row.event === 'request.failed' && row.request_id === 'diagnostic-ui-failure'
+  )
+  const workerFailure = workerRows.find(
+    (row) => row.event === 'step.failed' && row.request_id === 'diagnostic-ui-failure'
+  )
+  assert.ok(desktopFailure && workerFailure)
+  assert.equal(desktopFailure.session_id, workerFailure.session_id)
+  assert.ok(desktopRows.some((row) => row.event === 'renderer.diagnostic' && row.kind === 'error'))
+  assert.ok(
+    desktopRows.some((row) => row.event === 'renderer.diagnostic' && row.kind === 'rejection')
+  )
+  assert.ok(!desktopLog.includes('private-ui-') && !workerLog.includes('private-ui-'))
+  assert.ok(!desktopLog.includes('数据库事务与一致性') && !workerLog.includes('数据库事务与一致性'))
+  report.checks.push(
+    'persistent diagnostics correlate renderer, desktop and worker without private content'
+  )
   report.checks.push('graceful Electron shutdown')
   ui = await launch()
   await waitFor(
@@ -301,7 +329,16 @@ try {
     'usage screen'
   )
   report.checks.push('offline operations incur no API attempts')
-  await checkModelUi({ ui, fill, click, waitFor, screenshot, report, attachmentPath: fixture })
+  await checkModelUi({
+    ui,
+    fill,
+    click,
+    waitFor,
+    screenshot,
+    report,
+    attachmentPath: fixture,
+    logDir: join(dataDir, 'logs')
+  })
   const processes = await new Promise((resolve, reject) => {
     const probe = spawn(
       'powershell.exe',

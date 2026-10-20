@@ -15,6 +15,7 @@ from docx import Document as WordDocument
 from docx.table import Table
 from docx.text.paragraph import Paragraph
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.models import Document
 
 MAX_FILE_BYTES = 50 * 1024 * 1024
@@ -23,6 +24,7 @@ FORMATS = {".md", ".txt", ".docx", ".pdf"}
 
 
 # 只接受受支持的有界本地文件，不访问网络 URL。
+@traced
 def validate_path(value: str) -> Path:
     # 先拒绝 URL，再解析本地真实路径；格式和文件大小失败均不开始复制解析。
     if not isinstance(value, str) or re.match(r"^[a-z][a-z0-9+.-]*://", value, re.IGNORECASE):
@@ -36,6 +38,7 @@ def validate_path(value: str) -> Path:
 
 
 # 保留 Markdown 原文和中文行位置，编码降级时返回警告。
+@traced
 def parse_text(path: Path, add: Callable[[str, str], None], warnings: list[str]) -> None:
     suffix = path.suffix.lower()
     raw = path.read_bytes()
@@ -71,6 +74,7 @@ def parse_text(path: Path, add: Callable[[str, str], None], warnings: list[str])
 
 
 # 依正文块顺序读取段落和表格，不承诺固定页码。
+@traced
 def parse_docx(path: Path, add: Callable[[str, str], None], warnings: list[str]) -> None:
     # 压缩文件大小不足以限制解压资源，先检查条目总大小再交给解析器。
     with zipfile.ZipFile(path) as archive:
@@ -92,6 +96,7 @@ def parse_docx(path: Path, add: Callable[[str, str], None], warnings: list[str])
 
 
 # 逐页提取有界 PDF 文本，空扫描页只报告遗漏而不执行 OCR。
+@traced
 def parse_pdf(path: Path, add: Callable[[str, str], None], warnings: list[str]) -> None:
     with pdfplumber.open(path) as document:
         # 页数超限拒绝整个文件，不能将已读取部分宣称为全文。
@@ -108,6 +113,7 @@ def parse_pdf(path: Path, add: Callable[[str, str], None], warnings: list[str]) 
 
 
 # 按真实后缀解析副本，返回稳定指纹、文本块、定位和局限。
+@traced
 def parse_document(path: Path, name: str | None = None) -> Document:
     fingerprint = hashlib.sha256(path.read_bytes()).hexdigest()
     blocks, warnings = [], []
@@ -143,6 +149,13 @@ def parse_document(path: Path, name: str | None = None) -> Document:
         raise ValueError("提取文本超过 200 万字，请拆分文件")
     if not blocks:
         raise ValueError("未提取到可用文字；扫描文件需要 OCR，本测试版尚未接入")
+    record(
+        "document.parsed",
+        format=suffix,
+        blocks=len(blocks),
+        warnings=len(warnings),
+        chars=sum(len(block["text"]) for block in blocks),
+    )
     return {
         "id": fingerprint,
         "fingerprint": fingerprint,

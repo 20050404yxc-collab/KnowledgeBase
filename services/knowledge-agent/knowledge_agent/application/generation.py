@@ -8,6 +8,7 @@ import asyncio
 import time
 import uuid
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.domain.models import ProviderConfig
 
@@ -25,6 +26,7 @@ class ProviderClient:
         self.transport = transport
 
     # 每次实际请求先记录价格快照，再在退出路径写入终态和已知用量。
+    @traced
     async def generate(
         self, config: ProviderConfig, prompt: str, purpose: str, emit: Emit, *, test: bool = False
     ) -> str:
@@ -33,6 +35,27 @@ class ProviderClient:
         if not secret:
             raise ValueError("Windows 凭据中未找到 API Key，请重新保存该配置")
         attempt_id = str(uuid.uuid4())
+        record(
+            "model.attempt",
+            attempt_id=attempt_id,
+            protocol=config["protocol"],
+            connection_test=test,
+            purpose=purpose
+            if purpose
+            in {
+                "question",
+                "question-review",
+                "topic-plan",
+                "topic-review",
+                "topic-learn",
+                "project-materials",
+                "library-summary",
+                "library-outline",
+                "library-content",
+                "connection-test",
+            }
+            else "other",
+        )
         started = time.monotonic()
         self.store.start_attempt(attempt_id, config, purpose)
         status = "failed"
@@ -60,8 +83,16 @@ class ProviderClient:
                     state.output_tokens,
                     cost,
                 )
-            except Exception:
+            except Exception as error:
+                record("model.accounting_failed", error=error, attempt_id=attempt_id)
                 if primary_error is None:
                     # 模型已响应但记账失败时不得继续报告整个操作成功。
                     raise
                 primary_error.add_note("调用终态记账失败；下次启动将把在途记录标记为中断")
+            record(
+                "model.attempt_finished",
+                attempt_id=attempt_id,
+                status=status,
+                input_tokens=state.input_tokens,
+                output_tokens=state.output_tokens,
+            )

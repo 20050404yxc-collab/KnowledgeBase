@@ -6,6 +6,8 @@ from pathlib import Path
 
 import httpx
 
+from knowledge_agent.diagnostics import traced
+
 from .application.generation import ProviderClient
 from .application.knowledge_service import KnowledgeService
 from .application.ports import CredentialVault, Generator, PublicProjectReader
@@ -18,6 +20,7 @@ from .infrastructure.sqlite_store import Store
 
 
 # 模拟和正式请求共用记账用例，仅替换 HTTP 传输。
+@traced
 def create_client(
     store: Store, vault: CredentialVault, transport: httpx.AsyncBaseTransport | None = None
 ) -> ProviderClient:
@@ -25,6 +28,7 @@ def create_client(
 
 
 # 装配失败也关闭已经创建的资源，防止残留数据库连接。
+@traced
 def create_service(
     data_dir: Path,
     vault: CredentialVault | None = None,

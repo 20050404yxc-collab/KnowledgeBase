@@ -1,5 +1,13 @@
 # 桌面与后台协议
 
+## 诊断通道
+
+业务 JSON Lines 操作与结果保持不变；stdout 仍只承载协议。Python 独立写数据目录 `logs/worker.log`，Electron 写 `logs/desktop.log`，两端通过现有请求 ID 和环境变量 `KB_LOG_SESSION` 关联。stderr 原始输出不保存正文，只计字节数。
+
+preload 新增 `reportDiagnostic(RendererDiagnostic)`，通过 `kb:diagnostic` 单向发送白名单事件和有界技术字段。宿主验证主窗口主 frame、事件集合、合法操作、请求 ID、数字耗时和无目录栈位置；不接受任意消息／参数／响应对象，不开放文件和任意 IPC。该通道每分钟最多接收 600 条；业务请求独立执行。
+
+简单说：日志记录执行位置和结果；不会把密钥、业务正文或任意界面内容当成日志写入。
+
 本文件描述 test0.03 已实现的本地 JSON Lines 协议。操作和数据类型以 [desktop.ts](desktop.ts) 为准；[protocol_samples.json](protocol_samples.json) 是 Python 和 TypeScript 测试共同读取的握手、离线提问、检索、目录和用量样例。
 
 简单说：两端检查同一份离线样例，搬动代码时不各自猜测返回格式。`dto_samples` 另含合成的审核／分类／公开候选 DTO，由 TypeScript 运行时检查；它们不是实际联网结果。
@@ -63,13 +71,13 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 `knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径长度 0/1/2 分别返回大类、小类、知识点，最多 50 节点，结果为 `{nodes,total,revision,next_cursor}`。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定当前层结果摘要，目录变化拒绝旧游标。叶子只有 ID、标题与分区，详情仍走 `knowledge.get`；展开不增加使用日。
 
-| 操作 | 参数和状态 |
-|---|---|
-| `library.restructure.plan` | 模型选项及可选 `draft_id,revision,feedback,advance`；不带 advance 初始化或明确重规划，advance 每次处理一个摘要／分类阶段 |
-| `library.restructure.prepare` | `{draft_id,revision}`；明确确认目录后每次准备 1 条内容建议，只有 outline/preparing 可推进 |
-| `library.restructure.preview` | `{draft_id,revision,kind,page?}`；outline 每页 30 项，suggestions 每页 1 项，page 从 0 起 |
-| `library.restructure.apply` | `{draft_id,revision,selected:string[]}`；仅 ready 可提交，空数组仅改目录；重复提交返回原收据 |
-| `library.restructure.discard` | `{draft_id,revision}`；丢弃会话草案，晚到模型结果不能恢复它 |
+| 操作                          | 参数和状态                                                                                                               |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance`；不带 advance 初始化或明确重规划，advance 每次处理一个摘要／分类阶段 |
+| `library.restructure.prepare` | `{draft_id,revision}`；明确确认目录后每次准备 1 条内容建议，只有 outline/preparing 可推进                                |
+| `library.restructure.preview` | `{draft_id,revision,kind,page?}`；outline 每页 30 项，suggestions 每页 1 项，page 从 0 起                                |
+| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交，空数组仅改目录；重复提交返回原收据                             |
+| `library.restructure.discard` | `{draft_id,revision}`；丢弃会话草案，晚到模型结果不能恢复它                                                              |
 
 状态顺序为 `planning → outline → preparing → ready → applied`。后台最多一份草案，重规划产生新的草案与修订标识；旧确认失效。每条正文和补充按 7000 字符分块，累计摘要最多 1600 字符；分类每批 8 条，先前路径成为后批词表，分类输入超过 26000 字符受控停止，不自动重试。全量清单及正文快照存于内存，大库性能未实测。取消阶段可在当前会话显式继续，退出后草案不恢复。
 

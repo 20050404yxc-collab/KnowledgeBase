@@ -11,6 +11,7 @@ import { randomUUID } from 'node:crypto'
 import type { Operation, WorkerEvent } from '../../../contracts/desktop'
 import { isWorkerMessage } from '../shared/protocol_validation'
 import { RequestRegistry } from './request_registry'
+import { diagnostic, sessionId } from './diagnostics'
 
 const START_TIMEOUT_MS = 15_000
 const SHUTDOWN_GRACE_MS = 2_500
@@ -19,7 +20,7 @@ const MAX_MESSAGE_CHARS = 2_000_000
 
 export class WorkerBridge {
   private child?: ChildProcessWithoutNullStreams
-  private pending = new RequestRegistry()
+  private pending = new RequestRegistry(diagnostic)
   private starting?: Promise<void>
   private stopping = false
   // 装配项目路径、数据目录与受限事件接收者，不立即启动后台。
@@ -34,6 +35,7 @@ export class WorkerBridge {
     if (!child.pid) {
       return
     }
+    diagnostic('worker.terminate', { worker_pid: child.pid })
     if (process.platform === 'win32') {
       // Windows 虚拟环境包含启动器和运行时，仅终止本对象拥有的树。
       const killer = spawn('taskkill.exe', ['/PID', String(child.pid), '/T', '/F'], {
@@ -55,10 +57,12 @@ export class WorkerBridge {
     if (this.starting) {
       return this.starting
     }
+    diagnostic('worker.starting', { timeout_ms: START_TIMEOUT_MS })
     this.starting = new Promise<void>((resolve, reject) => {
       const python = join(this.root, '.venv', 'Scripts', 'python.exe')
       // 缺少运行时即受控失败，保留安装说明供用户恢复。
       if (!existsSync(python)) {
+        diagnostic('worker.runtime_missing')
         reject(new Error('缺少开发运行时，请按 README 准备 .venv'))
         return
       }
@@ -74,7 +78,12 @@ export class WorkerBridge {
           cwd: this.root,
           windowsHide: true,
           stdio: ['pipe', 'pipe', 'pipe'],
-          env: { ...process.env, PYTHONUTF8: '1', PYTHONIOENCODING: 'utf-8' }
+          env: {
+            ...process.env,
+            PYTHONUTF8: '1',
+            PYTHONIOENCODING: 'utf-8',
+            KB_LOG_SESSION: sessionId
+          }
         }
       )
       this.child = child
@@ -97,6 +106,7 @@ export class WorkerBridge {
     reject: (error: Error) => void
   ): void {
     const readyTimer = setTimeout(() => {
+      diagnostic('worker.start_timeout', { worker_pid: child.pid })
       this.terminateOwned(child)
       reject(new Error('后台启动超时'))
     }, START_TIMEOUT_MS)
@@ -113,13 +123,36 @@ export class WorkerBridge {
       }
       this.pending.failAll(new Error('后台中断，请重试'))
     }
-    child.on('error', fail)
-    child.on('exit', fail)
-    // 排空诊断流，不向界面转发正文、密钥或供应商错误体。
-    child.stderr.resume()
-    child.stdin.on('error', () => this.terminateOwned(child))
+    child.on('error', (error) => {
+      diagnostic('worker.spawn_failed', { worker_pid: child.pid }, error)
+      fail()
+    })
+    child.on('exit', (code, signal) => {
+      diagnostic('worker.exit', {
+        worker_pid: child.pid,
+        exit_code: code ?? undefined,
+        signal: signal ?? undefined,
+        stopping: this.stopping
+      })
+      fail()
+    })
+    // Python 详细诊断独立落盘；未知 stderr 只记字节数，不保存任意原始输出。
+    let stderrBytes = 0
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderrBytes += chunk.length
+    })
+    child.stderr.on('end', () => {
+      if (stderrBytes) {
+        diagnostic('worker.stderr', { bytes: stderrBytes })
+      }
+    })
+    child.stdin.on('error', (error) => {
+      diagnostic('worker.stdin_failed', {}, error)
+      this.terminateOwned(child)
+    })
     createInterface({ input: child.stdout }).on('line', (line) => {
       if (this.receive(line, child)) {
+        diagnostic('worker.ready', { worker_pid: child.pid })
         clearTimeout(readyTimer)
         resolve()
       }
@@ -150,7 +183,8 @@ export class WorkerBridge {
       } else if (message.type === 'error' && message.id) {
         this.pending.settle(message.id, undefined, new Error(message.error))
       }
-    } catch {
+    } catch (error) {
+      diagnostic('protocol.invalid_message', { chars: line.length }, error)
       // 损坏协议不能继续作为可信后台使用，退出监听负责结算全部请求。
       this.terminateOwned(child)
     }
@@ -163,7 +197,14 @@ export class WorkerBridge {
     params: Record<string, unknown> = {},
     id: string = randomUUID()
   ): Promise<unknown> {
-    await this.start()
+    const diagnosticId = /^[a-zA-Z0-9-]{1,80}$/.test(id) ? id : undefined
+    diagnostic('request.received', { request_id: diagnosticId, operation })
+    try {
+      await this.start()
+    } catch (error) {
+      diagnostic('request.start_failed', { request_id: diagnosticId, operation }, error)
+      throw error
+    }
     // 连续输入校验失败均不登记请求，不留下超时定时器。
     if (!/^[a-zA-Z0-9-]{1,80}$/.test(id)) {
       throw new Error('无效任务标识')
@@ -179,7 +220,8 @@ export class WorkerBridge {
     if (this.stopping || !child?.stdin.writable) {
       throw new Error('后台不可用，请重试')
     }
-    const pending = this.pending.register(id, () => this.cancel(id))
+    const pending = this.pending.register(id, () => this.cancel(id), operation)
+    diagnostic('request.sent', { request_id: id, operation, bytes: Buffer.byteLength(line) })
     // 先登记后发送，确保快速返回的结果也能找到唯一关联。
     child.stdin.write(line)
     return pending
@@ -187,6 +229,10 @@ export class WorkerBridge {
 
   // 发送指定任务取消帧，实际终态仍由后台返回。
   cancel(id: string): void {
+    diagnostic('request.cancel_sent', {
+      request_id: id,
+      writable: this.child?.stdin.writable ?? false
+    })
     if (this.child?.stdin.writable) {
       this.child.stdin.write(
         JSON.stringify({ id: randomUUID(), operation: 'cancel', params: { target: id } }) + '\n'
@@ -196,6 +242,7 @@ export class WorkerBridge {
 
   // 先发送 EOF，宽限期后仅终止本对象拥有的进程树。
   async stop(): Promise<void> {
+    diagnostic('worker.stopping')
     this.stopping = true
     const child = this.child
     if (!child || child.exitCode !== null) {

@@ -7,6 +7,8 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from dataclasses import dataclass, field
 
+from knowledge_agent.diagnostics import record, step
+
 
 @dataclass
 class LockEntry:
@@ -26,8 +28,14 @@ class QuestionLocks:
         # 等待前即占用关联，防止其他取消者删除仍有人排队的锁。
         entry.users += 1
         try:
-            async with entry.lock:
+            with step("question.lock_wait"):
+                await entry.lock.acquire()
+            # 等待结束后独占执行；日志不包含由问题正文构成的锁键。
+            try:
+                record("question.lock_acquired")
                 yield
+            finally:
+                entry.lock.release()
         finally:
             # 包括等待取消在内的所有退出都释放计数，最后一位负责回收。
             entry.users -= 1

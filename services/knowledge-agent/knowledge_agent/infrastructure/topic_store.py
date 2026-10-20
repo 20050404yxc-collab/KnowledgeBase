@@ -7,6 +7,7 @@ import json
 import sqlite3
 import uuid
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.knowledge_rules import identity, now, relevance, tokens, validate_note
 from knowledge_agent.domain.taxonomy import classification
 
@@ -22,6 +23,7 @@ def excerpt(text: str, query: str) -> str:
 
 class TopicStorage:
     # 遍历完整分类集合后按相关度选入有界摘要，不把近期知识当成全库分类。
+    @traced
     def taxonomy_summary(self, query: str) -> dict:
         rows = self.db.execute(
             "SELECT coalesce(t.theme,'未分类') AS theme,COUNT(*) AS count FROM knowledge k LEFT JOIN topic_links t ON k.id=t.knowledge_id GROUP BY coalesce(t.theme,'未分类')"
@@ -43,6 +45,7 @@ class TopicStorage:
         }
 
     # 维护入口原子重建可派生索引，失败回滚且不修改用户知识。
+    @traced
     def rebuild_search_index(self) -> None:
         with self.db:
             if self.db.execute("SELECT 1 FROM sqlite_master WHERE name='search_fts'").fetchone():
@@ -76,6 +79,7 @@ class TopicStorage:
         ).hexdigest()
 
     # 参数化 FTS 召回全库；缺少模块时逐批遍历完整索引，绝不截断记录范围。
+    @traced
     def search(self, params: dict) -> dict:
         value = params.get("query", "")
         if not isinstance(value, str):
@@ -88,6 +92,7 @@ class TopicStorage:
         if len(terms) > 256:
             raise ValueError("检索词过多，请缩小问题范围")
         fts = self.db.execute("SELECT 1 FROM sqlite_master WHERE name='search_fts'").fetchone()
+        record("search.strategy", fts=bool(fts), terms=len(terms))
         sql, args = "SELECT * FROM search_documents", ()
         if fts and terms:
             sql += " WHERE rowid IN (SELECT rowid FROM search_fts WHERE terms MATCH ?)"
@@ -122,6 +127,7 @@ class TopicStorage:
                     }
                 matches.append((score, hit))
         matches.sort(key=lambda pair: (-pair[0], pair[1]["id"]))
+        record("search.matches", matches=len(matches), page=page)
         return {
             "items": [hit for _, hit in matches[page * 30 : (page + 1) * 30]],
             "total": len(matches),
@@ -131,6 +137,7 @@ class TopicStorage:
         }
 
     # 收录前检查版本，所有正文、关系、幂等记录和触发器索引在同一事务内更新。
+    @traced
     def capture_topic(self, draft: dict) -> dict:
         title, content, _ = validate_note(draft["title"], draft["content"])
         with self.db:
@@ -139,6 +146,7 @@ class TopicStorage:
                 (draft["capture_key"],),
             ).fetchone()
             if receipt:
+                record("topic.capture_reused")
                 return self.get(receipt[0])
             target = draft.get("target_id")
             if target:
@@ -151,6 +159,7 @@ class TopicStorage:
             self.db.execute(
                 "INSERT INTO capture_receipts VALUES (?,?)", (draft["capture_key"], target)
             )
+        record("topic.committed", supplement=bool(draft.get("target_id")))
         return self.get(target)
 
     # 同目标的完全相同内容复用；原正文和手工修改始终不受生成覆盖。
@@ -214,6 +223,7 @@ class TopicStorage:
         return item_id
 
     # 补充维护显式校验版本，失败不影响原正文，重复正文冲突给出受控错误。
+    @traced
     def maintain_supplement(self, params: dict, delete: bool = False) -> dict:
         target = params["knowledge_id"]
         current = self.get(target)

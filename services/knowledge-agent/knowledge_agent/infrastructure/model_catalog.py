@@ -7,6 +7,7 @@ import json
 
 import httpx
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.models import ProviderDraft
 from knowledge_agent.domain.provider_rules import validate_models
 
@@ -16,8 +17,10 @@ CATALOG_TIMEOUT_SECONDS = 30
 
 
 # 先累计有限字节再解析，避免无界 JSON 响应占用内存。
+@traced
 async def read_page(client: httpx.AsyncClient, url: str, headers: dict, params: dict) -> dict:
     async with client.stream("GET", url, headers=headers, params=params) as response:
+        record("catalog.http_response", http_status=response.status_code)
         if response.status_code != 200:
             raise ValueError(f"获取模型失败（HTTP {response.status_code}），可手动添加模型")
         body = bytearray()
@@ -40,6 +43,7 @@ class ModelCatalog:
         self.transport = transport
 
     # 全部页面共享总等待上限，取消沿协程传播并释放客户端。
+    @traced
     async def list_models(self, config: ProviderDraft, secret: str) -> dict:
         headers = {"Authorization": f"Bearer {secret}"}
         if config["protocol"] == "anthropic":
@@ -56,6 +60,7 @@ class ModelCatalog:
             raise ValueError("获取模型连接失败或超时，已有列表保留，可手动添加") from exc
 
     # 只接受 ID 游标，不跟随远端提供的任意 URL，避免把认证头带到其他域名。
+    @traced
     async def pages(self, client: httpx.AsyncClient, config: ProviderDraft, headers: dict) -> dict:
         models: list[str] = []
         cursor = ""
@@ -73,6 +78,12 @@ class ModelCatalog:
                     raise ValueError("模型目录包含无效条目")
                 ids.append(item.get("id"))
             models = validate_models(list(dict.fromkeys([*models, *validate_models(ids)])))
+            record(
+                "catalog.page",
+                page=len(seen) + 1,
+                models=len(models),
+                has_more=page.get("has_more", False),
+            )
             if not page.get("has_more", False):
                 return {"models": models, "partial": False}
             cursor = page.get("last_id") or (ids[-1] if ids else "")

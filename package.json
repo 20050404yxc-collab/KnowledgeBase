@@ -17,7 +17,7 @@
     "typecheck": "tsc --noEmit",
     "test": ".venv\\Scripts\\python.exe -m pytest tests -q",
     "test:ui": "node scripts/check_desktop.mjs",
-    "test:host": "node --test tests/desktop_boundaries.test.mjs",
+    "test:host": "node --test tests/desktop_boundaries.test.mjs tests/diagnostics.test.mjs",
     "check:standards": "node scripts/check_standards.mjs && .venv\\Scripts\\python.exe scripts/check_standards.py",
     "lint:python": ".venv\\Scripts\\python.exe -m ruff check services/knowledge-agent tests scripts && .venv\\Scripts\\python.exe -m ruff format --check services/knowledge-agent tests scripts",
     "format:check": "prettier --check apps contracts scripts/*.mjs tests/*.mjs electron.vite.config.ts package.json tsconfig.json .prettierrc.json",

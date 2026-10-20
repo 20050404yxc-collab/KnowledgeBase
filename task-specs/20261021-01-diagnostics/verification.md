@@ -1,0 +1,13 @@
+# Verification
+
+Status: completed, 2026-10-21. No real paid API, formal credential or production data used.
+
+- Focused initial backend checks: 5 passed (diagnostics and real worker protocol).
+- Initial host run: 13/14 passed; a test incorrectly excluded the actual test-source stack frame. Assertion corrected to accept legitimate source locations while rejecting private paths/messages.
+- Initial full check stopped at existing nonformatted Markdown in `contracts/protocol.md`; format and document the new restricted diagnostic channel, then repeat.
+- `npm run check`: passed. Standards and Prettier, Ruff lint/format, TypeScript, 179 Python tests, 15 host tests, and Electron/preload/renderer build all passed.
+- `npm run test:ui`: passed. 23 reported checks cover existing CRUD, file evidence, model discovery and mocked generation, background navigation, library restructuring, explicit cancellation, restart persistence, normal worker ownership cleanup and suspended owned-worker forced shutdown. The red model-summary regression reproduces the visible error, verifies its request ID in `desktop.log`, verifies `feedback_error`, and verifies `worker.log` identifies `library.validate_summary`, `知识要点`, `required_text`, `list`, and `1600` without recording the private model body. Other assertions trigger a real sandbox renderer error/rejection and backend request failure; desktop and worker log session/request correlation is verified, and synthetic private UI errors and note title are absent from both files. Artifact: `artifacts/test0.03/desktop-check.json` (ignored build/test evidence).
+- Focused privacy tests cover chained private exception bodies, metadata whitelist, numeric provider metadata corruption, HTTP 401, logger disk failure and bounded rotations. Context tests cover interleaved requests, to_thread inheritance, cancellation and restoration. Worker integration confirms stdout remains JSON protocol-only.
+- Final `git diff --check`: passed. Review kept domain free of I/O, existing schema/credential identity/data paths/wire operations intact, and diagnostic ownership process-local. Saving a generation key was extracted into a transaction-owned helper solely to keep the touched save function within the mandatory size limit. Existing concurrent product revision-9 documents/task records were preserved; overview gained only this task's navigation row.
+- New task/documentation links verified locally; no commit, push or release was requested or performed.
+- Limitations: no real provider access, native crash collection, abrupt power-loss durability, packaged installation or large-dataset performance validation.

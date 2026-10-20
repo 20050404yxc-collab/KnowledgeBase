@@ -7,6 +7,7 @@ import re
 import uuid
 
 from .knowledge_rules import identity
+from .validation_errors import FieldValidationError
 
 MAX_POINTS = 16
 MAX_SESSIONS = 24
@@ -35,7 +36,7 @@ def json_object(text: str) -> dict:
 # 标题必须描述一个具体侧面，拒绝将较长原问题截短或整句回填。
 def short_field(value: object, name: str, limit: int) -> str:
     if not isinstance(value, str) or not value.strip() or len(value) > limit:
-        raise ValueError(f"知识点{name}无效，未采用模型目录")
+        raise FieldValidationError(value, name, limit)
     return value.strip()
 
 

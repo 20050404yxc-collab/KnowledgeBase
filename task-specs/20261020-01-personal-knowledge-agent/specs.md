@@ -1,5 +1,63 @@
 # Spec Deltas
 
+## Revision 10 sphere navigation (planned, not implemented)
+
+### Requirement: R10-01 Three-level spatial navigation (AC-01/02/14)
+Saved knowledge in Library, Frequent, Learning and Archive SHALL render category spheres at the root. Selecting a category SHALL center that sphere and arrange its subcategory spheres around it. Selecting a subcategory SHALL center that sphere and present knowledge titles connected by horizontal lines. Selecting a title SHALL invoke existing detail opening by stable ID. Breadcrumbs and Back SHALL restore the parent view. Sphere movement SHALL respect reduced-motion preferences and preserve readable labels.
+
+#### Scenario: Enter and return
+Given multiple categories and subcategories, navigating root → category → subcategory → knowledge SHALL preserve the exact chosen classification and detail ID. Returning SHALL show the previous level with the relevant parent focused. Keyboard users SHALL have equivalent access.
+
+### Requirement: R10-02 Complete and isolated navigation (AC-02/11/15/19)
+Focus paths and presentation pages SHALL be owned by their originating page. Existing query/bucket filtering, counts, branch cursors, stale-result rejection and invalidation SHALL remain authoritative. Every node SHALL remain reachable through bounded pagination. Query changes SHALL return to matching root categories; invalid paths after refresh SHALL fall back to the nearest valid ancestor. Category browsing SHALL NOT record active knowledge use, call a model or write classification. No R9 merge, concurrency or migration capability is implied.
+
+#### Scenario: Large, changing and narrow library
+Given more than 200 leaves, many sibling categories, long labels and narrow windows, every filtered leaf SHALL remain accessible with readable non-overlapping labels and valid horizontal connectors. Rapid navigation, late responses, empty results, failures/retry, section changes and removed categories SHALL NOT select an unrelated node or leave an unreachable view. Existing knowledge detail and usage semantics SHALL remain unchanged.
+
+## Revision 9 requirements (planned, not implemented)
+
+### Requirement: R9-01 Opposite-direction workers and coverage ledger
+One restructuring task SHALL own two analysis workers with independent model context, claiming from opposite ends of a snapshot ordered by creation time and ID. Claims SHALL be exclusive. Validated per-item/chunk evidence, coverage, agent, version, candidates and status SHALL be recorded in session state. Total coverage SHALL count each source exactly once; meeting at the center SHALL NOT duplicate processing. Existing single top-level generation-task policy remains.
+
+#### Scenario: Odd-sized inventory and asymmetric workers
+Given 13 sources with long bodies and supplements and one slower worker, both workers SHALL eventually cover all authorized chunks exactly once without concurrent ownership of an ID. A retry SHALL preserve successful coverage and reprocess only failed/incomplete chunks. Closing the backend discards unconfirmed records without altering official knowledge.
+
+### Requirement: R9-02 Bounded cancellation, failure and accounting
+At most two analysis calls SHALL be in flight. Each call SHALL have an attributable ID, attempt accounting and bounded stage. One-worker failure SHALL allow preservation of the other's valid current chunk, then pause scheduling. Explicit cancellation SHALL cancel/join both workers and prevent late writes/new claims. Navigation SHALL retain the task. Invalid summaries SHALL distinguish missing/type/empty/length conditions with source/chunk context; no silent truncation or automatic retry.
+
+#### Scenario: Failure, cancellation and late response
+When one worker returns an oversize summary, its last valid record and the other's successful current chunk remain visible. Explicit retry affects only incomplete work. Discard during either call prevents both late responses from reviving the draft and leaves no in-flight child request.
+
+### Requirement: R9-03 Global structure and reviewed duplicate groups
+The system SHALL reconcile all workers' records and cross-worker/batch duplicate candidates before structure approval. Duplicate evidence SHALL distinguish equivalent, partial overlap, related and conflicting content, with original overlaps and unique details. Similar titles or transitive similarity SHALL NOT authorize merging. Users SHALL correct/add candidates and decide each group, including survivor ID/title/path and conflicting manual bucket. Each source SHALL map exactly once to a target; confirmed groups may map multiple sources to one target. Unknown IDs, incomplete coverage, undecided groups and unresolved path collisions SHALL block preparation. Structure/map/decision changes SHALL invalidate approval and affected content.
+
+#### Scenario: Non-transitive overlap and rejected merge
+If A overlaps B and B overlaps C but A and C conflict, the component SHALL NOT become an automatic merge. Users may retain separate sources, adjusting colliding titles/paths before approval. Cross-worker candidates SHALL be included even when the earlier worker could not yet see the later record.
+
+### Requirement: R9-04 Source extraction and optional explanations
+After structure approval the system SHALL extract relevant content from full original bodies/supplements using the confirmed map, with verifiable IDs/versions/locators and citation provenance. Compressed summaries alone SHALL NOT be final content evidence. Consolidation SHALL preserve unique details/qualifications and present contradictions without inventing resolution. Model explanations SHALL be separately labeled, optional and unselected by default, without borrowed unsupported citations or network access. Manual/edited originals remain intact; existing generated-body replacement limits apply. Oversize content SHALL remain incomplete, never lose its tail silently.
+
+#### Scenario: Unique tail and model-only explanation
+When two overlapping notes contain different final-chunk constraints and an edited supplement, the consolidated proposal SHALL preserve both constraints and original supplement. A model explanation appears separately and is excluded until selected.
+
+### Requirement: R9-05 Two approvals and atomic group acceptance
+Structure approval SHALL authorize preparation only. Final content approval SHALL select each accepted merge group as a complete unit, with all unique content retained. Directory-only application SHALL NOT execute merges; users must cancel merges/reapprove or accept complete group contents. The final request SHALL bind structure, source map, group choices and content versions. Unselected changes SHALL remain unchanged. Stale content/membership/classification/merge versions SHALL reject application; use-day updates alone SHALL NOT invalidate it. A unique consistent recovery point, transactional application/index synchronization and idempotent receipt remain required.
+
+#### Scenario: Directory-only request with merge
+Given an approved many-to-one map, an empty content selection SHALL reject application without modifying the library. Given a valid final selection, a storage failure SHALL roll back mappings, text and index changes together; repeated successful submission SHALL return the same receipt.
+
+### Requirement: R9-06 Traceable canonical merging and migration
+A confirmed merge SHALL retain original records, edited text, supplements, citations and source versions, with canonical-ID mappings and provenance. A recoverable, additive schema 3-to-4 migration SHALL represent this state; unknown higher versions SHALL be refused. Old IDs SHALL open the survivor with a read-only original view. Ordinary trees/search/recommendations/reuse SHALL resolve canonical IDs and avoid duplicate results while retaining all source content for retrieval. Survivor ID/manual bucket SHALL follow user choice; use days SHALL aggregate as a set without recording restructure as use. Repeated restructuring SHALL cover retained sources without treating them as independent active notes. Ordinary deletion of merged groups SHALL be refused with explanation; no physical deletion or unmerge feature is included.
+
+#### Scenario: Restart, old link and hidden source content
+After a confirmed merge and restart, an old source ID SHALL resolve correctly, its original text remains viewable and searchable under the survivor, and capture receipts/generation reuse SHALL NOT recreate it as a duplicate. Migration or transaction faults SHALL preserve recoverability and stop writes rather than create an empty database.
+
+### Requirement: R9-07 Review UI and truthful limits
+The UI SHALL show distinct worker/coverage/status counts, paged per-item records, duplicate evidence/decisions, source mappings, content provenance and independently selectable explanations. Draft records remain session-local. Costs/unknown usage SHALL remain attributable; no speed, cost or perfect semantic-duplicate guarantee is implied. Implemented R8 and planned R9 behavior SHALL be labeled separately until verification.
+
+#### Scenario: Review on narrow windows
+Users SHALL reach both worker failures, each duplicate decision, full source/diff detail and final controls without page overflow or an implied preselected merge/model supplement. Invalid outputs SHALL identify the failed source/chunk rather than claim a directory failed before classification.
+
 ## Revision 8 requirements (implemented; isolated evidence in verification.md)
 
 ### Requirement: R8-01 Navigation-independent task execution

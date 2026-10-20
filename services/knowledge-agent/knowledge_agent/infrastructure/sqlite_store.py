@@ -11,6 +11,7 @@ import uuid
 from datetime import datetime
 from pathlib import Path
 
+from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.knowledge_rules import (
     BUCKETS,
     bucket_for,
@@ -40,6 +41,7 @@ class Store(TopicStorage, LibraryStorage):
         populate_index(self.db)
 
     # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
+    @traced
     def __init__(self, data_dir: Path) -> None:
         self.root = data_dir.resolve()
         self.root.mkdir(parents=True, exist_ok=True)
@@ -53,11 +55,13 @@ class Store(TopicStorage, LibraryStorage):
             raise
 
     # 初始化表结构并恢复应用拥有的资源，失败由构造方关闭连接。
+    @traced
     def _initialize_database(self) -> None:
         self.db.row_factory = sqlite3.Row
         self.db.execute("PRAGMA foreign_keys=ON")
         self.db.execute("PRAGMA journal_mode=WAL")
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
+        record("storage.schema", schema_version=schema_version)
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
         if schema_version > 3:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
@@ -106,6 +110,7 @@ class Store(TopicStorage, LibraryStorage):
                 path.unlink(missing_ok=True)
 
     # 释放本对象持有的资源，不修改用户原件。
+    @traced
     def close(self) -> None:
         self.db.close()
 
@@ -149,6 +154,7 @@ class Store(TopicStorage, LibraryStorage):
         return self.knowledge(row)
 
     # 扫描最近条目并排序，摘要裁剪不改变持久化正文。
+    @traced
     def list_knowledge(
         self, query: str = "", bucket: str | None = None, brief: bool = True
     ) -> list[dict]:
@@ -170,6 +176,7 @@ class Store(TopicStorage, LibraryStorage):
         return [item for _, item in result[:200]]
 
     # 原子保存知识和问题复用标识，重复生成不得覆盖个人编辑。
+    @traced
     def save(
         self,
         title: str,
@@ -206,6 +213,7 @@ class Store(TopicStorage, LibraryStorage):
                     "UPDATE knowledge SET concept=?,title=?,content=?,digest=?,updated_at=?,edited=1 WHERE id=?",
                     (concept, title, content, digest, now(), item_id),
                 )
+            record("knowledge.committed", mode="edit")
             return self.get(item_id)
         existing = self.db.execute(
             "SELECT id FROM knowledge WHERE concept=? OR digest=?", (concept, digest)
@@ -214,10 +222,8 @@ class Store(TopicStorage, LibraryStorage):
         if existing:
             if capture_key:
                 with self.db:
-                    self.db.execute(
-                        "INSERT OR IGNORE INTO generation_keys VALUES (?,?)",
-                        (capture_key, existing[0]),
-                    )
+                    self._insert_generation_key(capture_key, existing[0])
+            record("knowledge.reused", capture_key_added=bool(capture_key))
             return self.get(existing[0])
         item_id, stamp = str(uuid.uuid4()), now()
         # 新知识和问题复用键在同一 SQLite 事务内提交，失败不会写半套关联。
@@ -250,12 +256,18 @@ class Store(TopicStorage, LibraryStorage):
                     }
                 )
             if capture_key:
-                self.db.execute(
-                    "INSERT OR IGNORE INTO generation_keys VALUES (?,?)", (capture_key, item_id)
-                )
+                self._insert_generation_key(capture_key, item_id)
+        record("knowledge.committed", mode="create", generated=generated)
         return self.get(item_id)
 
+    # 仅写入复用关联；事务归调用方所有，不提前提交知识收录。
+    def _insert_generation_key(self, capture_key: str, item_id: str) -> None:
+        self.db.execute(
+            "INSERT OR IGNORE INTO generation_keys VALUES (?,?)", (capture_key, item_id)
+        )
+
     # 固定有效分区或恢复自动计算，拒绝其他分区值。
+    @traced
     def set_bucket(self, item_id: str, bucket: str | None) -> dict:
         if bucket is not None and bucket not in BUCKETS:
             raise ValueError("无效分区")
@@ -265,12 +277,14 @@ class Store(TopicStorage, LibraryStorage):
         return self.get(item_id)
 
     # 删除知识及外键关联记录，不删除资料或用户文件。
+    @traced
     def delete_knowledge(self, item_id: str) -> dict:
         with self.db:
             self.db.execute("DELETE FROM knowledge WHERE id=?", (item_id,))
         return {"deleted": True}
 
     # 仅返回资料摘要，不将完整来源正文暴露为列表。
+    @traced
     def list_sources(self) -> list[SourceSummary]:
         return [
             {
@@ -284,6 +298,7 @@ class Store(TopicStorage, LibraryStorage):
         ]
 
     # 读取已保留资料的证据，明确附加来源标识和保留状态。
+    @traced
     def source_blocks(self) -> list[EvidenceBlock]:
         result = []
         for row in self.db.execute("SELECT id, name, blocks FROM sources"):
@@ -294,6 +309,7 @@ class Store(TopicStorage, LibraryStorage):
         return result
 
     # 返回无密钥配置，SQLite 整数字段映射为协议布尔值。
+    @traced
     def providers(self) -> list[ProviderConfig]:
         return [
             {
@@ -323,6 +339,7 @@ class Store(TopicStorage, LibraryStorage):
         )
 
     # 在同一事务中切换唯一启用配置，不改变凭据。
+    @traced
     def select_provider(self, provider_id: str) -> list[dict]:
         # 不存在的目标拒绝切换，避免先清空已有启用配置。
         if not self.provider(provider_id):
@@ -342,6 +359,7 @@ class Store(TopicStorage, LibraryStorage):
         return row[0] if row else None
 
     # 以单次事务写入资料及解析片段，文件补偿由应用协调。
+    @traced
     def insert_source(self, document: Document, filename: str) -> None:
         with self.db:
             self.db.execute(
@@ -357,6 +375,7 @@ class Store(TopicStorage, LibraryStorage):
             )
 
     # 移除资料元数据，保留知识中已有的引用摘录。
+    @traced
     def remove_source(self, item_id: str) -> None:
         with self.db:
             self.db.execute("DELETE FROM sources WHERE id=?", (item_id,))
@@ -376,6 +395,7 @@ class Store(TopicStorage, LibraryStorage):
         return self.get(row[0]) if row else None
 
     # 更新同标识配置并维持唯一启用项，不把密钥写入 SQLite。
+    @traced
     def save_provider_config(self, config_id: str, config: ProviderDraft) -> None:
         with self.db:
             self.db.execute(
@@ -408,12 +428,14 @@ class Store(TopicStorage, LibraryStorage):
                 self.db.execute("UPDATE providers SET active=1 WHERE id=?", (config_id,))
 
     # 只删除指定配置，是否处理系统凭据由应用层决定。
+    @traced
     def delete_provider(self, config_id: str) -> list[dict]:
         with self.db:
             self.db.execute("DELETE FROM providers WHERE id=?", (config_id,))
         return self.providers()
 
     # 在请求之前记录调用与价格快照，崩溃后可标记中断。
+    @traced
     def start_attempt(self, attempt_id: str, config: ProviderConfig, purpose: str) -> None:
         with self.db:
             self.db.execute(
@@ -434,6 +456,7 @@ class Store(TopicStorage, LibraryStorage):
             )
 
     # 写入实际调用终态和已知用量，不推断未知费用。
+    @traced
     def finish_attempt(
         self,
         attempt_id: str,
@@ -450,6 +473,7 @@ class Store(TopicStorage, LibraryStorage):
             )
 
     # 按时间返回最近调用，各币种费用由界面分别统计。
+    @traced
     def list_attempts(self) -> list[dict]:
         return [
             dict(row)

@@ -2,12 +2,14 @@
 # 层：Python application
 # 作用：解析配置草稿与凭据，协调模型目录发现。
 # 说明：发现只读远端目录，不保存配置，也不发起生成或记账。
+from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.provider_rules import validate_provider
 
 from .ports import CatalogReader, CredentialVault, ProviderRepository
 
 
 # 草稿新密钥优先，留空仅允许从指定已保存配置读取，凭据不返回界面。
+@traced
 async def discover_models(
     store: ProviderRepository, vault: CredentialVault, reader: CatalogReader, params: dict
 ) -> dict:

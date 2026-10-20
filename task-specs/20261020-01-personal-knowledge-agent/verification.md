@@ -1,5 +1,19 @@
 # Verification Record
 
+## Revision 10 planning evidence (2026-10-21)
+
+- Inspected `SavedKnowledgeTree`, its direct `LibraryPage`/`KnowledgePage` callers, `use_saved_tree`, `use_page_state`, `TreeNode`/`LibraryTree` contracts and directory/workspace styles. Existing typed category/path paging supports the requested visual scheme without backend changes.
+- Updated existing Chinese product/design/acceptance/overview and English task records, retaining R9 as independently pending and R8 as implemented baseline. Product UI and user knowledge were not changed by this turn.
+- Prepared an interactive synthetic-data illustration outside the repository; sample subcategories and titles are illustrative, not observed user data. This is not an implementation of the product navigation.
+- R10-01/02 remain unimplemented/unverified. No `npm run check`, `npm run test:ui`, production data, model calls or migration were run for this planning increment.
+
+## Revision 9 planning evidence (2026-10-21)
+
+- Read-only evidence: current `library_restructure.py` calls `short_field(..., "知识要点", 1600)` before classification, and `topic_rules.py` groups missing/empty/type/length failures under one message. Actual failed provider output was not read. Current storage has schema 3, cascade-linked original records and no canonical merge representation.
+- User choices recorded from the two explicit answers: mark/review each duplicate group before merging; original-library extraction first, new model explanation separately labeled and accepted.
+- Planning only: existing task and Chinese product/design/acceptance/overview updated in place; R8 implementation evidence retained. No product checks, desktop run, live provider calls or migration performed for R9.
+- R9-01..07: not implemented and not tested. Required future evidence is enumerated in specs/tasks and the human acceptance page. Static document review checked nine Markdown files, 46 local file-link targets, encoding replacement characters and balanced code fences with zero errors; `git diff --check` passed. A stale renamed section anchor was found and repaired; targeted follow-up checks cover that repair. These checks are not product acceptance.
+
 ## Revision 8 implementation evidence (2026-10-21)
 
 - Authorization: user “开始改” after the R8 plan and all-bucket hierarchy amendment. Reused the existing task and human pages; no version/schema/dependency change, paid calls, production credentials/data, commit/push or publication.

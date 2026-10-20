@@ -9,6 +9,7 @@ import difflib
 import json
 import uuid
 
+from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.library_rules import (
     display_path,
     inventory_version,
@@ -30,6 +31,7 @@ class LibraryRestructure:
         self.draft: dict | None = None
 
     # 有草案时须明确重规划／丢弃，不静默替换待核对内容。
+    @traced
     def begin(self, params: dict) -> dict:
         previous = self.draft
         if previous and (
@@ -63,9 +65,11 @@ class LibraryRestructure:
                 params.get("feedback") or "按知识要点细分，优先沿用合适分类", "调整意见", 2000
             ),
         }
+        record("library.draft_created", items=len(items))
         return self.summary()
 
     # 任一模型阶段绑定同一草案，禁止重复并发推进或已丢弃结果回写。
+    @traced
     async def advance(self, params: dict, emit: Emit, prepare: bool = False) -> dict:
         draft = self.require(params)
         if draft["busy"]:
@@ -76,6 +80,13 @@ class LibraryRestructure:
         if draft["status"] != expected:
             return self.summary()
         draft["busy"] = True
+        record(
+            "library.advance",
+            status=expected,
+            item_index=draft["item_index"],
+            chunk_index=draft["chunk_index"],
+            prepared=draft["prepared"],
+        )
         try:
             # 每次仅推进一个有界模型阶段；没有持有数据库写事务。
             if prepare:
@@ -89,6 +100,7 @@ class LibraryRestructure:
             draft["busy"] = False
 
     # 全文和每个补充都以有界块参与摘要，不只读取正文头部。
+    @traced
     async def summarize_one(self, draft: dict, emit: Emit) -> None:
         item = draft["items"][draft["item_index"]]
         parts = [
@@ -99,6 +111,13 @@ class LibraryRestructure:
             part[start : start + 7000] for part in parts for start in range(0, len(part), 7000)
         ]
         index = draft["chunk_index"]
+        record(
+            "library.summary_context",
+            item_index=draft["item_index"],
+            items=len(draft["items"]),
+            chunk_index=index,
+            chunks=len(chunks),
+        )
         emit(
             {
                 "type": "progress",
@@ -120,7 +139,8 @@ class LibraryRestructure:
             "library-summary",
             emit,
         )
-        summary = short_field(json_object(text).get("summary"), "知识要点", 1600)
+        with step("library.validate_summary"):
+            summary = short_field(json_object(text).get("summary"), "知识要点", 1600)
         self.ensure_active(draft)
         draft["summaries"][item["id"]] = summary
         draft["chunk_index"] += 1
@@ -129,6 +149,7 @@ class LibraryRestructure:
             draft["chunk_index"] = 0
 
     # 前批路径作为后一批分类词表；全局碰撞检查通过后才允许确认目录。
+    @traced
     async def assign_batch(self, draft: dict, emit: Emit) -> None:
         start = len(draft["outline"])
         items = draft["items"][start : start + 8]
@@ -151,7 +172,8 @@ class LibraryRestructure:
             raise ValueError("分类词表超出本阶段上限，请调整目录减少重复分类后重试")
         emit({"type": "progress", "message": f"规划目录 {start}/{len(draft['items'])}"})
         text = await self.client.generate(draft["config"], payload, "library-outline", emit)
-        values = validate_assignments(text, items)
+        with step("library.validate_assignments"):
+            values = validate_assignments(text, items)
         self.ensure_active(draft)
         combined = draft["outline"] + [
             {**value, "title": item["title"], "old_path": display_path(item)}
@@ -159,12 +181,14 @@ class LibraryRestructure:
             for item in items
             if value["id"] == item["id"]
         ]
-        validate_collisions(combined, draft["items"])
+        with step("library.validate_collisions"):
+            validate_collisions(combined, draft["items"])
         draft["outline"] = combined
         if len(combined) == len(draft["items"]):
             draft["status"] = "outline"
 
     # 目录确认后逐项生成必要整理建议，手工或长正文只允许追加要点。
+    @traced
     async def prepare_one(self, draft: dict, emit: Emit) -> None:
         item = draft["items"][draft["prepared"]]
         mode = (
@@ -200,7 +224,8 @@ class LibraryRestructure:
             "library-content",
             emit,
         )
-        suggestion = validate_suggestion(text)
+        with step("library.validate_suggestion"):
+            suggestion = validate_suggestion(text)
         self.ensure_active(draft)
         if suggestion["content"] and suggestion["content"] != item["content"]:
             original = item["content"] if mode == "replace" else ""
@@ -228,6 +253,7 @@ class LibraryRestructure:
             draft["status"] = "ready"
 
     # 最终确认只应用用户勾选项；重复确认返回同一收据而非重做写入。
+    @traced
     async def apply(self, params: dict) -> dict:
         draft = self.require(params)
         if draft["receipt"]:
@@ -253,6 +279,7 @@ class LibraryRestructure:
         return result
 
     # 分页预览最多一个完整正文差异，严格控制协议帧。
+    @traced
     def preview(self, params: dict) -> dict:
         draft = self.require(params)
         kind, page = params.get("kind", "outline"), params.get("page", 0)
@@ -279,6 +306,7 @@ class LibraryRestructure:
         return draft
 
     # 丢弃可打断正在等待模型的草案，返回后的旧模型结果不能复活它。
+    @traced
     def discard(self, params: dict) -> dict:
         self.require(params)
         self.draft = None
