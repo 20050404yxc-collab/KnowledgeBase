@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { checkPageUi } from './check_page_ui.mjs'
 import { checkProjectUi, checkLatePage } from './check_project_ui.mjs'
+import { checkBatchUi } from './check_batch_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
@@ -455,6 +456,7 @@ export async function checkModelUi(context) {
     await supplement(value)
     await checkProjectUi({ ...value, finish })
     await checkLatePage({ ...value, finish })
+    await checkBatchUi({ ...value, finish })
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )

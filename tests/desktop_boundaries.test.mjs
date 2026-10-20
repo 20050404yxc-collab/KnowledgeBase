@@ -8,8 +8,12 @@ import { test } from 'node:test'
 import { transformSync } from '@swc/core'
 
 // 模块无运行时本地依赖，转换后从内存加载实际实现。
-async function loadModule(relativePath) {
-  const source = await readFile(new URL(relativePath, import.meta.url), 'utf8')
+async function loadModule(relativePath, replacements = {}) {
+  let source = await readFile(new URL(relativePath, import.meta.url), 'utf8')
+  // 仅测试显式替换导入地址，以受控能力验证实际编排而不连接桌面或付费服务。
+  for (const [key, value] of Object.entries(replacements)) {
+    source = source.replaceAll(key, value)
+  }
   const { code } = transformSync(source, {
     jsc: { target: 'es2022', parser: { syntax: 'typescript' } },
     module: { type: 'es6' }
@@ -21,6 +25,87 @@ const validation = await loadModule('../apps/desktop/shared/protocol_validation.
 const { markdownForDisplay } = await loadModule(
   '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
 )
+
+// 模拟受限 API 只替换网络边界，批量状态和逐项控制使用实际实现。
+async function batchFixture() {
+  const stub = `let respond; export const configure = (value) => { respond = value };
+    export const api = { request: (...args) => respond(...args) };
+    export const errorText = (error) => error.message;`
+  const url = 'data:text/javascript;base64,' + Buffer.from(stub).toString('base64')
+  const client = await import(url)
+  const batch = await loadModule(
+    '../apps/desktop/renderer/src/features/exploration/directory_batch.ts',
+    {
+      "'../../shared/api/client'": JSON.stringify(url)
+    }
+  )
+  return { ...client, ...batch }
+}
+
+// 单项错误不能阻断其他选择，补充预览和资料不足都不能被自动确认保存。
+test('batch continues after failure and preserves review/material outcomes', async () => {
+  const { configure, generateBatch } = await batchFixture()
+  const calls = []
+  const outcomes = []
+  configure(async (_operation, params) => {
+    calls.push(params)
+    if (params.point_id === 'fail') {
+      throw new Error('合成单项失败')
+    }
+    return params.point_id === 'review'
+      ? { review: true, notice: '待核对' }
+      : { project: { status: 'materials', message: '缺项目资料' }, notice: '未收录' }
+  })
+  await generateBatch({
+    points: [
+      { id: 'fail' },
+      { id: 'review', target_id: 'original' },
+      { id: 'project', project_required: true }
+    ],
+    input: { plan_id: 'plan', model: 'fixed-model' },
+    current: () => true,
+    requestId: () => 'request',
+    progress: () => {},
+    receive: (value) => outcomes.push(value)
+  })
+  assert.equal(outcomes.length, 3)
+  assert.equal(outcomes[0].message, '合成单项失败')
+  assert.equal(outcomes[1].answer.review, true)
+  assert.equal(outcomes[2].message, '缺项目资料')
+  assert.deepEqual(
+    calls.map((c) => c.action),
+    ['learn', 'supplement', 'learn']
+  )
+  assert.ok(calls.every((c) => c.model === 'fixed-model'))
+  assert.equal(calls[1].target_id, 'original')
+})
+
+// 资料核对返回时恰好取消，不得再启动正文生成或后一个知识点。
+test('batch cancellation between material audit and generation stops subsequent requests', async () => {
+  const { configure, generateBatch } = await batchFixture()
+  const calls = []
+  let current = true
+  configure(async (_operation, params) => {
+    calls.push(params)
+    current = false
+    return { project: { status: 'material-ready' }, notice: '已核对' }
+  })
+  await generateBatch({
+    points: [
+      { id: 'a', project_required: true },
+      { id: 'b', project_required: true }
+    ],
+    input: { plan_id: 'plan' },
+    attachmentIds: ['selected-project-file'],
+    current: () => current,
+    requestId: () => 'request',
+    progress: () => {},
+    receive: () => {}
+  })
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].action, 'materials')
+  assert.deepEqual(calls[0].attachment_ids, ['selected-project-file'])
+})
 
 // 只修复明确的普通标签；代码、转义、链接、数学符号和存储原文不变。
 test('display Markdown repairs a paired label without removing literal symbols', () => {

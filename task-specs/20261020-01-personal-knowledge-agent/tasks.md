@@ -125,3 +125,11 @@ R3 handoff: implemented and verified on test0.03; `npm run check` passes (78 Pyt
 - [x] E.2 Install isolated Python and Node/Electron candidate dependencies; retain exact versions and dependency locks; ENV-01/02.
 - [x] E.3 Verify CLI/imports, basic document parsing, SQLite extension and CPU OCR runtime/model readiness; record actual limitations; ENV-02.
 - [x] E.4 Reconcile Chinese environment instructions and these execution records; do not claim product ACs passed.
+
+## Revision 7 implementation
+- [x] Read project standards and trace planning, project gate, page state and cancellation chains.
+- [x] Move actions into a reusable right detail workspace and add category/point selection.
+- [x] Add bounded sequential batch outcomes, project file/path/drop entry and one-submit group generation.
+- [x] Add compact question forms with page-owned planning/drafts/results.
+- [x] Verify batch failures, review, cancellation, materials and page isolation with isolated tests.
+- [x] Run npm run check and npm run test:ui; inspect screenshots and record actual limits.

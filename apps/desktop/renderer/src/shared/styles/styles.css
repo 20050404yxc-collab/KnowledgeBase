@@ -1366,6 +1366,100 @@ td small {
   margin: 0;
   min-width: 0;
 }
+
+/* 生成和资料操作属于详情列，未生成知识点也可直接操作。 */
+.directory-detail {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.batch-panel,
+.project-materials,
+.directory-detail .point-actions {
+  background: var(--surface, #fff);
+  border: 1px solid #dce2d7;
+  border-radius: 14px;
+  padding: 20px;
+  overflow-wrap: anywhere;
+}
+.batch-panel h3,
+.project-materials h3,
+.point-actions h3 {
+  margin-top: 0;
+}
+.directory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.directory-row > input,
+.group-selection input,
+.project-files input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: #496c43;
+}
+.group-selection,
+.project-files label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: #6c756a;
+}
+.batch-buttons,
+.project-path,
+.knowledge-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.batch-results {
+  padding-left: 18px;
+  max-height: 260px;
+  overflow: auto;
+}
+.batch-results li {
+  margin: 10px 0;
+}
+.batch-results span {
+  display: block;
+  color: #6c756a;
+  font-size: 13px;
+  margin-top: 4px;
+}
+.project-material-group + .project-material-group {
+  border-top: 1px solid #dce2d7;
+  margin-top: 20px;
+  padding-top: 12px;
+}
+.project-upload {
+  border: 1px dashed #acbba8;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f7f9f4;
+}
+.project-path {
+  margin-top: 12px;
+}
+.project-path input,
+.knowledge-question input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+.project-files label {
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.project-material-group > .primary {
+  max-width: 100%;
+  white-space: normal;
+}
+.knowledge-question {
+  margin: 22px 0;
+}
 .markdown-content {
   white-space: normal;
   overflow-wrap: anywhere;

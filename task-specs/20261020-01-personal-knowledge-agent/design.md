@@ -187,3 +187,6 @@ Future authorized verification combines deterministic domain tests, controlled p
 - `VERSION`, package metadata, UI and preload identify test0.01 (npm semver `0.0.1-test.0.01`). README, CHANGELOG, launch scripts, Git attributes and ignores make local review/reproduction possible. The app still requires the development runtime; no installer or remote push was performed.
 
 Official Responses and Chat Completions schema pages were fetched on 2026-10-20 from developers.openai.com before adapter implementation. Anthropic and third-party real wire compatibility remain unverified beyond the explicit mock adapters. No model ID or current price is hardcoded or claimed tested.
+
+## Revision 7 design
+Compose one reusable directory/detail workspace. Use page-owned directory state and compact question drafts. Sequential batch orchestration reuses typed knowledge.learn with explicit snapshots, per-item outcomes and ownership checks between material validation and generation. Group materials by visible audited category/subcategory; users explicitly select files for each group. Keep original per-point server validation, capture idempotency and supplement review. Add optional public_only to revoke so valid material-ready states survive point navigation while public permission does not; full input/navigation revocation remains authoritative. No schema or version changes.

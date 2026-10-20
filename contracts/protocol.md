@@ -41,7 +41,7 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 `question.plan` 接受原 `question` 参数，返回 `{plan_id, points, excluded, search, notice}`；规划先结合授权范围内的全库分类摘要（`files` 范围跳过库内读取），再输出大类、小类和具体知识点。每个候选必须经过独立审核：可复用知识保留，职责／项目名／日期等非知识点排除，疑义项给出理由；允许零个合格点，审核失败返回空目录且不产生可学习计划。目录最多 16 点，会话最多保留 24 份，重启或淘汰后需重新拆解。
 
-`knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。变更点、范围、附件、取消或切页会撤销旧许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
+`knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, public_only?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。切换知识点撤销公开许可；范围、附件、取消或切页撤销旧项目依据。`revoke` 可带 `public_only: true`，仅保留仍有效的已核对材料及其补充预览，默认完整撤销；公开候选和已选公开示例不能因该标志继续获得许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
 
 `Knowledge`、`SearchHit`、`DirectoryPoint` 的 `category`／`subcategory` 为可选兼容字段；旧主题不猜测拆分，不做 R6 批量迁移。项目状态 DTO 使用 `materials`、`material-ready`、`candidates`、`public-ready`，公开候选包含仓库 URL、README 路径、摘录和 UTC 读取时间；解释引用进一步标注实际使用的字符范围；仅模型声称而无读取证据不得进入引用。
 
@@ -50,3 +50,9 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 `knowledge.get` 等知识结果增加可选 `theme/version/supplements`；旧知识显示未分类，不批量改写。补充包含稳定 ID、时间、模型、接口、引用和编辑状态。`supplements.save` 输入 `{knowledge_id,id,version,title,content}`；`supplements.delete` 输入 `{knowledge_id,id,version}`。两者均返回最新完整知识，版本过期拒绝，删除原知识级联移除补充及索引。
 
 数据库从 2 升至 3 前通过 SQLite 备份 API 创建 `before-knowledge-topics-v3.sqlite3`，增量结构、回填与版本号同一事务提交。FTS5 不可用时回退到完整分批词法扫描；索引可由仓库维护方法 `rebuild_search_index` 从正式数据重建。没有新增界面维护按钮。
+
+## 多点生成与分区提问（修订 7）
+
+批量沿用 `knowledge.learn`，界面串行对所选未保存点发出单点请求；每项使用独立的实际调用记录，整体停止不是已提交内容回滚。项目资料一次用户提交后对每点执行 `materials`，只在该点返回 `material-ready` 时继续生成，未充分点保留门禁。补充仍返回 review，禁止自动 confirm。界面在每阶段间检查选择版本，切页／取消后不得继续启动下一项。
+
+常用／在学／归档的简洁提问同样使用 `question.plan`，继承探索的模型与范围设置；问题、目录、预览和阅读按页隔离。没有新操作名、协议版本或数据库升级。

@@ -1,14 +1,15 @@
 // 文件：KnowledgePage.tsx
 // 层：React 知识分区页面
 // 作用：只组合当前频率分区的列表与主动打开的知识详情。
-// 说明：探索输入、目录和推荐不挂载在知识分区。
+// 说明：简洁提问复用探索流程，目录、阅读和输入按页面隔离。
 import { useAppContext } from '../../app/AppContext'
 import { KnowledgeList } from './KnowledgeList'
-import { AnswerPanel } from './AnswerPanel'
+import { KnowledgeQuestion } from './KnowledgeQuestion'
+import { KnowledgeWorkspace, RelatedKnowledge, WorkingStatus } from '../exploration'
 
 // 首屏先呈现本页列表，详情由本页阅读状态决定。
 export function KnowledgePage() {
-  const { section, selected, ready, setEditor } = useAppContext()
+  const { section, ready, setEditor, recommendations, busy } = useAppContext()
   return (
     <section aria-label={`${section}页面`}>
       <div className="page-heading">
@@ -25,7 +26,10 @@ export function KnowledgePage() {
         </button>
       </div>
       <KnowledgeList />
-      {selected && <AnswerPanel />}
+      <KnowledgeQuestion />
+      {busy && <WorkingStatus />}
+      <KnowledgeWorkspace />
+      {recommendations.length > 0 && <RelatedKnowledge />}
     </section>
   )
 }

@@ -509,3 +509,10 @@ The development application SHALL identify itself as test0.01. Source and reprod
 - WHEN the application is built and started using the documented entry point
 - THEN its UI identifies test0.01, local workflows operate, and Git retains a test0.01 source tag
 - AND the README describes outstanding installation, OCR, semantic retrieval and real-provider validation
+
+## Revision 7 contracts
+- R7-01: Point generation and project material controls SHALL render in the right detail column, including before content exists.
+- R7-02: Leaves and categories SHALL be selectable for one explicit batch. Saved points SHALL be skipped; failures SHALL remain visible without automatic retries; cancellation/page change SHALL prevent subsequent requests while preserving committed results.
+- R7-03: One explicit material submission per visible project group SHALL process all pending points with the same selected documents, independently enforcing material relevance per point. Documents for another group SHALL NOT be implicitly selected.
+- R7-04: Supplements SHALL remain uncommitted previews until explicit per-point review. Reading another point MAY preserve valid material evidence but SHALL revoke public consent. File/query/scope/page changes SHALL revoke project material permission.
+- R7-05: Each frequency page SHALL offer only a question input and confirm button as its composer, using exploration planning/settings and independent draft/directory/reading state. Navigation and late results SHALL NOT leak page state.

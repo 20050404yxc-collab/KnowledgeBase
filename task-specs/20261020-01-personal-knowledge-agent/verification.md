@@ -1,5 +1,14 @@
 # Verification Record
 
+## Revision 7 implementation evidence (2026-10-20)
+
+- Scope: right-side point/material controls, leaf/category selection, sequential batch outcomes, one project material submission for all pending group points, and compact frequency-page questions using exploration planning/settings. Page-keyed drafts, directories, previews and results remain independent. No schema/version change, production data access, real credentials, paid APIs, commit/push or publication.
+- `npm run check`: passed; 89 TS/JS and 60 Python source files checked, formatting/Ruff/strict types, 134 Python cases, 9 host cases and production build. Added boundary cases cover batch continuation after a single failure, manual supplement review, cancellation exactly between material audit and generation, retained material previews after point navigation, revocation of public candidates and removed-material rejection.
+- `npm run test:ui`: passed; 20 reported workflows and 18 screenshots on an isolated profile/data directory and controlled local HTTP/SSE. Category selection selects three points; cancelling point 2 retains point 1 and never starts point 3. A single project path submission processes three independently audited/cited points. A native File inserted through CDP is dropped into the project frame and deduplicated, without duplicate global attachment handling. Each bucket submits through question.plan plus independent review and retains its own directory; returning to exploration restores the original query/directory.
+- Visual QA: inspected desktop-batch-cancel.png, desktop-project-batch.png, desktop-project-batch-narrow.png and desktop-bucket-question.png. Detail-column controls, project path/upload form and compact question form render within their containers; 1024px project layout has no horizontal page overflow. Existing Markdown wide/narrow and safety DOM regressions remain passing.
+- Limits: synthetic model responses establish orchestration, citations, state ownership and persistence behavior only. Real model classification/material relevance, GitHub availability and manual interaction with the native file-picker dialog remain unverified. Project grouping uses visible audited category/subcategory; users must check model grouping. Each point still incurs separate actual audit/generation attempts; no automatic retries or supplement confirmation.
+
+
 ## Revision 6 implementation evidence (2026-10-20)
 
 - Authorization: user instruction “进行开发” covers the complete R6 including retained R5 requirements. Used existing task/pages and the selected project coding/layering standard. No subagents, paid/live APIs, production credentials/data, schema migration, version bump, commit/push or release.

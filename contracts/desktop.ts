@@ -100,6 +100,7 @@ export interface LearnInput extends GenerationOptions {
   attachment_ids?: string[]
   consent?: boolean
   public_scope?: boolean
+  public_only?: boolean
   search_terms?: string
   revision?: string
   candidate_id?: string

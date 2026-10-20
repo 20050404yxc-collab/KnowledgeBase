@@ -2,7 +2,8 @@
 // 层：React 交互 hook
 // 作用：关联本地检索、知识目录和选中项学习请求。
 // 说明：与探索共用忙碌标识，切页及选择变化拒绝晚到结果。
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
+import { usePageState } from '../../shared/use_page_state'
 import type {
   DirectoryPoint,
   GenerationOptions,
@@ -12,13 +13,15 @@ import type {
   RequestMap,
   SearchResult
 } from '../../../../../../contracts/desktop'
+import type { BatchOutcome } from './directory_batch'
+import { generateBatch } from './directory_batch'
 import { api, errorText } from '../../shared/api/client'
 import type { Feedback } from '../../shared/api/use_feedback'
 import type { Reading } from '../knowledge'
 import type { Navigation } from '../../app/use_navigation'
 import type { useExploration } from './use_exploration'
 
-type Options = Feedback &
+export type DirectoryOptions = Feedback &
   Reading &
   Navigation &
   ReturnType<typeof useExploration> & {
@@ -26,16 +29,22 @@ type Options = Feedback &
     reload: () => Promise<void>
     openItem: (id: string) => Promise<void>
   }
+type Options = DirectoryOptions
 
 // 每份目录保留原查询分页条件，修改输入框不会让下一页跳到另一个查询。
-export function useDirectory(options: Options) {
-  const [directory, setDirectory] = useState<QuestionPlan | null>(null)
-  const [searchResult, setSearchResult] = useState<SearchResult | null>(null)
-  const [selectedPoint, setSelectedPoint] = useState<DirectoryPoint | null>(null)
-  const [targetId, setTargetId] = useState('')
-  const [reviewing, setReviewing] = useState(false)
-  const [projectContext, setProjectContext] = useState<ProjectContext | null>(null)
-  const searchParams = useRef<RequestMap['knowledge.search']>({ query: '', page: 0 })
+function useDirectoryState(options: Options) {
+  const page = options.section
+  const [directory, setDirectory] = usePageState<QuestionPlan | null>(page, null)
+  const [searchResult, setSearchResult] = usePageState<SearchResult | null>(page, null)
+  const [selectedPoint, setSelectedPoint] = usePageState<DirectoryPoint | null>(page, null)
+  const [targetId, setTargetId] = usePageState(page, '')
+  const [reviewing, setReviewing] = usePageState(page, false)
+  const [projectContext, setProjectContext] = usePageState<ProjectContext | null>(page, null)
+  const [checkedPoints, setCheckedPoints] = usePageState<string[]>(page, [])
+  const [outcomes, setOutcomes] = usePageState<Record<string, BatchOutcome>>(page, {})
+  const [questionDraft, setQuestionDraft] = usePageState(page, '')
+  const paramsByPage = useRef<Record<string, { current: RequestMap['knowledge.search'] }>>({})
+  const searchParams = (paramsByPage.current[page] ??= { current: { query: '', page: 0 } })
   const { ownRequest, mounted, run } = useDirectoryRequests(options)
 
   const state = {
@@ -51,17 +60,55 @@ export function useDirectory(options: Options) {
     setReviewing,
     projectContext,
     setProjectContext,
+    checkedPoints,
+    setCheckedPoints,
+    outcomes,
+    setOutcomes,
+    questionDraft,
+    setQuestionDraft,
     searchParams,
     ownRequest,
     mounted
   }
-  useProjectRevocation(options, directory, selectedPoint, setProjectContext, targetId)
+  useProjectRevocation(
+    {
+      ...options,
+      query: page === '探索' ? options.query : questionDraft,
+      resetProjectPreviews: () => {
+        // 完整撤销使项目预览失效，保留已保存结果与无项目依赖的补充。
+        setOutcomes((current) =>
+          Object.fromEntries(
+            Object.entries(current).filter(
+              ([, item]) => item.answer?.knowledge || !item.point.project_required
+            )
+          )
+        )
+        if (selectedPoint?.project_required && options.answer?.review) {
+          setReviewing(false)
+          options.setAnswer(null)
+        }
+      }
+    },
+    directory,
+    selectedPoint,
+    setProjectContext,
+    targetId
+  )
+  return { ...state, run }
+}
+
+// 目录状态和请求生命周期归同一 hook，批量调用仍受全局忙碌和取消约束。
+export function useDirectory(options: Options) {
+  const state = useDirectoryState(options)
+  const { directory, setSelectedPoint, setReviewing, setProjectContext, run } = state
   return {
     ...state,
     cancelTask: async () => {
       // 撤销后续步骤和详情所有权，即使取消刚好发生在两次请求之间也有效。
       options.selectionSequence.current++
-      revokeProject(directory, selectedPoint)
+      for (const point of directory?.points ?? []) {
+        revokeProject(directory, point)
+      }
       setProjectContext(null)
       if (options.activeRequest.current) {
         await options.guarded(() => api.cancel(options.activeRequest.current ?? ''))
@@ -72,24 +119,81 @@ export function useDirectory(options: Options) {
       setReviewing(false)
       await options.openItem(id)
     },
-    buildDirectory: () => run(() => planAction(options, state)),
+    buildDirectory: (query = options.query) => run(() => planAction({ ...options, query }, state)),
     localSearch: (page?: number) => run(() => searchAction(options, state, page)),
-    selectPoint: async (point: DirectoryPoint) => {
-      options.selectionSequence.current++
-      setSelectedPoint(point)
-      setTargetId(point.target_id)
-      setReviewing(false)
-      options.setAnswer(null)
-      options.setSelected(null)
-      options.setRecommendations([])
-      // 只有明确候选才读取已有详情；打开不代表同意模型的归属建议。
-      if (point.target_id) {
-        await options.openItem(point.target_id)
-      }
-    },
+    selectPoint: (point: DirectoryPoint) => selectPointAction(options, state, point),
+    learnBatch: (ids: string[], attachmentIds?: string[]) =>
+      run(() => batchAction(options, state, ids, attachmentIds)),
     learnPoint: (action: LearnInput['action'], extra: Partial<LearnInput> = {}) =>
       run(() => learnAction(options, state, action, extra))
   }
+}
+
+// 批量补充预览留在对应目录项，主动选取后才能核对和提交。
+async function selectPointAction(options: Options, state: State, point: DirectoryPoint) {
+  options.selectionSequence.current++
+  state.setSelectedPoint(point)
+  state.setTargetId(point.target_id)
+  const cached = state.outcomes[point.id]?.answer
+  state.setReviewing(!!cached?.review && !cached.knowledge)
+  options.setAnswer(cached ?? null)
+  options.setSelected(cached?.knowledge ?? null)
+  options.setRecommendations(cached?.recommendations ?? [])
+  // 缓存中的预览优先；已有知识则读取最新持久化详情。
+  if (point.target_id && !cached?.review) {
+    await options.openItem(point.target_id)
+  }
+}
+
+// 同一次选择固定模型与目录快照；已完成项不再调用模型，结果逐项可见。
+async function batchAction(
+  options: Options,
+  state: State,
+  ids: string[],
+  attachmentIds?: string[]
+) {
+  if (!state.directory?.plan_id || options.attachments.some((a) => a.state === 'loading')) {
+    throw new Error('请等待附件解析完成，并先生成知识目录')
+  }
+  const planId = state.directory.plan_id
+  const sequence = ++options.selectionSequence.current
+  const points = state.directory.points.filter(
+    (p) => ids.includes(p.id) && p.status !== '已有知识' && !state.outcomes[p.id]?.answer?.review
+  )
+  await generateBatch({
+    points,
+    input: { ...options.generationOptions, plan_id: planId },
+    attachmentIds,
+    current: () => state.mounted.current && sequence === options.selectionSequence.current,
+    requestId: () => state.ownRequest.current ?? undefined,
+    progress: options.setProgress,
+    receive: (outcome) => {
+      // 已提交结果仍更新所属探索目录，切页不能把保存说成已撤销。
+      state.setOutcomes((current) => ({ ...current, [outcome.point.id]: outcome }))
+      if (outcome.answer?.knowledge) {
+        updateCompleted(state, planId, outcome.point, outcome.answer.knowledge.id)
+      }
+    }
+  })
+  await options.reload()
+  // 提示只属于仍拥有本次选择的页面，不打断其他页面的新操作。
+  if (sequence === options.selectionSequence.current) {
+    options.setMessage('批量处理结束；逐项结果见右侧，待核对补充需选择后确认。已保存内容保留。')
+  }
+}
+
+// 更新叶子状态而不改其他项的选择和归属，目录 ID 保证不会串入新拆解。
+function updateCompleted(state: State, planId: string, point: DirectoryPoint, id: string) {
+  state.setDirectory((current) =>
+    current?.plan_id === planId
+      ? {
+          ...current,
+          points: current.points.map((p) =>
+            p.id === point.id ? { ...p, status: '已有知识', target_id: id } : p
+          )
+        }
+      : current
+  )
 }
 // 请求生命周期单独管理，取消或切页撤销晚到响应的所有权。
 function useDirectoryRequests(options: Options) {
@@ -150,21 +254,7 @@ function useDirectoryRequests(options: Options) {
   return { ownRequest, mounted, run }
 }
 
-type DirectoryState = ReturnType<typeof useDirectory>
-type State = Pick<
-  DirectoryState,
-  | 'directory'
-  | 'setDirectory'
-  | 'setSearchResult'
-  | 'selectedPoint'
-  | 'setSelectedPoint'
-  | 'targetId'
-  | 'setReviewing'
-  | 'setProjectContext'
-  | 'searchParams'
-  | 'ownRequest'
-  | 'mounted'
->
+type State = ReturnType<typeof useDirectoryState>
 
 // 明确文件范围须有已解析附件；普通无附件查询沿用知识库范围。
 function questionInput(options: Options) {
@@ -188,6 +278,8 @@ async function planAction(options: Options, state: State) {
   const params = questionInput(options)
   const sequence = ++options.selectionSequence.current
   state.setDirectory(null)
+  state.setOutcomes({})
+  state.setCheckedPoints([])
   state.setSelectedPoint(null)
   state.setReviewing(false)
   options.setAnswer(null)
@@ -232,6 +324,8 @@ async function searchAction(options: Options, state: State, page?: number) {
     state.setSearchResult(result)
     if (page === undefined) {
       state.setDirectory(null)
+      state.setOutcomes({})
+      state.setCheckedPoints([])
       state.setSelectedPoint(null)
       options.setAnswer(null)
       options.setSelected(null)
@@ -277,6 +371,10 @@ async function learnAction(
         : current
     )
   }
+  state.setOutcomes((current) => ({
+    ...current,
+    [point.id]: { point, answer: value, message: value.notice }
+  }))
   if (sequence !== options.selectionSequence.current || !state.mounted.current) {
     if (value.knowledge && state.mounted.current) {
       options.setMessage(`“${point.title}”已完成保存，可从知识列表打开；已提交内容保留。`)
@@ -297,7 +395,7 @@ async function learnAction(
 
 // 页面、问题、范围或附件改变时撤销项目许可；阅读完成内容仍保留。
 function useProjectRevocation(
-  options: Options,
+  options: Options & { resetProjectPreviews: () => void },
   directory: QuestionPlan | null,
   point: DirectoryPoint | null,
   clear: (value: ProjectContext | null) => void,
@@ -305,43 +403,57 @@ function useProjectRevocation(
 ) {
   const attachmentKey = options.attachments.map((a) => `${a.id}:${a.state}`).join('|')
   useEffect(() => {
+    // 问题、范围、文件或页面改变撤销整份目录的项目依据及预览。
+    clear(null)
+    options.resetProjectPreviews()
+    for (const item of directory?.points ?? []) {
+      revokeProject(directory, item)
+    }
+    return () => {
+      // 离开页面或替换输入时释放旧目录的全部材料许可。
+      options.resetProjectPreviews()
+      for (const item of directory?.points ?? []) {
+        revokeProject(directory, item)
+      }
+    }
+  }, [options.section, options.query, options.scope, attachmentKey, directory?.plan_id])
+  useEffect(() => {
     let current = true
     clear(null)
     // 进入或恢复项目点时重新领取挑战，旧许可不能随阅读快照恢复。
-    if (options.section === '探索') {
-      revokeProject(directory, point, (context) => {
-        if (current) {
-          clear(context)
-        }
-      })
+    if (directory) {
+      revokeProject(
+        directory,
+        point,
+        (context) => {
+          if (current) {
+            clear(context)
+          }
+        },
+        true
+      )
     }
     return () => {
       current = false
-      revokeProject(directory, point)
+      revokeProject(directory, point, undefined, true)
     }
-  }, [
-    options.section,
-    options.query,
-    options.scope,
-    attachmentKey,
-    directory?.plan_id,
-    point?.id,
-    targetId
-  ])
+  }, [options.section, directory?.plan_id, point?.id, targetId])
 }
 
 // 撤销独立于学习请求，后台会在提交前再次复核许可。
 function revokeProject(
   directory: QuestionPlan | null,
   point: DirectoryPoint | null,
-  receive?: (value: ProjectContext | null) => void
+  receive?: (value: ProjectContext | null) => void,
+  publicOnly = false
 ) {
   if (directory?.plan_id && point?.project_required) {
     void api
       .request('knowledge.learn', {
         plan_id: directory.plan_id,
         point_id: point.id,
-        action: 'revoke'
+        action: 'revoke',
+        public_only: publicOnly
       })
       .then((answer) => receive?.(answer.project ?? null))
       .catch((error) => console.error('撤销项目许可失败', errorText(error)))

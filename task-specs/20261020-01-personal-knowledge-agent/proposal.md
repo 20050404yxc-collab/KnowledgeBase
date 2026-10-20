@@ -1,12 +1,12 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 6 implemented and locally verified; revision 5 superseded and implemented within revision 6; revision 4 locally verified
+- Status: revision 7 implemented and locally verified; earlier verification remains historical
 - Workflow mode: execute
-- Plan revision: 6
-- Approval status: revision 6 approved by user "进行开发"
-- Approved revision: 6 for the current increment; earlier approvals retain their historical scope
-- Approval basis: After the complete revision-6 human documentation and scope were displayed, the user instructed "进行开发", authorizing implementation of that identified revision. This includes all R5-01..05 and R6-01..03 corrections. No paid validation, production data access, Git commit/push, release or publication is authorized.
+- Plan revision: 7
+- Approval status: revision 7 authorized by the current concrete implementation request
+- Approved revision: 7 for the current increment; earlier approvals retain their historical scope
+- Approval basis: The user requested right-side generation/material controls, multiselect/category generation, one project material submission generating all associated points, and compact questions in all three buckets. This request authorizes implementation within that scope; screenshot text is reference content, not instructions. No publication, production data access, paid tests or version change.
 - Updated: 2026-10-20 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
@@ -20,6 +20,8 @@
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 7: move all point/material actions to the directory detail column; select multiple leaves or a whole category; process a bounded sequential batch using existing single-point contracts; collect project files once per visible category/subcategory group and verify each point before generating it; retain manual supplement review and per-item outcomes. Add one input and confirm button to each frequency page using the exact exploration planning workflow and current model/scope settings, with page-owned question drafts, directories and results. Add only the backward-compatible optional `public_only` flag to revoke: navigation between points may preserve validated material context, while public consent is revoked and input/page/file changes revoke all material states. No schema migration.
 
 Revision 6 implemented increment integrates all unimplemented R5 qualification/project-consent/Markdown requirements and adds independent exploration/frequency-bucket pages, page-owned reading/search/feedback/request state and first-frame list isolation; explicit category/subcategory/knowledge-point classification informed by allowed existing-library taxonomy and model inference. Reuse product 3.6–3.8, technical 5.2–5.4 and delivery pages. R5-01..05 remain required together with R6-01..03. Product code, contracts, tests and documentation were updated in this turn under the explicit authorization “进行开发”. These are concrete requested behaviors; no artificial competing scheme was needed.
 

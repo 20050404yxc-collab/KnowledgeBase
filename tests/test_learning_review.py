@@ -275,6 +275,60 @@ def test_removed_material_revokes_permission(reviewed):
     asyncio.run(run())
 
 
+# 切换知识点保留有效项目材料及补充草稿；完整撤销仍阻止提交。
+def test_point_navigation_preserves_material_review_only(reviewed):
+    service, _ = reviewed
+    service.client.sufficient = True
+    service.client.conflict = True
+
+    # 先形成未提交预览，再模拟切换与完整撤销，检查真实存储边界。
+    async def run():
+        directory = await plan(service)
+        await learn(service, directory, action="materials", attachment_ids=["project"])
+        draft = await learn(service, directory)
+        assert draft["review"] and not service.store.list_knowledge()
+        ready = await learn(service, directory, action="revoke", public_only=True)
+        assert ready["project"]["status"] == "material-ready"
+        saved = await learn(service, directory, action="separate")
+        assert saved["knowledge"]
+        await learn(service, directory, index=1, action="materials", attachment_ids=["project"])
+        await learn(service, directory, index=1)
+        await learn(service, directory, index=1, action="revoke")
+        with pytest.raises(ValueError, match="没有待核对"):
+            await learn(service, directory, index=1, action="separate")
+        assert len(service.store.list_knowledge()) == 1
+
+    asyncio.run(run())
+
+
+# 仅撤销公开许可不能保留公开候选，也不能保留已经移除的项目材料。
+def test_public_only_revoke_checks_material_ownership(reviewed):
+    service, reader = reviewed
+
+    # 对公开候选撤销后需重新同意；材料被移除后选择切换也必须失败。
+    async def run():
+        directory = await plan(service)
+        await learn(
+            service,
+            directory,
+            action="public-search",
+            consent=True,
+            revision=directory["points"][0]["project_revision"],
+            search_terms="queue",
+        )
+        result = await learn(service, directory, action="revoke", public_only=True)
+        assert result["project"]["status"] == "materials"
+        assert len(reader.calls) == 1
+        service.client.sufficient = True
+        await learn(service, directory, action="materials", attachment_ids=["project"])
+        del service.attachments["project"]
+        with pytest.raises(ValueError, match="项目资料已移除"):
+            await learn(service, directory, action="revoke", public_only=True)
+        assert not service.store.list_knowledge()
+
+    asyncio.run(run())
+
+
 # 协议取消无需界面另发撤销也必须失效，重试普通学习不沿用旧公开许可。
 def test_cancelled_generation_revokes_public_consent(reviewed):
     service, reader = reviewed

@@ -231,7 +231,7 @@ class TopicWorkflow:
             )
             if not point or not point.get("project_required"):
                 raise ValueError("项目目录已过期")
-            return self.projects.revoke(session, point)
+            return self.projects.revoke(session, point, params.get("public_only") is True)
         async with self.locks.acquire(session_id + ":" + point_id):
             session = self.sessions.get(session_id)
             if not session:

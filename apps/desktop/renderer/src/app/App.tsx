@@ -56,7 +56,7 @@ function AppShell() {
       </main>
       {editor && <NoteEditor />}
       {citation && <CitationDialog />}
-      {section === '探索' && pathEntry !== null && <PathDialog />}
+      {(section === '探索' || isBucket(section)) && pathEntry !== null && <PathDialog />}
     </div>
   )
 }

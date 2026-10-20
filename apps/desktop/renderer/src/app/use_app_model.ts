@@ -48,7 +48,7 @@ export function useAppModel() {
     ...directory,
     ...providerForm,
     ...selection,
-    openItem: navigation.section === '探索' ? directory.openLocalItem : knowledge.openItem,
+    openItem: directory.openLocalItem,
     generationOptions
   }
 }

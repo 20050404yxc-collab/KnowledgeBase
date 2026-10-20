@@ -9,6 +9,10 @@ import { ExplorationHeading } from './ExplorationHeading'
 import { Composer } from './Composer'
 import { ComposerCaption } from './ComposerCaption'
 import { DirectoryPanel } from './DirectoryPanel'
+import { PointActions } from './PointActions'
+import { ProjectMaterials } from './ProjectMaterials'
+import { ProjectPanel } from './ProjectPanel'
+import { BatchPanel } from './BatchPanel'
 import { WorkingStatus } from './WorkingStatus'
 import { AnswerPanel } from '../knowledge'
 import { RelatedKnowledge } from './RelatedKnowledge'
@@ -16,15 +20,31 @@ import { KnowledgeList } from '../knowledge'
 
 // 组合探索输入、回答、相关知识与知识列表。
 export function ExplorationPage() {
-  const { recommendations, visibleContent, busy, directory, searchResult } = useAppContext()
+  const { recommendations, visibleContent, busy } = useAppContext()
   return (
     <>
       <ExplorationHeading />
       <Composer />
       <ComposerCaption />
       {busy && <WorkingStatus />}
-      <div className={directory || searchResult ? 'knowledge-workspace' : ''}>
-        <DirectoryPanel />
+      <KnowledgeWorkspace />
+      {(visibleContent || recommendations.length > 0) && <RelatedKnowledge />}
+      <KnowledgeList />
+    </>
+  )
+}
+
+// 四页复用目录与生成区，各页状态由页面键隔离，首屏无请求时不出现目录。
+export function KnowledgeWorkspace() {
+  const { directory, searchResult, visibleContent, selectedPoint } = useAppContext()
+  return (
+    <div className={directory || searchResult ? 'knowledge-workspace' : ''}>
+      <DirectoryPanel />
+      <div className="directory-detail" aria-label="知识点生成与详情">
+        <BatchPanel />
+        <ProjectMaterials />
+        <PointActions />
+        <ProjectPanel key={selectedPoint?.id} />
         {visibleContent ? (
           <AnswerPanel />
         ) : (
@@ -35,8 +55,6 @@ export function ExplorationPage() {
           )
         )}
       </div>
-      {(visibleContent || recommendations.length > 0) && <RelatedKnowledge />}
-      <KnowledgeList />
-    </>
+    </div>
   )
 }

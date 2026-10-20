@@ -36,7 +36,12 @@ class ProjectLearning:
         self.documents = documents
 
     # 撤销不用等待学习锁；新的版本使旧网络及生成结果失去提交许可。
-    def revoke(self, session: dict, point: dict) -> dict:
+    def revoke(self, session: dict, point: dict, public_only: bool = False) -> dict:
+        current = session["projects"].get(point["id"])
+        # 切换阅读仅撤销公开许可，已核对的同项目材料和补充预览继续归目录持有。
+        if public_only and current and current.get("status") == "material-ready":
+            self.check(session, point, current)
+            return project_result(point, current, "项目资料已核对，可继续生成相关知识点。")
         state = {"revision": str(uuid.uuid4()), "status": "materials"}
         session["projects"][point["id"]] = state
         session["pending"].pop(point["id"], None)

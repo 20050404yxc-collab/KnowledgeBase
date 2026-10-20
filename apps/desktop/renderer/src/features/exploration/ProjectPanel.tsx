@@ -24,7 +24,10 @@ export function ProjectPanel() {
       >
         核对当前附件是否足够
       </button>
-      <p>{projectContext?.message ?? '请在探索输入区加入相关项目资料。通用概念可单独拆分学习。'}</p>
+      <p>
+        {projectContext?.message ??
+          '请在上方项目资料框补充文件，可一次生成同项目全部知识点。通用概念可单独学习。'}
+      </p>
       <label>
         公开项目检索词
         <input
