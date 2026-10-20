@@ -5,6 +5,7 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { verifyPlanetPages } from './check_planet_ui.mjs'
 
 // 读取错误提示中的请求编号，编号缺失时立即让回归失败。
 async function readErrorRequestId(ui) {
@@ -237,7 +238,8 @@ async function selectManualSuggestion({ ui, click, waitFor }, id) {
 }
 
 // 超过旧列表上限的知识仍全部计数并可逐页查看；各分区先过滤后聚合。
-async function verifyCompleteTree({ ui, fill, click, waitFor, screenshot }) {
+async function verifyCompleteTree(context) {
+  const { ui, fill, waitFor, screenshot } = context
   const ids = await ui.evaluate(`(async () => { const ids=[]; for (let i=0;i<205;i++) {
     const item = await window.knowledgeBase.request('knowledge.save',{title:'完整树条目'+i,content:'完整树合成知识正文'+i});
     await window.knowledgeBase.request('knowledge.bucket',{id:item.id,bucket:'常用'}); ids.push(item.id)
@@ -249,37 +251,21 @@ async function verifyCompleteTree({ ui, fill, click, waitFor, screenshot }) {
     () => ui.evaluate(`document.querySelector('.saved-tree .count')?.innerText === '205'`),
     'complete tree count'
   )
-  await ui.evaluate(`document.querySelector('.saved-category[aria-expanded="false"]')?.click()`)
-  await waitFor(
-    () => ui.evaluate(`document.querySelectorAll('.saved-category').length === 2`),
-    'legacy subcategory'
-  )
-  await ui.evaluate(
-    `document.querySelectorAll('.saved-category')[1].getAttribute('aria-expanded') === 'false' && document.querySelectorAll('.saved-category')[1].click()`
-  )
-  await waitFor(
-    () => ui.evaluate(`document.querySelectorAll('.saved-leaf').length === 50`),
-    'first tree page'
-  )
-  for (const length of [100, 150, 200, 205]) {
-    await click('加载更多')
-    await waitFor(
-      () => ui.evaluate(`document.querySelectorAll('.saved-leaf').length === ${length}`),
-      'next complete leaf page'
-    )
-  }
-  await go(ui, '归档')
-  await go(ui, '常用')
-  assert.equal(await ui.evaluate(`document.querySelectorAll('.saved-leaf').length`), ids.length)
+  await verifyPlanetPages(context, ids.length)
   await ui.evaluate(`window.scrollTo(0,0)`)
   await screenshot('desktop-saved-tree.png')
   await ui.command('Emulation.setDeviceMetricsOverride', {
-    width: 1024,
+    width: 900,
     height: 850,
     deviceScaleFactor: 1,
     mobile: false
   })
   try {
+    await waitFor(
+      () => ui.evaluate(`document.querySelectorAll('.planet-leaf').length === 4`),
+      'narrow bounded nodes'
+    )
+    await ui.evaluate(`document.querySelector('.planet-canvas').scrollIntoView({block:'center'})`)
     assert.equal(
       await ui.evaluate(`document.documentElement.scrollWidth <= window.innerWidth`),
       true

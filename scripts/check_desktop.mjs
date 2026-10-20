@@ -65,7 +65,13 @@ async function launch() {
   delete env.ELECTRON_RUN_AS_NODE
   child = spawn(
     join(root, 'node_modules', 'electron', 'dist', 'electron.exe'),
-    [isolatedApp, `--remote-debugging-port=${port}`],
+    [
+      isolatedApp,
+      `--remote-debugging-port=${port}`,
+      '--disable-renderer-backgrounding',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows'
+    ],
     {
       cwd: root,
       env,

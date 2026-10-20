@@ -1,5 +1,13 @@
 # Implementation Design
 
+## Revision 11 planned planet rendering and motion
+
+- Retain R10 composition, typed tree APIs, page state, pagination and detail semantics. Current user instruction authorizes this refinement and requires its commit before restructuring.
+- Render stable planet identity using layered CSS/SVG base shading, subtle cloud/terrain detail, directional terminator, thin atmospheric rim and shadow. Derive stable appearance parameters from category keys; keep upright labels in a separate accessible interaction layer and decorative layers pointer-transparent. No runtime image downloads, WebGL, new dependency or generated media is needed.
+- Actual motion ownership uses stable path-keyed DOM and browser CSS interpolation of left/top/size/shadow, with 600 ms recentering. Hidden cached nodes remain pointer/keyboard inert. No animation completion callback mutates navigation and no owned RAF/timer needs invalidation. Interruption and resize retarget from the rendered position. ResizeObserver disconnects on unmount.
+- Fetch children independently; child expansion uses a 400 ms initial delay, 40 ms bounded stagger and 260 ms transition; leaf/connector expansion uses 440 ms delay and 260 ms duration. A retained center survives refresh/slow/failure. Query changes persist a root reset; ancestor validation reads complete cursors before fallback, and failed ancestor/pagination retries preserve recovery actions.
+- Reduced-motion mode weakens large displacement with a short soft transition; normal-mode verification must still show intermediate motion. Require runtime visual recordings or frame/position evidence, not only screenshots. Previous R10 preview checks remain limited to the earlier illustrative interaction and are invalid as evidence for R11 appearance/motion.
+
 ## Revision 10 planned sphere navigation
 
 - Reuse `SavedKnowledgeTree.tsx`, `use_saved_tree.ts`, `LibraryPage.tsx`, `KnowledgePage.tsx`, `shared/use_page_state.ts` and existing `TreeNode`/`LibraryTree` contracts. `SavedKnowledgeTree` currently recursively renders category buttons and leaf buttons; `useSavedTree` isolates cache by page/query/revision/day and rejects stale requests. No backend or protocol change is needed for R10.

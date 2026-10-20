@@ -1,15 +1,24 @@
 # Execution Tasks
 
+## Revision 11 documentation refinement
+
+- [x] R11.1 Reuse current task and topic pages; record natural planet appearance, continuous recentering/return, staged expansion, asynchronous behavior and motion ownership.
+- [x] R11.2 Record the latest “先更新文档，先不改” boundary; leave product code and the R10 preview unchanged and invalidate R10 preview as evidence for R11 visual/motion requirements.
+- [x] R11.3 Current sequential-execution instruction authorizes R11/R10; implement stable planets, continuous positions, scoped navigation and complete pagination before R9.
+- [x] R11.4 Verify natural appearance, intermediate movement/return, slow/failing data and interruption/resize/resource cleanup under normal and reduced-motion settings; run required checks and retain actual evidence.
+
+Current handoff: navigation implemented; isolated acceptance passed; navigation commit precedes R9. Earlier documentation-only authorization is superseded.
+
 ## Revision 10 sphere navigation
 
 - [x] R10.1 Reuse current task and human pages; inspect saved-tree composition, direct page callers, typed nodes, page cache ownership and relevant styles.
 - [x] R10.2 Record the user's concrete three-level visual scheme, scope, wireframe, sequence, layout limits and independent authorization boundary; prepare an interactive synthetic-data illustration.
-- [ ] R10.3 Obtain implementation authorization for R10 sphere navigation; this does not authorize retained R9 restructuring.
-- [ ] R10.4 Implement scoped sphere/title/connector components and page-owned focus/pagination with existing tree and detail APIs; R10-01/02.
-- [ ] R10.5 Verify complete traversal, query/bucket isolation, invalid-path fallback, stale requests, retry, keyboard and reduced-motion interactions.
-- [ ] R10.6 Run `npm run check`, `npm run test:ui` and wide/narrow visual QA; reconcile current docs and actual evidence.
+- [x] R10.3 User explicitly authorizes three sequential tasks and a commit after each.
+- [x] R10.4 Implement scoped sphere/title/connector components and page-owned focus/pagination with existing tree and detail APIs; R10-01/02.
+- [x] R10.5 Verify complete traversal, query/bucket isolation, invalid-path fallback, stale requests, retry, keyboard and reduced-motion interactions.
+- [x] R10.6 Run `npm run check`, `npm run test:ui` and wide/narrow visual QA; reconcile current docs and actual evidence.
 
-Handoff: reviewable plan and standalone illustration only; product code is unchanged by this turn. R10-01/02 are not implemented or product-tested. Existing working-tree edits and R9 pending work are preserved.
+Current handoff: R10 navigation requirements are included in R11 implementation. Earlier illustration remains historical; actual evidence is recorded separately. Unrelated settings edits are preserved.
 
 ## Revision 9 planning and implementation
 

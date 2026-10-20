@@ -1,11 +1,11 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 10 ready for review; implementation not authorized; revision 8 remains the implemented baseline
-- Workflow mode: confirm
-- Plan revision: 10
-- Approval status: revision 10 sphere-navigation increment and retained revision 9 restructuring are pending execution authorization; either increment may be authorized independently
-- Approved revision: 8; this approval does not cover revision 9 or 10
+- Status: revision 11 implemented and isolated acceptance passed; revision 9 starts only after the navigation commit
+- Workflow mode: execute
+- Plan revision: 11
+- Approval status: user explicitly requests sequential execution of navigation, restructuring and settings, committing each completed item before the next
+- Approved revision: 11 navigation and retained revision 9 restructuring; settings continues after both commits with its latest documents and preserved work
 - Revision 8 approval basis (historical): User requested navigation-independent work, a hierarchical all-library page, confirmed restructuring and automatic expansion classification. User explicitly selected classification/key-point organization with body diffs before confirmation, preserving hand edits and citations. The follow-up explicitly includes 常用/在学/归档 in hierarchical display and says continue; the subsequent instruction “开始改” explicitly authorizes this complete revision for implementation. No publication, production data access, paid tests or version change.
 - Updated: 2026-10-21 (Asia/Shanghai)
 - Docs language: Simplified Chinese
@@ -20,6 +20,10 @@
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 11 (planned): refine R10 navigation into naturally lit planet-like spheres with stable surface details, cloud/terrain texture and restrained atmospheric rim light. Under normal motion settings the same selected sphere SHALL visibly move from its actual rendered position into the center, with acceleration/deceleration, continuous scale/shadow changes and subsequent radial child expansion or horizontal connector extension. Fade-only replacement and instantaneous recentering are not acceptable. Return motion, slow/failed data, rapid interactions, resize, cancellation and reduced-motion mode have explicit behavior. Initial center motion is 500–700 ms (600 ms starting point), with overlapping 180–280 ms child expansion and a roughly 700–900 ms complete transition target; these are design tuning ranges, not measured performance. Preserve R10 navigation/data boundaries and retained R9 scope. Reuse the same task/pages; no new task, dependency or live image lookup is needed.
+
+R11 current authorization: user now explicitly says start and complete the three tasks sequentially with one Git commit per completed task. The earlier documentation-only boundary is superseded. Existing R10 illustration proves neither the refined appearance nor continuous movement and SHALL NOT be reused as R11 acceptance evidence.
 
 Revision 10 (planned): replace the saved category-tree presentation with the user's concrete sphere-navigation scheme in Knowledge Library, Frequent, Learning and Archive pages. Show category spheres at the root; center the selected category and orbit its subcategory spheres; center the selected subcategory and connect readable knowledge titles with horizontal lines. Preserve page-owned navigation/search, complete branch pagination, bucket filtering, counts, legacy classification, stale-result rejection and existing detail opening. Add breadcrumb/back navigation, stable layout, reduced-motion handling and bounded visible nodes with access to all remaining entries. Reuse `SavedKnowledgeTree`, `use_saved_tree` and `knowledge.tree`; no new model calls, classification writes, contracts, database migration, dependencies or release are needed for this UI increment. An interactive synthetic-data preview is review material, not product implementation. This request directly continues the existing classified-library UI, so reuse the current task and human pages. The retained R9 backend scope remains independently pending and is not authorized by accepting this UI design.
 

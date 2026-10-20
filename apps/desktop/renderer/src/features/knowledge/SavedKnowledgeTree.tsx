@@ -1,67 +1,62 @@
 // 文件：SavedKnowledgeTree.tsx
 // 层：React 展示组件
-// 作用：展示当前页面已保存知识的大类、小类和知识点。
-// 说明：与待学习目录区分；节点只通过 hook 公开动作读取。
-import { useEffect } from 'react'
+// 作用：组合星球分类导航、路径返回、加载反馈及完整分页。
+// 说明：焦点和数据归页面 hook，分类浏览不读取正文或改变使用日。
 import { useAppContext } from '../../app/AppContext'
+import { PlanetCanvas } from './PlanetCanvas'
 
-// 空分支、失败重试和分页均保留在对应路径，不借用其他分区内容。
-function SavedBranch({ path }: { path: string[] }) {
-  const { branches, expanded, loadTree, toggleTree, openItem, selected } = useAppContext()
-  const key = JSON.stringify(path)
-  const branch = branches[key]
-  // 展开后的子层在缓存失效时按需恢复，effect 不创建重复并发请求。
-  useEffect(() => {
-    if (!branch) {
-      void loadTree(path)
-    }
-  }, [key, branch])
+// 路径使用真实按钮，键盘与鼠标拥有相同的进入和返回入口。
+function TreeBreadcrumbs() {
+  const { treePath, navigateTree } = useAppContext()
   return (
-    <div className="saved-tree-level" role="group">
-      {!branch || branch.loading ? <p role="status">正在加载分类…</p> : null}
+    <nav className="planet-breadcrumbs" aria-label="知识分类路径">
+      <button disabled={!treePath.length} onClick={() => navigateTree(treePath.slice(0, -1))}>
+        返回上层
+      </button>
+      <button onClick={() => navigateTree([])}>全部分类</button>
+      {treePath.map((label, index) => (
+        <button
+          key={index}
+          aria-current={index === treePath.length - 1 ? 'location' : undefined}
+          onClick={() => navigateTree(treePath.slice(0, index + 1))}
+        >
+          / {label}
+        </button>
+      ))}
+    </nav>
+  )
+}
+
+// 错误保留中心与返回入口；后台分页继续沿用当前分支游标。
+function TreeStatus() {
+  const { branches, treePath, loadTree } = useAppContext()
+  const failedPath = treePath
+    .map((_, index) => treePath.slice(0, index))
+    .find((path) => branches[JSON.stringify(path)]?.error)
+  const statusPath = failedPath ?? treePath
+  const branch = branches[JSON.stringify(statusPath)]
+  return (
+    <div className="planet-status" aria-live="polite">
+      {(!branch || branch.loading) && <p role="status">正在加载分类…</p>}
       {branch?.error && (
         <p role="alert">
-          {branch.error} <button onClick={() => void loadTree(path)}>重试</button>
+          {branch.error}{' '}
+          <button onClick={() => void loadTree(statusPath, !!branch.next_cursor)}>重试</button>
         </p>
-      )}
-      {branch?.nodes.map((node) => {
-        const next = [...path, node.label]
-        const open = expanded.includes(JSON.stringify(next))
-        return node.id ? (
-          <button
-            key={node.key}
-            className={`saved-leaf ${selected?.id === node.id ? 'chosen' : ''}`}
-            onClick={() => void openItem(node.id)}
-          >
-            {node.label}
-            <small>{node.bucket}</small>
-          </button>
-        ) : (
-          <div key={node.key}>
-            <button
-              className="saved-category"
-              aria-expanded={open}
-              onClick={() => toggleTree(next)}
-            >
-              {open ? '▾' : '▸'} {node.label} <small>{node.count}</small>
-            </button>
-            {open && <SavedBranch path={next} />}
-          </div>
-        )
-      })}
-      {branch?.next_cursor && (
-        <button disabled={branch.loading} onClick={() => void loadTree(path, true)}>
-          加载更多
-        </button>
       )}
       {branch && !branch.loading && !branch.error && !branch.nodes.length && (
         <p>此范围暂无知识。</p>
+      )}
+      {branch?.next_cursor && (
+        <button disabled={branch.loading} onClick={() => void loadTree(treePath, true)}>
+          加载更多
+        </button>
       )}
     </div>
   )
 }
 
-// 四个页面共用结构，各自的筛选、展开和结果由页面状态隔离。
+// 四个页面共用结构；切页后从页面快照恢复，不额外播放入场。
 export function SavedKnowledgeTree() {
   const { section, filter, setFilter, branches } = useAppContext()
   return (
@@ -77,7 +72,9 @@ export function SavedKnowledgeTree() {
           onChange={(event) => setFilter(event.target.value)}
         />
       </div>
-      <SavedBranch path={[]} />
+      <TreeBreadcrumbs />
+      <PlanetCanvas />
+      <TreeStatus />
     </section>
   )
 }

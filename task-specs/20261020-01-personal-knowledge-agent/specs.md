@@ -1,6 +1,28 @@
 # Spec Deltas
 
-## Revision 10 sphere navigation (planned, not implemented)
+## Revision 11 planet appearance and continuous motion
+
+R11 refines R10-01; R10-02 remains required. Current user instruction authorizes sequential implementation and per-task commits.
+
+### Requirement: R11-01 Natural planet appearance (AC-01/14)
+Category and subcategory spheres SHALL have consistent directional illumination, soft terminators, subtle cloud/terrain surface detail and restrained atmospheric rim light. Their identity, palette and texture SHALL remain stable across renders. Labels SHALL remain upright and readable, and decorative layers SHALL NOT intercept input or obscure neighboring nodes/connectors. A plain gradient disk alone is insufficient for this refined appearance. No live online image lookup is required.
+
+#### Scenario: Stable, readable planetary nodes
+At wide and narrow sizes, repeated rendering and navigation SHALL preserve category identity and a coherent light direction. Surface texture and halo SHALL remain subtle enough that long labels and node relationships stay legible.
+
+### Requirement: R11-02 Continuous recentering and return (AC-01/15)
+In normal motion mode, selecting a category or subcategory SHALL visibly move the same sphere from its rendered start position to the center through intermediate positions with easing and continuous scale/shadow changes. Clearing the old view and fading in a different centered node, or instantly setting the final position, SHALL NOT satisfy this requirement. Child spheres SHALL expand radially during the latter part of recentering or after data becomes valid; knowledge titles SHALL have horizontal connectors extending from the sphere. Back navigation SHALL continuously restore the upper-level layout. Initial design timing is 500–700 ms for recentering, 180–280 ms for overlapping child expansion and about 700–900 ms total; timing is tunable and not a measured performance claim.
+
+#### Scenario: Observe the full movement
+With reduced motion disabled, a recording or frame/position sampling SHALL show a stable start, distinct intermediate coordinates and centered rest for both category and subcategory selection, plus a continuous return. Static end-state screenshots alone SHALL NOT establish acceptance. Gentle acceleration/deceleration and child/connector expansion SHALL be observable without excessive bounce or delay.
+
+### Requirement: R11-03 Motion ownership and asynchronous resilience (AC-01/15)
+Valid child requests and recentering SHALL proceed independently. Slow/failed requests SHALL preserve the centered sphere and expose scoped loading/retry/Back; children SHALL not be fabricated. Repeated enter actions SHALL not create overlapping transitions. Back/search/page change/resize SHALL settle or retarget from the current visual position, with obsolete transition/request callbacks unable to restore stale focus. Owned animations, frames, timers and listeners SHALL be canceled/released on invalidation/unmount; interaction SHALL not remain locked if a transition event is lost. Reduced-motion preferences are an explicit exception that reduces large displacement with a short soft transition, not evidence that normal-mode motion may be omitted.
+
+#### Scenario: Interrupt, resize and retry
+During recentering, rapidly repeat selection, return, change search/page and resize; then exercise slow responses, failure/retry and unmount. The result SHALL match the latest valid page/path and retain a recovery action, with no flashing empty view, stale focus restoration or orphan animation resource. Check normal and reduced-motion modes separately.
+
+## Revision 10 sphere navigation (retained requirements)
 
 ### Requirement: R10-01 Three-level spatial navigation (AC-01/02/14)
 Saved knowledge in Library, Frequent, Learning and Archive SHALL render category spheres at the root. Selecting a category SHALL center that sphere and arrange its subcategory spheres around it. Selecting a subcategory SHALL center that sphere and present knowledge titles connected by horizontal lines. Selecting a title SHALL invoke existing detail opening by stable ID. Breadcrumbs and Back SHALL restore the parent view. Sphere movement SHALL respect reduced-motion preferences and preserve readable labels.

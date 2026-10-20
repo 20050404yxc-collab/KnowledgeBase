@@ -1,14 +1,15 @@
 // 文件：use_saved_tree.ts
 // 层：React 交互 hook
-// 作用：按页管理已入库分层树、展开与有界分页。
+// 作用：按页管理已入库分层树、星球导航与有界分页。
 // 说明：筛选版本隔离迟到响应；目录读取不增加使用日。
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import type { LibraryTree } from '../../../../../../contracts/desktop'
 import { isBucket } from '../../../../shared/protocol_validation'
 import { usePageState } from '../../shared/use_page_state'
 import { api, errorText } from '../../shared/api/client'
+import { useTreeNavigation } from './use_tree_navigation'
 
-interface Branch extends LibraryTree {
+export interface Branch extends LibraryTree {
   loading: boolean
   error: string
 }
@@ -21,24 +22,17 @@ const EMPTY_BRANCH: Branch = {
   error: ''
 }
 const EMPTY_CACHE: { key: string; branches: Record<string, Branch> } = { key: '', branches: {} }
-const EMPTY_EXPANDED: string[] = []
 
-// 缓存与展开归根会话持有；仅筛选或数据版本变化时使对应页面缓存失效。
+// 缓存与导航归根会话持有；筛选、日期或数据版本变化使对应页面缓存失效。
 export function useSavedTree(page: string, query: string, revision: number) {
   const [cache, setCache] = usePageState(page, EMPTY_CACHE)
-  const [expanded, setExpanded] = usePageState(page, EMPTY_EXPANDED)
   const pending = useRef(new Set<string>())
   const contexts = useRef<Record<string, string>>({})
   const day = new Date().toLocaleDateString()
   const context = JSON.stringify([page, query, revision, day])
   contexts.current[page] = context
   const branches = cache.key === context ? cache.branches : {}
-  // 只有保存知识的四个页面读取分类树；导航保留有效分页。
-  useEffect(() => {
-    if (['知识库', '常用', '在学', '归档'].includes(page) && !branches['[]']) {
-      void load([])
-    }
-  }, [page, query, revision, day])
+  const navigation = useTreeNavigation({ page, query, branches, load })
   // 每个路径独立分页；发起页 setter 允许隐藏页接收自己的结果。
   async function load(path: string[], more = false) {
     const key = JSON.stringify(path)
@@ -80,12 +74,5 @@ export function useSavedTree(page: string, query: string, revision: number) {
       }
     }
   }
-  // 展开不读取知识正文，不影响使用频率。
-  function toggle(path: string[]) {
-    const key = JSON.stringify(path)
-    setExpanded((values) =>
-      values.includes(key) ? values.filter((value) => value !== key) : [...values, key]
-    )
-  }
-  return { branches, expanded, loadTree: load, toggleTree: toggle }
+  return { branches, loadTree: load, ...navigation }
 }

@@ -1,10 +1,31 @@
 # Verification Record
 
+## Revision 11 implementation evidence (2026-10-21)
+
+- Authorization: user explicitly requests navigation, restructuring and settings sequentially, with a Git commit after each task before the next. R9 has not started at this boundary. Concurrent settings work is preserved/excluded; no push, paid call or production data.
+- Isolated checkout: `C:/Users/yang/.codex/worktrees/planet-navigation/KnowledgeBase`, based on `a6265dd`. Reused ignored Node/Python dependencies via directory junctions; test data and Electron profile are temporary and isolated.
+- Implemented R11-01..03 / R10-01..02: natural layered sphere shading, stable identity/color, same-DOM browser interpolation, continuous return, staged child/connector expansion, retained center while loading/failing, scoped ancestor retry, persisted search reset, independent page paths/pages, four/six visible nodes with all backend cursors reachable, keyboard return focus and reduced motion. No backend/contract/schema/model change.
+- `npm run check`: passed; standards, formatting, Ruff, TypeScript, 179 Python tests, 15 Node tests and production build. `git diff --check`: passed.
+- Final `npm run test:ui`: passed; report `artifacts/test0.03/desktop-check.json`, 25 screenshots, six sampled motion sequences (forward/back/forward) retaining node identity. Each includes distinct intermediate positions over roughly 850 ms. Earlier hidden-window RAF sampling was unbounded; fixture now disables background throttling and samples with bounded timers.
+- Actual fault tests: pause only the isolated worker PID, verify centered node/loading/no fabricated leaves after 750 ms, resume and settle; temporarily rename only the isolated database knowledge table, verify query failure preserves the same center, restore in finally and retry. SQLite WAL permits reads under a writer lock, so an earlier lock attempt was insufficient and was replaced.
+- Traversal verifies 205 unique titles through backend pages 50/100/150/200/205 and bounded display pages; page restoration, keyboard focus, empty search, clear-search root, rapid repeated enter/back/search and reduced-motion mode passed. Desktop script also validates existing model/reading/task and graceful/forced shutdown flows.
+- Visually inspected wide and 900px narrow screenshots: readable stable planetary shading/texture/labels, horizontal connectors, no page overflow; narrow view uses four leaf controls. ResizeObserver disconnect and absence of navigation-owned timers/RAF/completion callbacks were reviewed.
+- Limits: mocked provider only, no production data or real-model evaluation; synthetic 205-item traversal is not a large-library performance benchmark. No protocol/schema change, version bump, release or full-v1 acceptance.
+
+## Historical revision 11 documentation evidence (2026-10-21)
+
+- Latest instruction explicitly requests documentation first and no implementation. Updated existing Chinese topic pages/overview and English task records only; no product source, preview, generated image, dependency, provider request or user-data change.
+- Documented natural planet surface/illumination/atmosphere, visible same-node movement with intermediate positions, easing, return and staged child/connector expansion. Timing values are initial design ranges, not observed runtime performance.
+- Added future acceptance for recordings/frame sampling and interrupted/slow/failed/reduced-motion behavior. Prior R10 illustration screenshots and interaction checks do not verify R11 appearance, motion continuity or product behavior. R10/R11 product implementation and tests remain unperformed.
+- Documentation checks passed for 9 Markdown files, 50 local link targets, updated navigation anchors, encoding and balanced fences; scoped `git diff --check` passed. The changed-file list contains documentation/task records only. Product checks were intentionally not run for this documentation-only request.
+
 ## Revision 10 planning evidence (2026-10-21)
 
 - Inspected `SavedKnowledgeTree`, its direct `LibraryPage`/`KnowledgePage` callers, `use_saved_tree`, `use_page_state`, `TreeNode`/`LibraryTree` contracts and directory/workspace styles. Existing typed category/path paging supports the requested visual scheme without backend changes.
 - Updated existing Chinese product/design/acceptance/overview and English task records, retaining R9 as independently pending and R8 as implemented baseline. Product UI and user knowledge were not changed by this turn.
 - Prepared an interactive synthetic-data illustration outside the repository; sample subcategories and titles are illustrative, not observed user data. This is not an implementation of the product navigation.
+- Illustration-only checks: hidden isolated Electron window exercised root → category → subcategory → title selection → return at 760/360/320 CSS px, with no runtime errors, visible leaf collisions or horizontal overflow. Captured wide/narrow screenshots were visually inspected. A test selector initially matched a hidden center; corrected it to the visible center before recording passing results. These checks do not cover product loading, pagination, async races or actual data.
+- Documentation checks: 9 affected Markdown files, 50 local file links, encoding and code-fence balance passed; scoped `git diff --check` passed. Existing unrelated working-tree edits were preserved.
 - R10-01/02 remain unimplemented/unverified. No `npm run check`, `npm run test:ui`, production data, model calls or migration were run for this planning increment.
 
 ## Revision 9 planning evidence (2026-10-21)
