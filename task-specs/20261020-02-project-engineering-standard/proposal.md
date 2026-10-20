@@ -1,7 +1,7 @@
 # Task: Adopt project standard, normalize existing code and publish test0.03
 
 - ID: 20261020-02-project-engineering-standard
-- Status: verifying revision 3 (revision 2 completed)
+- Status: completed revision 3 (revision 2 completed)
 - Workflow mode: execute
 - Plan revision: 3
 - Approval status: approved
@@ -48,3 +48,5 @@ The new supplied standards supersede the earlier no-additional-standards choice 
 - Origin is https://github.com/20050404yxc-collab/KnowledgeBase.git. Fetch confirmed local main and origin/main aligned before changes. Release commit 82c412bcd58f1828834550a79edb0b93e77cd143 and its new annotated test0.02 tag were pushed atomically without force; remote main and peeled tag matched that release commit. A subsequent documentation-only commit records this verified publication, leaving the release tag unchanged.
 - Revision 3: the user explicitly requested normalization and a code commit. Implement the already selected architecture, source conventions and affected tests/scripts; publish test0.03. New evidence supersedes only affected implementation claims.
 - Pre-existing changes in product/technical pages and all five files under task-specs/20261020-01-personal-knowledge-agent belong to the separate pending API/model plan. Preserve and exclude them. The overview contains mixed changes; stage only this task's navigation/version hunks. The environment page's script-name and formatter updates belong to this refactor.
+
+- Revision-3 release 9385b8aab55429a597952cf6317874ae5ef01c37 and annotated test0.03 (object 9fc71e19b2e584e54509fc6198ff7700554e5681) were pushed atomically; remote main and peeled tag matched. A documentation-only completion commit follows without moving the release tag.

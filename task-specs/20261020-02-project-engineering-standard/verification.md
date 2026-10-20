@@ -50,4 +50,4 @@ Static rules cannot prove every branch's semantics, comment accuracy, effects or
 
 ### Revision 3 publication
 
-Pending final staged diff/link review and commit/tag/push. Do not claim successful upload until remote refs are verified.
+Staged review passed for 13 Markdown files (links/fences), excluded user plans, artifacts and credential patterns; git diff --cached --check passed. Actual release commit: 9385b8aab55429a597952cf6317874ae5ef01c37. Annotated tag object: 9fc71e19b2e584e54509fc6198ff7700554e5681. git push --atomic origin main refs/tags/test0.03 succeeded; git ls-remote confirmed both remote main and peeled test0.03 matched the release commit. Existing test0.01/test0.02 tags were not changed. A documentation-only completion commit records these results and does not move the release tag. Final desktop rerun after the last preload change also passed all 11 checks.

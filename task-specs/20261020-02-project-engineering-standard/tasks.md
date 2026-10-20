@@ -29,13 +29,13 @@ Read [proposal](proposal.md), [requirements](specs.md), [design](design.md), and
 - [x] 4.4 Extract Python domain, application ports/use cases, infrastructure and bootstrap; migrate imports without schema changes (AC-05).
 - [x] 4.5 Test cancellation/commit, parser ownership, lock cleanup, compensation/primary errors and request terminals (AC-07).
 - [x] 4.6 Normalize scripts/conventions/formatting/checks; reconcile Chinese docs and release versions (AC-08/09).
-- [ ] 4.7 Finish final checks, diff/link review, commit and publish normal main plus a new test0.03 tag; verify remote refs (AC-08/09).
+- [x] 4.7 Finish final checks, diff/link review, commit and publish normal main plus a new test0.03 tag; verify remote refs (AC-08/09).
 
 ## Handoff
 
 - Mode / revision / approval: execute / 3 / approved by “进行规范” and “规范完提交代码”, plus existing publication/version authorization.
-- Progress: actual code normalization implemented; final verification and publication in progress. Revision-2 evidence remains historical.
+- Progress: actual code normalization, final verification and test0.03 publication completed. Remote main and peeled tag verified at release 9385b8a. This final record is a documentation-only follow-up; revision-2 evidence remains historical.
 - Workspace: preserve pending product/technical docs and all five product task records; stage only this task's hunks in the mixed overview.
 - Blockers: none observed.
-- Next action: finish verification and publication, then follow root AGENTS.md.
+- Next action: no work remains for this refactor; follow root AGENTS.md for future changes. Pending product/API plans remain separate.
 - Unverified: real providers, OCR, performance, clean-machine installation and pending API/model features. Static conformance checks do not prove all semantics.
