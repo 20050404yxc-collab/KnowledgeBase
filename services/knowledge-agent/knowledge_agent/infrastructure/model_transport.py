@@ -68,6 +68,15 @@ def build_request(
             "stream": True,
             "stream_options": {"include_usage": True},
         }
+    effort = config.get("reasoning_effort", "auto")
+    # 默认不增加字段；协议不支持的强度必须在发出 HTTP 之前可观察地失败。
+    if effort != "auto":
+        if effort not in ("low", "medium", "high") or protocol == "anthropic":
+            raise ValueError("此协议不支持所选推理强度")
+        if protocol == "responses":
+            payload["reasoning"] = {"effort": effort}
+        else:
+            payload["reasoning_effort"] = effort
     return endpoint, headers, payload
 
 

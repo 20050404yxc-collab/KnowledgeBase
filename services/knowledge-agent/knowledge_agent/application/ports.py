@@ -133,6 +133,11 @@ class ModelTransport(Protocol):
     ) -> str: ...
 
 
+class CatalogReader(Protocol):
+    # 返回有界、去重的模型 ID；不能执行生成、写配置或读取本地凭据。
+    async def list_models(self, config: ProviderDraft, secret: str) -> dict: ...
+
+
 class SnapshotFiles(Protocol):
     # 校验路径并解析副本，取消后回收线程结果。
     async def read(self, value: str) -> Document: ...

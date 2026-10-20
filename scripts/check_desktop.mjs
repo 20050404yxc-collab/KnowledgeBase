@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { createServer } from 'node:net'
 import assert from 'node:assert/strict'
+import { checkModelUi } from './check_model_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const artifactDir = join(root, 'artifacts', 'test0.03')
@@ -281,6 +282,7 @@ try {
     'usage screen'
   )
   report.checks.push('offline operations incur no API attempts')
+  await checkModelUi({ ui, fill, click, waitFor, screenshot, report })
   const processes = await new Promise((resolve, reject) => {
     const probe = spawn(
       'powershell.exe',

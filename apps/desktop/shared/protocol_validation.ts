@@ -108,6 +108,7 @@ const provider = object<Provider>({
   protocol,
   base_url: string,
   model: string,
+  models: array(string),
   has_key: boolean,
   active: boolean,
   input_price: nullable(number),
@@ -160,6 +161,7 @@ const results: { [K in Operation]: Check<ResultMap[K]> } = {
   'providers.delete': array(provider),
   'providers.select': array(provider),
   'providers.test': object({ message: string }),
+  'providers.models': object({ models: array(string), partial: boolean }),
   'usage.list': array(attempt),
   question: answer,
   recommendations: array(recommendation)

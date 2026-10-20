@@ -3,7 +3,7 @@
 // 作用：协调附件状态、提问、请求事件和资料保留。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 import { useEffect, useRef, useState } from 'react'
-import type { Scope } from '../../../../../../contracts/desktop'
+import type { GenerationOptions, Scope } from '../../../../../../contracts/desktop'
 import { api, errorText } from '../../shared/api/client'
 
 import { requireAttachmentId, type Attached } from './attachment_state'
@@ -44,7 +44,9 @@ function useExplorationState() {
 type ExplorationState = ReturnType<typeof useExplorationState>
 
 // 将提问、附件和请求事件绑定到当前应用会话。
-export function useExploration(options: Feedback & Library & Reading & Navigation) {
+export function useExploration(
+  options: Feedback & Library & Reading & Navigation & { generationOptions: GenerationOptions }
+) {
   const state = useExplorationState()
   const combined = { ...options, ...state }
   const { activeRequest, setProgress, setStreamChars } = state
@@ -74,7 +76,11 @@ export function useExploration(options: Feedback & Library & Reading & Navigatio
 
 // 完整回答到达前仅显示进度，终态统一释放忙碌状态。
 async function askAction(
-  state: Feedback & Library & Reading & Navigation & ExplorationState,
+  state: Feedback &
+    Library &
+    Reading &
+    Navigation &
+    ExplorationState & { generationOptions: GenerationOptions },
   text: string,
   expansion = false
 ) {
@@ -118,6 +124,7 @@ async function askAction(
       'question',
       {
         query: text,
+        ...state.generationOptions,
         scope: requestScope(scope, attachments, expansion),
         attachment_ids: expansion
           ? []
@@ -144,7 +151,11 @@ async function askAction(
 
 // 逐个登记附件；重复内容由后台指纹去重。
 async function addFilesAction(
-  state: Feedback & Library & Reading & Navigation & ExplorationState,
+  state: Feedback &
+    Library &
+    Reading &
+    Navigation &
+    ExplorationState & { generationOptions: GenerationOptions },
   paths: string[]
 ) {
   const { setAttachments } = state
@@ -174,7 +185,11 @@ async function addFilesAction(
 
 // 解析中发送取消，已完成则释放会话副本。
 async function removeAttachmentAction(
-  state: Feedback & Library & Reading & Navigation & ExplorationState,
+  state: Feedback &
+    Library &
+    Reading &
+    Navigation &
+    ExplorationState & { generationOptions: GenerationOptions },
   item: Attached
 ) {
   const { guarded, setAttachments } = state
@@ -191,7 +206,11 @@ async function removeAttachmentAction(
 
 // 保留成功后再更新界面中的资料状态。
 async function retainAction(
-  state: Feedback & Library & Reading & Navigation & ExplorationState,
+  state: Feedback &
+    Library &
+    Reading &
+    Navigation &
+    ExplorationState & { generationOptions: GenerationOptions },
   item: Attached
 ) {
   const { setMessage, guarded, setSources, setAttachments } = state

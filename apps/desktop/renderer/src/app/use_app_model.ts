@@ -8,6 +8,7 @@ import { useLibrary } from './use_library'
 import { useReading } from '../features/knowledge/use_reading'
 import { useKnowledge } from '../features/knowledge/use_knowledge'
 import { useExploration } from '../features/exploration/use_exploration'
+import { useModelSelection } from '../features/providers'
 import { useProviderForm } from '../features/providers/use_provider_form'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
@@ -17,7 +18,15 @@ export function useAppModel() {
   const library = useLibrary({ ...feedback, ...navigation })
   const reading = useReading()
   const knowledge = useKnowledge({ ...feedback, ...library, ...reading })
-  const exploration = useExploration({ ...feedback, ...navigation, ...library, ...reading })
+  const selection = useModelSelection(library.providers)
+  const generationOptions = selection.optionsFor(library.activeProvider)
+  const exploration = useExploration({
+    ...feedback,
+    ...navigation,
+    ...library,
+    ...reading,
+    generationOptions
+  })
   const providerForm = useProviderForm()
   return {
     ...feedback,
@@ -26,7 +35,9 @@ export function useAppModel() {
     ...reading,
     ...knowledge,
     ...exploration,
-    ...providerForm
+    ...providerForm,
+    ...selection,
+    generationOptions
   }
 }
 export type AppModel = ReturnType<typeof useAppModel>

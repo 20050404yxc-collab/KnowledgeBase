@@ -1,5 +1,28 @@
 # Verification Record
 
+## Revision 3 implementation evidence (2026-10-20)
+
+- Git upload follow-up: user explicitly requested "git进行上传" after implementation. Fetched `origin`; local `main` and `origin/main` both pointed to `768f54a` before committing this increment. Reuse the passing checks below because product files have not changed since validation; this follow-up only records upload authorization. Commit and push this increment to `origin/main`, without a release/version/tag change.
+- Authorization: user said "开始修改" for the displayed revision-3 plan. Implemented on the current test0.03 layered baseline, without a new release/version/tag or credential-service change.
+- `npm run check`: passed. Standards and formatting, Ruff, strict TypeScript, 78 Python tests, 5 Node host tests and Electron production build.
+- `npm run test:ui`: passed, 13 reported flows. Real React inputs exercised same-ID edit/cancel, blank-key discovery, deduplication, manual add/remove, optional default, draft-only changes and stale discovery cancellation. A local HTTP fixture confirms selected model and Responses effort reach the request, model changes reset effort, controls disable during generation, default is unchanged and override cost is unknown. Synthetic vault entry deleted in finally; no paid endpoint used.
+- New Python evidence: 31 cases across `test_model_settings.py`, `test_model_catalog.py`, `test_model_catalog_migration.py`: three protocol auth/pagination, bad JSON/status/redirect/body limits, pagination bounds/cancel cleanup, saved/transient key resolution, same-ID edits, empty defaults and reuse, all basic effort payloads/auto omission, invalid selections, actual-model accounting and a question waiting on a lock during config edit. Legacy knowledge/config/attempts survive migration; backup is consistent, reopen idempotent, failure after DDL rolls back and retry succeeds.
+- Artifacts (ignored): `artifacts/test0.03/desktop-check.json`, `desktop-model-settings.png`, `desktop-model-edit.png`, `desktop-model-selection.png`, plus existing desktop regression captures. Visual review checks settings/catalog controls and composer placement; it is not comprehensive responsive/accessibility acceptance.
+- Documentation: updated README, protocol, the existing Chinese confirmation pages and English task records. Final local Markdown validation resolved 35 links with no missing target or unbalanced fence; `git diff --check` passed.
+- Standard review: React feature hooks own draft/revision/session state, ModelPicker is pure display; application uses catalog port, infrastructure owns bounded HTTP/SQL, bootstrap injects. New catalog persistence is atomic, migration backup handles close before rename on Windows. Required headers/comments/function limits pass automated checks; these checks do not prove all semantic conformance.
+- Limits: no actual GPT/DeepSeek/Claude/Grok service calls, real keys or production migration. Model catalogs provide IDs only; generation and effort support are unverified per model. Anthropic is auto-only. No forced regeneration, retry, embedding integration, package delivery, archive or publication.
+
+### Earlier revision-3 planning record
+
+Planning-only evidence (before the later implementation authorization)
+
+- Historical status at planning: pending approval and implementation; static inspection/documentation only. Historical runtime results below do not cover revision 3.
+- Inspected: relevant existing human/task docs, project standard, provider form/ask, contracts, IPC allowlist/preload, save/validation/three adapters, question/reuse/dispatch, provider schema/selection and relevant test entrypoints.
+- Confirmed gaps: no edit entry, model discovery/catalog, optional default or request-level model/effort. Same-ID save and blank-key retention already exist in backend. No wider defect/live-provider compatibility claim is made.
+- Planned: edit/cancel/key compensation, discovery/auth/pagination/errors/staleness, optional default/override, effort payloads, actual-model accounting, migration rollback/idempotency, local reuse and isolated UI regressions.
+- Product code, runtime tests/builds, real credentials, live APIs and production migration: not changed/run in this planning turn.
+- Documentation checks: `git diff --check` passed (line-ending normalization notices only). A temporary Python checker resolved 28 local Markdown links across the 9 currently changed Markdown files with zero issues, and asserted the API/main-composer wireframes, sequence diagram and pending labels. This task updated 8 documents; the additional changed task file belongs to concurrent workspace work and was not modified here. No permanent checking script was added.
+
 ## Environment and Scope
 
 - Date: 2026-10-20, user timezone Asia/Shanghai.

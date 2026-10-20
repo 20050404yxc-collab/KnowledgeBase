@@ -24,7 +24,17 @@ def validate_params(operation: str, params: dict) -> None:
     }
     if operation in id_operations and not isinstance(params.get("id"), str):
         raise ValueError("缺少有效条目标识")
-    for key in ("id", "query", "title", "content", "path", "purpose"):
+    for key in (
+        "id",
+        "query",
+        "title",
+        "content",
+        "path",
+        "purpose",
+        "provider_id",
+        "model",
+        "reasoning_effort",
+    ):
         if key in params and params[key] is not None and not isinstance(params[key], str):
             raise ValueError("请求参数类型无效")
     bucket = params.get("bucket")
@@ -69,7 +79,9 @@ async def dispatch(
     if operation == "providers.delete":
         return service.delete_provider(params["id"])
     if operation == "providers.test":
-        return await service.test_provider(params["id"], emit)
+        return await service.test_provider(params, emit)
+    if operation == "providers.models":
+        return await service.discover_models(params)
     if operation == "usage.list":
         return store.list_attempts()
     if operation == "question":

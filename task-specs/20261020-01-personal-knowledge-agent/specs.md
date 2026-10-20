@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Revision-3 API/model additions were authorized by "开始修改" and implemented on the test0.03 baseline. Current isolated evidence is in verification.md; prior test0.01 results remain historical and do not substitute for this validation.
+
 Define the planned observable behavior of the personal knowledge desktop agent. These remain the full v1 requirements for authorized revision-2 development. test0.01 provides partial implementation evidence; it does not establish final launch acceptance or settle OCR/DOC decisions. Library candidates and implementation details belong in design.md.
 
 ## Authorized Environment Preparation (separate from product revision approval)
@@ -197,6 +199,58 @@ The application SHALL target GPT as the primary generation integration and inclu
 - WHEN tested and selected
 - THEN its available capability is reported accurately
 - AND semantic retrieval is not advertised as enabled by that test alone.
+
+### Revision 3 acceptance scenarios (implemented; isolated evidence in verification.md)
+
+#### Scenario: AC-12-R3 Edit and cancel
+- GIVEN a saved provider and protected key
+- WHEN edited and saved with a blank key
+- THEN the same ID, active state and old secret are retained without duplicates or returning the stored key
+- AND cancel changes nothing; replacement-key persistence failure has observable compensation.
+
+#### Scenario: AC-12-R3 Model discovery and manual maintenance
+- GIVEN a current endpoint/protocol draft and a new key or saved config ID
+- WHEN models are requested
+- THEN bounded authenticated GET discovery uses protocol-appropriate headers, sends no generation/question/document payload, and merges valid IDs without duplicates into the draft
+- AND manual add/remove is available and only explicit save persists catalog/default changes
+- AND errors, unsupported services, malformed/oversized responses and pagination limits preserve prior state with a visible outcome
+- AND draft changes, cancellation and unmount invalidate late replies.
+
+#### Scenario: AC-12-R3 Optional default and effective model
+- GIVEN a provider with no catalog/default
+- WHEN saved
+- THEN saving succeeds without inventing a model
+- AND composer offers use-default/concrete catalog models; an explicit valid model overrides the default without changing it
+- AND required generation/tests without a model are rejected before network I/O while local retrieval remains usable
+- AND legacy models remain defaults and catalog entries after migration.
+
+#### Scenario: AC-12-R3 Effort and request snapshot
+- GIVEN a composer model and effort selection
+- WHEN a question or expansion needs generation
+- THEN provider/model/effort are snapshotted and determine the actual request and recorded model
+- AND default omits effort, Responses uses reasoning.effort and Chat uses reasoning_effort
+- AND Anthropic initially offers only model-decided effort until its specific contract is implemented and verified
+- AND protocol-expressible/model-unverified choices are identified; model ID listing alone proves no capability
+- AND invalid/unsupported effort has a visible outcome, without temperature substitution, automatic retry or silent lowering
+- AND model changes reset effort, provider changes isolate session selection, and later configuration edits do not retarget active requests.
+
+#### Scenario: AC-12-R3 Reuse remains explicit
+- GIVEN existing knowledge qualifies for reuse
+- WHEN a different model is selected and the same question submitted
+- THEN the original item and personal edits remain protected, with an explicit no-model-call notice and no forced regeneration.
+
+#### Scenario: AC-13-R3 Actual model and price scope
+- GIVEN prices configured for the default model
+- WHEN another model is explicitly used
+- THEN attempts/provenance record that actual model and prices/cost remain unknown
+- AND changing the configured default clears old prices unless re-entered
+- AND local reuse/discovery fabricate no generation attempts or token usage.
+
+#### Scenario: AC-19-R3 Recoverable catalog migration
+- GIVEN an isolated legacy database with knowledge, configs, generation keys and attempt history
+- WHEN migration runs or repeats
+- THEN an application-managed consistent backup precedes versioned incremental migration, catalog backfill is idempotent and original data/IDs/key references remain intact
+- AND failure rolls back and blocks writes with recovery information instead of substituting an empty database.
 
 ### Requirement: AC-13 Usage and cost accounting
 

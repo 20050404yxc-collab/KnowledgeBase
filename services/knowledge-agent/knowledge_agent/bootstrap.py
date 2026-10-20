@@ -10,6 +10,7 @@ from .application.generation import ProviderClient
 from .application.knowledge_service import KnowledgeService
 from .application.ports import CredentialVault, Generator
 from .infrastructure.file_snapshots import FileSnapshots
+from .infrastructure.model_catalog import ModelCatalog
 from .infrastructure.model_transport import ModelTransport
 from .infrastructure.secret_vault import SecretVault
 from .infrastructure.sqlite_store import Store
@@ -32,7 +33,9 @@ def create_service(
         credentials = vault if vault is not None else SecretVault()
         snapshots = FileSnapshots(store.root)
         generator = client if client is not None else create_client(store, credentials)
-        return KnowledgeService(store, credentials, generator, snapshots, str(store.root))
+        return KnowledgeService(
+            store, credentials, generator, snapshots, str(store.root), ModelCatalog()
+        )
     except Exception:
         store.close()
         if snapshots is not None:

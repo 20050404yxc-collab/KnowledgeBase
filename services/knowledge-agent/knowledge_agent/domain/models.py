@@ -55,6 +55,7 @@ class ProviderDraft(TypedDict):
     protocol: str
     base_url: str
     model: str
+    models: list[str]
     currency: str
     input_price: float | None
     output_price: float | None
@@ -64,6 +65,7 @@ class ProviderConfig(ProviderDraft):
     id: str
     has_key: bool
     active: bool
+    reasoning_effort: NotRequired[str]
 
 
 class Recommendation(TypedDict):

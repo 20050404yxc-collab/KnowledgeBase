@@ -4,8 +4,11 @@
 # 说明：由 bootstrap 注入能力，协议分发位于入口层。
 from __future__ import annotations
 
+from knowledge_agent.domain.provider_rules import resolve_generation
+
 from .attachments import Attachments
-from .ports import CredentialVault, Emit, Generator, Repository, SnapshotFiles
+from .model_catalog import discover_models
+from .ports import CatalogReader, CredentialVault, Emit, Generator, Repository, SnapshotFiles
 from .questions import Questions
 from .recommendations import Recommendations
 
@@ -19,6 +22,7 @@ class KnowledgeService:
         client: Generator,
         snapshots: SnapshotFiles,
         data_dir: str,
+        catalog: CatalogReader,
     ) -> None:
         self.store = store
         self.vault = vault
@@ -30,6 +34,7 @@ class KnowledgeService:
         self.cards = Recommendations(store)
         self.questions = Questions(store, client, self.attachments, self.cards)
         self.closed = False
+        self.catalog = catalog
 
     # 关闭可重复调用，先关闭数据库再清理会话；不删除保留资料。
     def close(self) -> None:
@@ -89,9 +94,14 @@ class KnowledgeService:
         return self.store.delete_provider(item_id)
 
     # 测试生成也产生真实尝试记录，不宣称具备向量能力。
-    async def test_provider(self, item_id: str, emit: Emit) -> dict:
-        config = self.store.provider(item_id)
+    async def test_provider(self, params: dict, emit: Emit) -> dict:
+        config = self.store.provider(params["id"])
         if not config:
             raise ValueError("配置不存在")
+        config = resolve_generation(config, params)
         await self.client.generate(config, "请回复 OK", "connection-test", emit, test=True)
         return {"message": "生成接口已响应；此测试会产生调用记录，不表示具备向量能力。"}
+
+    # 草稿目录发现不保存配置，也不创建生成尝试记录。
+    async def discover_models(self, params: dict) -> dict:
+        return await discover_models(self.store, self.vault, self.catalog, params)

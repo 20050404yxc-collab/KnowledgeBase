@@ -53,6 +53,7 @@ export interface Provider {
   protocol: 'responses' | 'chat-completions' | 'anthropic'
   base_url: string
   model: string
+  models: string[]
   has_key: boolean
   active: boolean
   input_price: number | null
@@ -119,10 +120,28 @@ export interface ProviderInput {
   protocol: Provider['protocol']
   base_url: string
   model: string
+  models?: string[]
+  prices_confirmed?: boolean
   key: string
   input_price: string | number | null
   output_price: string | number | null
   currency: string
+}
+export type ReasoningEffort = 'auto' | 'low' | 'medium' | 'high'
+export interface GenerationOptions {
+  provider_id?: string
+  model?: string
+  reasoning_effort?: ReasoningEffort
+}
+export interface ModelDiscovery {
+  id?: string
+  protocol: Provider['protocol']
+  base_url: string
+  key: string
+}
+export interface ModelCatalog {
+  models: string[]
+  partial: boolean
 }
 export interface RequestMap {
   bootstrap: Record<string, never>
@@ -139,9 +158,15 @@ export interface RequestMap {
   'providers.save': ProviderInput
   'providers.delete': { id: string }
   'providers.select': { id: string }
-  'providers.test': { id: string }
+  'providers.test': { id: string } & GenerationOptions
+  'providers.models': ModelDiscovery
   'usage.list': Record<string, never>
-  question: { query: string; scope: Scope; attachment_ids: string[]; purpose: string }
+  question: {
+    query: string
+    scope: Scope
+    attachment_ids: string[]
+    purpose: string
+  } & GenerationOptions
   recommendations: { id: string }
 }
 export interface ResultMap {
@@ -160,6 +185,7 @@ export interface ResultMap {
   'providers.delete': Provider[]
   'providers.select': Provider[]
   'providers.test': { message: string }
+  'providers.models': ModelCatalog
   'usage.list': Attempt[]
   question: Answer
   recommendations: Recommendation[]

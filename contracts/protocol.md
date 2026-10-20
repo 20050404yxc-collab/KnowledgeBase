@@ -20,3 +20,15 @@ Electron 启动等待 15 秒、业务请求等待 180 秒；超时先移除请�
 简单说：进度与保存结果分开；取消、超时和关闭都有明确的终点。
 
 preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白名单和参数对象；Python 入口继续检查字段类型，领域与应用检查业务限制。stdout 只用于协议。样例覆盖代表性离线响应，完整字段校验及异常路径由两端测试补充；这些验证不代表真实供应商接口验收。
+
+## API 配置与模型选择
+
+`providers.save` 支持可选 `id` 编辑原配置；`key` 留空保留已保存凭据，密钥不出现在返回结果。`models` 是模型 ID 数组，`model` 是可为空的默认值且非空时必须属于数组；旧调用方未传 `models` 时兼容单默认模型。默认模型变化清空旧价格，除非 `prices_confirmed: true` 明确确认本次价格。
+
+简单说：保存仍返回无密钥配置列表，更新沿用原 ID，不会因为换模型生成重复接口。
+
+`providers.models` 输入 `{protocol, base_url, id?, key?}`，返回 `{models: string[], partial: boolean}`。读取当前草稿地址加 `/models`；新 Key 优先，否则从指定已保存 ID 解析旧凭据。仅 GET，不保存草稿、不写调用记录；取消沿原有请求 ID 传播。目录最多 1000 个 ID，单页最多 1MB、10 页、总等待 30 秒；达到页数上限返回部分结果，其他失败返回受控错误，界面保留原目录。
+
+`question` 可选 `provider_id`、`model`、`reasoning_effort`；`providers.test` 保留必填配置 `id` 并接受 `model`、`reasoning_effort`。空模型覆盖回退到配置默认值，均为空且需要生成时在 HTTP 前报错；精确知识复用仍显示未调用模型。强度值为 `auto/low/medium/high`：auto 省略供应商字段；Responses 编码 `reasoning.effort`，Chat 编码 `reasoning_effort`；Anthropic 初始只接受 auto。返回尝试和知识中的模型为实际调用型号，临时覆盖非默认模型时单价和费用保持未知。
+
+简单说：这次选中的模型和强度传到新请求；默认配置和已有知识复用不被临时选择改写。具体模型是否接受强度仍需供应商实测。

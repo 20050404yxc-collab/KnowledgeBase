@@ -17,8 +17,14 @@ export function PriceInputs() {
           min="0"
           step="any"
           placeholder="未知留空"
-          value={providerForm.input_price}
-          onChange={(e) => setProviderForm({ ...providerForm, input_price: e.target.value })}
+          value={providerForm.input_price ?? ''}
+          onChange={(e) =>
+            setProviderForm({
+              ...providerForm,
+              input_price: e.target.value,
+              prices_confirmed: true
+            })
+          }
         />
       </label>
       <label>
@@ -28,8 +34,14 @@ export function PriceInputs() {
           min="0"
           step="any"
           placeholder="未知留空"
-          value={providerForm.output_price}
-          onChange={(e) => setProviderForm({ ...providerForm, output_price: e.target.value })}
+          value={providerForm.output_price ?? ''}
+          onChange={(e) =>
+            setProviderForm({
+              ...providerForm,
+              output_price: e.target.value,
+              prices_confirmed: true
+            })
+          }
         />
       </label>
       <label>

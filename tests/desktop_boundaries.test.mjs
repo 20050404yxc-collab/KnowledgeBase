@@ -51,7 +51,15 @@ test('protocol rejects malformed messages and operation results', () => {
   assert.equal(validation.isWorkerMessage({ type: 'ready', version: 'test0.03' }), true)
   assert.equal(validation.isWorkerEvent({ type: 'stream', id: 'x', delta: '片段' }), true)
   assert.equal(validation.isOperation('constructor'), false)
-  assert.equal(validation.isOperation('providers.models'), false)
+  assert.equal(validation.isOperation('providers.models'), true)
+  assert.throws(
+    () => validation.decodeResult('providers.models', { models: [42], partial: false }),
+    /格式无效/
+  )
+  assert.deepEqual(
+    validation.decodeResult('providers.models', { models: ['model-a'], partial: false }),
+    { models: ['model-a'], partial: false }
+  )
   assert.throws(() => validation.decodeResult('knowledge.get', { id: 'x' }), /格式无效/)
   assert.throws(() => validation.decodeResult('providers.test', { message: 42 }), /格式无效/)
   assert.deepEqual(validation.decodeResult('usage.list', []), [])

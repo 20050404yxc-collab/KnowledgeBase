@@ -27,6 +27,8 @@ from knowledge_agent.domain.models import (
     SourceSummary,
 )
 
+from .model_catalog_schema import migrate_catalog
+
 
 class Store:
     # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
@@ -49,9 +51,9 @@ class Store:
         self.db.execute("PRAGMA journal_mode=WAL")
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 1:
+        if schema_version > 2:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
-        # 保留既有表结构和外键；本次只移动实现，不执行结构升级。
+        # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
             CREATE TABLE IF NOT EXISTS knowledge (
                 id TEXT PRIMARY KEY, concept TEXT NOT NULL UNIQUE, title TEXT NOT NULL,
@@ -82,8 +84,8 @@ class Store:
                 input_tokens INTEGER, output_tokens INTEGER, cost REAL, currency TEXT NOT NULL,
                 input_price REAL, output_price REAL
             );
-            PRAGMA user_version=1;
         """)
+        migrate_catalog(self.db, self.root, schema_version)
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
         # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
@@ -262,7 +264,18 @@ class Store:
     # 返回无密钥配置，SQLite 整数字段映射为协议布尔值。
     def providers(self) -> list[ProviderConfig]:
         return [
-            {**dict(row), "active": bool(row["active"]), "has_key": bool(row["has_key"])}
+            {
+                **dict(row),
+                "active": bool(row["active"]),
+                "has_key": bool(row["has_key"]),
+                "models": [
+                    item[0]
+                    for item in self.db.execute(
+                        "SELECT model_id FROM provider_models WHERE provider_id=? ORDER BY position",
+                        (row["id"],),
+                    )
+                ],
+            }
             for row in self.db.execute("SELECT * FROM providers ORDER BY name")
         ]
 
@@ -351,6 +364,12 @@ class Store:
                     config["output_price"],
                     config["currency"],
                 ),
+            )
+            # 同一事务替换目录及默认值，避免出现半更新配置。
+            self.db.execute("DELETE FROM provider_models WHERE provider_id=?", (config_id,))
+            self.db.executemany(
+                "INSERT INTO provider_models VALUES (?,?,?)",
+                [(config_id, model, index) for index, model in enumerate(config["models"])],
             )
             # 没有启用项时才默认选择本配置，编辑其他配置不改变当前接口。
             if not any(p["active"] for p in self.providers()):

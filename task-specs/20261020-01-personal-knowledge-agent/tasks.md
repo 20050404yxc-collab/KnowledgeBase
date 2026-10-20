@@ -2,7 +2,20 @@
 
 Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Product development and local Git are authorized by the user at test0.01. Full-v1 launch acceptance remains outstanding.
 
-## 0. Documentation and decisions
+## Revision 3 API/model increment (completed)
+
+- [x] R3.1 Inspect existing docs/standard and provider UI/save/schema/request/reuse/accounting/IPC chain.
+- [x] R3.2 Update existing product/technical pages, wireframes/sequence, overview and task records as a pending increment.
+- [x] R3.3 User authorized this displayed revision with "开始修改"; prior planning remained documentation-only.
+- [x] R3.4 Implement same-ID editing/cancel/key retention, bounded discovery, manual catalog management and optional default; AC-12-R3/17.
+- [x] R3.5 Implement recoverable incremental migration/backfill and atomic config/default/catalog persistence through application ports; AC-12-R3/19-R3.
+- [x] R3.6 Add validated contracts/allowlist, composer model/effort controls, stale-result protection and request snapshots; AC-12-R3/15/17.
+- [x] R3.7 Encode supported effort, preserve reuse/cancel/commit behavior and record actual model/price scope; AC-12-R3/13-R3.
+- [x] R3.8 Run scoped mocked tests, typecheck, Ruff, build and isolated desktop interaction; reconcile docs/evidence and inspect project-standard compliance in affected code.
+
+R3 handoff: implemented and verified on test0.03; `npm run check` passes (78 Python tests, 5 host tests, standards/format/types/build) and isolated `npm run test:ui` passes 13 flows. Screenshots visually reviewed. No paid calls, production migration, version bump, commit/push or archival. Real-provider compatibility remains unverified. The revision-2 handoff below is historical.
+
+## 0. Documentation and decisions (revision-2 baseline)
 
 - [x] 0.1 Inspect local documentation/task locations before creating the first record; evidence: workspace discovery in verification.md.
 - [x] 0.2 Consolidate confirmed decisions and pending assumptions into Chinese confirmation pages and English task records; evidence: the linked revision-1 artifacts.
@@ -57,7 +70,7 @@ Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evide
 - [x] D.6 Run 37 Python tests, typecheck, production build, lint and isolated Electron flows including graceful/forced tree shutdown; evidence in verification.md and test0.01-check.json.
 - [x] D.7 Reconcile the same Chinese docs, add README/CHANGELOG and startup entry, initialize local Git, commit baseline and implementation, and tag test0.01; DEV-01.
 
-## Handoff
+## Historical revision-2 handoff
 
 - Workflow/revision/authorization: execute; revision 2 development authorized by "进行开发吧，然后加入版本控制，现在是test0.01". Full-v1 release remains incomplete; no archival.
 - Actual progress: first runnable desktop test build delivered, with local Git and test0.01 tag. Existing full-v1 tasks above remain unchecked where only partial evidence exists.

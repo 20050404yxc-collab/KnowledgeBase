@@ -10,6 +10,7 @@ import json
 from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.knowledge_rules import identity, relevance
 from knowledge_agent.domain.limits import MAX_ATTACHMENTS, MAX_CONTEXT_CHARS, MAX_QUERY_CHARS
+from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .ports import Emit, Generator, QuestionRepository
 from .question_locks import QuestionLocks
@@ -111,6 +112,12 @@ class Questions:
     # 同一查询的检索、生成及提交处于同一把锁内，防止重复调用。
     async def question(self, params: dict, emit: Emit) -> dict:
         query, scope, attachment_ids = validate_question(params)
+        # 在等待同问题锁之前固定配置，后续编辑或切换不改变本次请求。
+        params = dict(params)
+        config = self.store.provider(params.get("provider_id"))
+        if params.get("provider_id") and not config:
+            raise ValueError("所选接口已删除，请重新选择")
+        params["_config"] = config
         lock_key = identity(query) + ":" + scope + ":" + ",".join(sorted(attachment_ids))
         async with self.locks.acquire(lock_key):
             return await self.answer(params, emit, query, scope, attachment_ids)
@@ -127,13 +134,14 @@ class Questions:
             return existing
         evidence, file_count, summary, notice = self.collect(query, scope, attachment_ids, local)
         selected = select_evidence(evidence, file_count, summary, notice)
-        config = self.store.provider()
+        config = params["_config"]
         fallback = local_answer(scope, selected, notice, config)
         # 本地可完成的情况在请求模型前终结。
         if fallback:
             return fallback
         if config is None:
             raise ValueError("未配置生成接口")
+        config = resolve_generation(config, params)
         return await self.generate(
             params, emit, query, scope, attachment_ids, selected, notice, config
         )

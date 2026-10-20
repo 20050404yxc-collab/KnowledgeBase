@@ -13,10 +13,20 @@ from .ports import CredentialVault, ProviderRepository
 
 # 先保存系统凭据，再写入配置；元数据失败时恢复原凭据。
 def save_provider(store: ProviderRepository, vault: CredentialVault, params: dict) -> list[dict]:
+    if "prices_confirmed" in params and not isinstance(params["prices_confirmed"], bool):
+        raise ValueError("价格确认状态无效")
     config = validate_provider(params)
     config_id = str(params.get("id") or uuid.uuid4())
     # 旧凭据保留到元数据提交成功，支持跨资源写入失败补偿。
     old = store.provider(config_id)
+    # 有 ID 的编辑不退化为新建，防止过期表单复活已删除配置。
+    if params.get("id") and not old:
+        raise ValueError("配置已删除，请重新添加")
+    # 旧调用方未提供目录时保留多模型目录，模型变化须显式重新给出价格。
+    if old and "models" not in params:
+        config["models"] = list(dict.fromkeys([*old["models"], *config["models"]]))
+    if old and old["model"] != config["model"] and not params.get("prices_confirmed", False):
+        config.update(input_price=None, output_price=None)
     old_secret = vault.get(config_id) if old else None
     secret = params.get("key", "")
     if not isinstance(secret, str) or len(secret) > 10000:

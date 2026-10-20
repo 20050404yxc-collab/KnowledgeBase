@@ -1,25 +1,31 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: implementing
+- Status: revision 3 increment completed; full v1 remains partially implemented
 - Workflow mode: execute
-- Plan revision: 2
-- Approval status: approved for development; final release decisions remain pending
-- Approved revision: 2 (development authorization; not final acceptance)
-- Approval basis: User explicitly requested "进行开发吧，然后加入版本控制，现在是test0.01" on 2026-10-20. This supersedes prior documentation/environment-only restrictions for development and local Git. Paid API calls, unresolved OCR/DOC release choices and clean-machine release acceptance are not inferred.
+- Plan revision: 3
+- Approval status: revision 3 implementation authorized and completed; final v1 acceptance outstanding
+- Approved revision: 3 for this increment; revision 2 development authorization retained
+- Approval basis: User said "开始修改" for the displayed revision-3 plan. Existing revision-2 basis: user explicitly requested "进行开发吧，然后加入版本控制，现在是test0.01" on 2026-10-20. This supersedes prior documentation/environment-only restrictions for development and local Git. Paid API calls, unresolved OCR/DOC release choices and clean-machine release acceptance are not inferred.
 - Updated: 2026-10-20 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
 - Human documentation: [overview](../../docs/确认页/确认文档总览.md), [product](../../docs/确认页/个人知识库/产品方案.md), [technical design](../../docs/确认页/个人知识库/技术设计.md), [delivery and acceptance](../../docs/确认页/个人知识库/实施与验收.md)
 - Related tasks: none found
-- Plan routing: continue
-- Routing basis: This turn continues the sole existing personal-knowledge-agent record. Existing product, technical, delivery and environment documents were inspected before implementation; no parallel task was created. Original empty-workspace discovery remains historical evidence.
+- Plan routing: revise-existing
+- Routing basis: The latest API/model request continues AC-12 and section 7 of the existing product and technical pages. The other project task concerns standard adoption. No parallel task/page is needed; the latest "开始修改" explicitly authorizes this revision.
 
 ## Intent
 
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 3 increment (authorized by "开始修改" and implemented): saved-API editing with retained IDs/credentials, model discovery/manual catalog maintenance, an optional default, and main-composer model/reasoning-effort selection applied to questions, expansions and connection tests. Include affected contracts, bounded discovery, draft/request snapshots, additive recoverable catalog migration, actual-model accounting, tests and existing human pages.
+
+The user supplied four concrete desired behaviors and two UI references, so this is a clear continuation with no need for artificial alternative schemes or a separate task. Screenshot text does not authorize fixed model names, subagents, restarts or modifying other applications. No forced regeneration, auto retry, live/paid API check, full architecture migration, release or publication is included. Implementation uses the current test0.03 feature/layer structure. Validation uses isolated databases, synthetic credentials and local/mock HTTP; production data and paid APIs remain untouched.
+
+The existing revision-2 scope and authorization below are retained as the baseline.
 
 In scope for the product plan:
 - Electron desktop and React/TypeScript UI with a managed Python worker and local SQLite persistence.
@@ -30,7 +36,7 @@ In scope for the product plan:
 - Confirmed A frequency policy, local-path-only file addresses, responsive progress, cancellation, failure recovery, indexing consistency, and a packaged Windows 11 x64 application with a 16GB/no-dedicated-GPU acceptance baseline.
 - OCR/scanned PDFs and legacy DOC compatibility assessment; launch inclusion is explicitly undecided.
 
-Authorized in the latest turn:
+Historical revision-2 authorization:
 - Implement the existing product design, beginning with a runnable test0.01 desktop development build; initialize local Git, commit the baseline and implementation, and tag test0.01.
 - Preserve the complete v1 acceptance plan. First-test delivery does not mark unimplemented semantic indexing, OCR, legacy DOC, hierarchical summaries or installer acceptance complete.
 - Use configurable Responses, Chat Completions and Anthropic Messages adapters with mock-based validation; real credentials are configured by the user in the app.
@@ -53,8 +59,9 @@ Separately authorized environment criteria ENV-01 (confirmed isolation/locations
 
 | Source | Status and provenance | Applicability |
 |---|---|---|
-| User-supplied AGENTS.md instructions | Active; supplied in chat and read in this session on 2026-10-20; no filesystem copy was found | Search before reading, inspect relevant chains, avoid redundant reads/checks, disclose evidence and verification limitations |
-| User standards selection | Confirmed in structured reply: "推荐：沿用已提供要求，无额外规范" | No additional project coding/architecture standard is imposed; existing mandatory instructions remain effective |
+| User-supplied/root AGENTS.md instructions | Active; supplied in chat; root copy now exists and was located on 2026-10-20 | Targeted reading, necessary call/state chains, evidence-based verification |
+| Project coding/layering standard | User-selected revision 2, effective from test0.02; `docs/确认页/工程规范/项目编码与分层规范.md` read on 2026-10-20 | Process boundaries, React features, Python application ports/domain/infrastructure/bootstrap, comments, contracts, migration and scoped verification |
+| Earlier no-additional-standards selection | Historical; superseded by explicit project-standard adoption | Earlier passing tests do not prove compliance with the adopted standard |
 | General engineering standards index | Read at `C:/Users/yang/.codex/skills/general-engineering/references/standards-index.md` on 2026-10-20 | Index has no bundled language/framework/layering standard; no retirement or replacement inferred |
 | General engineering core and task/confirmation references | Read in this session from the installed skill | Chinese reviewable docs, English execution records, single current topic pages, truthful approval and evidence tracking |
 
@@ -85,6 +92,8 @@ Implementation choices such as specific parsers, build tools, model clients, vec
 
 ## Plan Changes
 
+- Revision 2 -> 3: Add API editing, model discovery/catalog, optional default and composer model/effort. Update product/technical pages and overview in place, plus AC-12/13/15/17/19 design and scenarios. Revision 3 was authorized by "开始修改" and implemented, with isolated validation recorded in verification.md. Historical evidence remains scoped to its original baseline and does not verify this increment.
+
 - Initial revision 1: Consolidates the conversation into the first complete reviewable plan. No earlier record or full-plan approval exists. User decisions above are preserved; new details are pending. Only documentation creation is authorized in this turn.
 - Revision 1 -> 2: User requested updating the related documents after choosing frequency A, Windows baseline, mainstream-provider direction and local-only paths, and requiring open-source OCR research. Affected AC-03/04/11/12/18, all four human pages and five task records. Recorded official OCR sources and candidate ranking; no final OCR or launch delivery consent inferred. Existing revision-1 link/structure checks are historical evidence only; changed documentation is rechecked. No runtime evidence existed to invalidate. Full-plan approval remains pending; implementation is unauthorized.
 
@@ -99,3 +108,11 @@ The user authorized development and local version control. The first runnable bu
 ## test0.01 Result
 
 A runnable development build is implemented. Background tests (37), TypeScript checking, Electron production build, lint and isolated desktop flows passed. Full v1 remains implementing: semantic indexing, hierarchical summaries, OCR/DOC launch decisions, real-provider/document quality and clean-machine packaging remain outstanding. The local Git baseline is 20913b4; implementation is committed and tagged at delivery. No remote is configured or pushed, and no paid API request was made.
+
+## Revision 3 result
+
+Implemented on the test0.03 baseline without release/version or credential-service changes. Same-ID edit, optional defaults, bounded model discovery/manual catalog, session model/effort selection and actual-request accounting are complete. Required project checks and isolated desktop flows pass; real-provider effort compatibility remains unverified. No archival or publication performed.
+
+## Git upload follow-up
+
+After the completed implementation, the user explicitly requested "git进行上传". This authorizes committing the revision-3 source, tests and reconciled documentation and pushing the existing `main` branch to the configured `origin` repository. No new release, tag, version increment or product change is included.
