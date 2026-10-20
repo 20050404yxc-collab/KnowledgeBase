@@ -7,12 +7,12 @@ import { createServer } from 'node:net'
 import assert from 'node:assert/strict'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', 'test0.01')
+const artifactDir = join(root, 'artifacts', 'test0.02')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 const fixture = join(dataDir, '引用测试.md')
 await writeFile(fixture, '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n', 'utf8')
-const report = { version: 'test0.01', checks: [], screenshots: [] }
+const report = { version: 'test0.02', checks: [], screenshots: [] }
 let child, socket
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 

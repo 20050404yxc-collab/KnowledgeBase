@@ -37,7 +37,7 @@ async def run(data_dir: Path):
         finally:
             tasks.pop(request_id, None)
 
-    send({"type": "ready", "version": "test0.01"})
+    send({"type": "ready", "version": "test0.02"})
     try:
         while True:
             raw = await asyncio.to_thread(sys.stdin.buffer.readline, MAX_FRAME + 1)

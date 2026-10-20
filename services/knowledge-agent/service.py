@@ -32,7 +32,7 @@ class KnowledgeService:
         shutil.rmtree(self.session, ignore_errors=True)
 
     def info(self):
-        return {"version": "test0.01", "data_dir": str(self.store.root), "providers": self.store.providers(),
+        return {"version": "test0.02", "data_dir": str(self.store.root), "providers": self.store.providers(),
                 "knowledge": self.store.list_knowledge(), "sources": self.store.list_sources(),
                 "notice": "关键词检索 · 未启用语义索引；OCR、旧 DOC 与安装包仍待验证"}
 

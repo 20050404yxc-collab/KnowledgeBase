@@ -1,6 +1,8 @@
 # 知序 · 个人知识库
 
-当前版本：**test0.01**。这是 Windows 桌面开发测试版，采用 Electron + React / TypeScript + Python + SQLite。
+当前版本：**test0.02**。这是 Windows 桌面开发测试版，采用 Electron + React / TypeScript + Python + SQLite。
+
+本次迭代正式纳入[项目编码与分层规范](docs/确认页/工程规范/项目编码与分层规范.md)，并通过根目录 [AGENTS.md](AGENTS.md) 要求后续开发遵守：按进程划职责、Python 后台四层、前端按功能组织。业务能力沿用 test0.01，源码架构尚未整体迁移；凭据和数据位置保持兼容。
 
 ## 启动
 
@@ -50,8 +52,8 @@ npm run test:ui
 .venv\Scripts\python.exe -m ruff check services/knowledge-agent tests
 ```
 
-桌面测试使用临时数据目录和本地合成文件；报告与截图保存在忽略提交的 `artifacts/test0.01/`。执行桌面测试前须先构建。
+桌面测试使用临时数据目录和本地合成文件；本版报告与截图保存在忽略提交的 `artifacts/test0.02/`。执行桌面测试前须先构建。
 
-Git 默认分支为 `main`，本地版本标签为 `test0.01`；npm 使用合法预发布版本 `0.0.1-test.0.01`。尚未配置远程仓库或推送。版本历史保留开发前基线和本次实现；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
+Git 默认分支为 `main`，本版标签为 `test0.02`；npm 使用预发布版本 `0.0.1-test.0.2`。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
 
 完整产品方向与未完成的 v1 验收要求见 [确认文档总览](docs/确认页/确认文档总览.md)。

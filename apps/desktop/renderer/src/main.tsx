@@ -162,7 +162,7 @@ function App() {
           setSection(name); setFilter(''); if (name === '用量统计') void loadUsage()
         }}><span className="nav-icon">{icons[index]}</span>{name}{name === '在学' && <span className="nav-dot" />}</button>
       </React.Fragment>)}</nav>
-      <div className="sidebar-bottom"><div className="local-indicator"><span /> 本地存储 · 由你掌控</div><small>test0.01 <span>开发测试版</span></small></div>
+      <div className="sidebar-bottom"><div className="local-indicator"><span /> 本地存储 · 由你掌控</div><small>test0.02 <span>开发测试版</span></small></div>
     </aside>
     <main>
       <header className="topbar"><span>我的知识库 <span className="crumb">/</span> <strong>{section}</strong></span><div className="connection"><i className={ready ? 'online' : ''} />{ready ? '本地后台已连接' : '后台连接中'}<span className="avatar">Y</span></div></header>

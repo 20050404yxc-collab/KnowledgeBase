@@ -35,7 +35,7 @@ else {
     })
     window = new BrowserWindow({
       width: 1320, height: 900, minWidth: 980, minHeight: 700, backgroundColor: '#f7f8fa',
-      title: '知序 · test0.01', autoHideMenuBar: true,
+      title: '知序 · test0.02', autoHideMenuBar: true,
       webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true, nodeIntegration: false, sandbox: true }
     })
     window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

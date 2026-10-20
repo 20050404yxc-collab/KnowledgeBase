@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DesktopAPI, WorkerEvent } from '../../../contracts/desktop'
 
 const api: DesktopAPI = {
-  version: 'test0.01',
+  version: 'test0.02',
   request: (operation, params = {}, id) => ipcRenderer.invoke('kb:request', operation, params, id),
   cancel: id => ipcRenderer.invoke('kb:cancel', id),
   chooseFiles: () => ipcRenderer.invoke('kb:files'),
