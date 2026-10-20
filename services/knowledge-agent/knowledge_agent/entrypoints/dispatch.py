@@ -105,6 +105,8 @@ async def dispatch(
         return await service.test_provider(params, emit)
     if operation == "providers.models":
         return await service.discover_models(params)
+    if operation == "usage.summary":
+        return store.usage_summary()
     if operation == "usage.list":
         return store.list_attempts()
     if operation == "question":

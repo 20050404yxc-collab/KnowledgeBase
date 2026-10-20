@@ -68,7 +68,15 @@ class SourceSummary(TypedDict):
     warnings: list[str]
 
 
+class ModelPrice(TypedDict):
+    model: str
+    input_price: float | None
+    output_price: float | None
+    currency: str
+
+
 class ProviderDraft(TypedDict):
+    model_prices: NotRequired[list[ModelPrice]]
     name: str
     protocol: str
     base_url: str

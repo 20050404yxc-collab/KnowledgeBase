@@ -7,6 +7,9 @@ from knowledge_agent.infrastructure.sqlite_store import Store
 
 # 删除本轮新增对象后再降版，避免伪造版本号却留下未来结构。
 def downgrade_topics(store: Store) -> None:
+    store.db.execute("DROP TABLE IF EXISTS provider_model_prices")
+    for backup in store.root.glob("before-model-prices-v5-*.sqlite3"):
+        backup.unlink()
     triggers = store.db.execute("SELECT name FROM sqlite_master WHERE type='trigger'").fetchall()
     for row in triggers:
         store.db.execute('DROP TRIGGER "' + row[0].replace('"', '""') + '"')

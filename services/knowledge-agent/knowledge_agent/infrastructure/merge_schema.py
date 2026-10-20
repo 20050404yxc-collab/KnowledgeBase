@@ -46,7 +46,7 @@ def create_merge_tables(db: sqlite3.Connection) -> None:
 # 不创建空库绕过迁移失败，高版本由 Store 在基础结构操作前拒绝。
 def migrate_merges(db: sqlite3.Connection, root: Path) -> None:
     version = db.execute("PRAGMA user_version").fetchone()[0]
-    if version == 4:
+    if version in (4, 5):
         return
     if version != 3:
         raise ValueError("可追溯合并迁移只接受 schema 3")

@@ -12,7 +12,7 @@ import { ExplorationPage } from '../features/exploration/ExplorationPage'
 import { KnowledgePage } from '../features/knowledge/KnowledgePage'
 import { isBucket } from '../../../shared/protocol_validation'
 import { SourcesPage } from '../features/sources/SourcesPage'
-import { ProvidersPage } from '../features/providers/ProvidersPage'
+import { SettingsPage } from '../features/settings/SettingsPage'
 import { UsagePage } from '../features/usage/UsagePage'
 import { PageFooter } from './PageFooter'
 import { NoteEditor } from '../features/knowledge/NoteEditor'
@@ -95,7 +95,7 @@ function AppContent() {
       {section === '知识库' && <LibraryPage />}
       {isBucket(section) && <KnowledgePage key={section} />}
       {section === '资料库' && <SourcesPage />}
-      {section === 'API 配置' && <ProvidersPage />}
+      {section === '设置' && <SettingsPage />}
       {section === '用量统计' && <UsagePage />}
       <PageFooter />
     </div>

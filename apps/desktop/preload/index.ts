@@ -4,7 +4,7 @@
 // 说明：不向界面开放任意 IPC、Node 或凭据能力。
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { DesktopAPI, RendererDiagnostic } from '../../../contracts/desktop'
-import { decodeResult, isWorkerEvent } from '../shared/protocol_validation'
+import { decodeResult, isWorkerEvent, isStoragePaths } from '../shared/protocol_validation'
 import { diagnosticError, requestError } from '../shared/diagnostic_error'
 
 // 宿主再次校验元数据；日志通道失败不能覆盖原请求或制造递归拒绝。
@@ -65,6 +65,27 @@ const api: DesktopAPI = {
       return value
     } catch (error) {
       reportDiagnostic({ event: 'files_failed', request_id, ...diagnosticError(error) })
+      throw requestError(error, request_id)
+    }
+  },
+  // 固定能力单独校验，目录标识不能变成任意文件系统路径。
+  storagePaths: async () => {
+    const request_id = crypto.randomUUID()
+    try {
+      const value: unknown = await ipcRenderer.invoke('kb:storage-paths', request_id)
+      if (!isStoragePaths(value)) {
+        throw new Error('存储路径格式无效')
+      }
+      return value
+    } catch (error) {
+      throw requestError(error, request_id)
+    }
+  },
+  openDirectory: async (directory) => {
+    const request_id = crypto.randomUUID()
+    try {
+      await ipcRenderer.invoke('kb:open-directory', directory, request_id)
+    } catch (error) {
       throw requestError(error, request_id)
     }
   },

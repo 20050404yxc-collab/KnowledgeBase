@@ -1,11 +1,11 @@
 // 文件：ModelFields.tsx
 // 层：React 页面／组件
 // 作用：管理草稿模型目录及可空默认模型。
-// 说明：获取只更新草稿，默认模型变化时旧单价失效。
+// 说明：获取只更新草稿，价格独立绑定模型，删除目录项时移除该模型价格。
 import { useState } from 'react'
 import { useAppContext } from '../../app/AppContext'
 
-// 获取和手动添加共用目录，删除默认模型会同时清空默认和旧价格。
+// 获取和手动添加共用目录，删除模型会移除对应价格，默认可另行选择。
 export function ModelFields() {
   const {
     providerForm,
@@ -16,14 +16,7 @@ export function ModelFields() {
     cancelDiscovery
   } = useAppContext()
   const [manual, setManual] = useState('')
-  const changeDefault = (model: string) =>
-    setProviderForm({
-      ...providerForm,
-      model,
-      input_price: '',
-      output_price: '',
-      prices_confirmed: true
-    })
+  const changeDefault = (model: string) => setProviderForm({ ...providerForm, model })
   const add = () => {
     const model = manual.trim()
     if (!model || model.length > 160 || providerForm.models.length >= 1000) {
@@ -99,7 +92,8 @@ function CatalogItems() {
             onClick={() => {
               const draft = {
                 ...providerForm,
-                models: providerForm.models.filter((item) => item !== model)
+                models: providerForm.models.filter((item) => item !== model),
+                model_prices: providerForm.model_prices.filter((item) => item.model !== model)
               }
               if (draft.model === model) {
                 draft.model = ''

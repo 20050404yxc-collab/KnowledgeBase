@@ -95,6 +95,8 @@ class ProviderRepository(Protocol):
 
 
 class AttemptRepository(Protocol):
+    # 汇总全历史已知 token 和费用，同时报告缺失项数量。
+    def usage_summary(self) -> dict: ...
     # 在请求之前记录调用与价格快照，崩溃后可标记中断。
     def start_attempt(self, attempt_id: str, config: ProviderConfig, purpose: str) -> None: ...
     # 写入实际调用终态和已知用量，不推断未知费用。

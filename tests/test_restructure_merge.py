@@ -249,3 +249,23 @@ def test_snapshot_tracks_bucket_but_not_use_days(merge_case):
     service.store.set_bucket(second["id"], "归档")
     with pytest.raises(ValueError, match="已变化"):
         call(service, "library.restructure.apply", {**value, "selected": [first["id"]]})
+
+
+# 后续模型价格升级不能覆盖已提交的合并映射、只读原文或知识索引。
+def test_price_upgrade_retains_existing_merge_group(merge_case):
+    service, first, second = merge_case
+    value = ready(service, approve_merge(service, first, second))
+    call(service, "library.restructure.apply", {**value, "selected": [first["id"]]})
+    store = service.store
+    store.db.execute("DROP TABLE provider_model_prices")
+    store.db.execute("PRAGMA user_version=4")
+    store.db.commit()
+    reopened = Store(store.root)
+    try:
+        assert reopened.db.execute("PRAGMA user_version").fetchone()[0] == 5
+        current = reopened.get(second["id"])
+        assert current["id"] == first["id"] and current["original_sources"]
+        assert reopened.search({"query": "仅限乙条件"})["total"] == 1
+        assert reopened.provider()["model_prices"] == []
+    finally:
+        reopened.close()

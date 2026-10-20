@@ -29,6 +29,32 @@ def save_provider(store: ProviderRepository, vault: CredentialVault, params: dic
         config["models"] = list(dict.fromkeys([*old["models"], *config["models"]]))
     if old and old["model"] != config["model"] and not params.get("prices_confirmed", False):
         config.update(input_price=None, output_price=None)
+    # 新价格列表为完整草稿；旧调用方只更新默认模型价格，保留其他模型计价。
+    if "model_prices" not in config:
+        prices = [
+            p
+            for p in (old or {}).get("model_prices", [])
+            if p["model"] in config["models"] and p["model"] != config["model"]
+        ]
+        if config["model"] and (
+            config["input_price"] is not None or config["output_price"] is not None
+        ):
+            prices.append(
+                {
+                    "model": config["model"],
+                    "input_price": config["input_price"],
+                    "output_price": config["output_price"],
+                    "currency": config["currency"],
+                }
+            )
+        config["model_prices"] = prices
+    default_price = next((p for p in config["model_prices"] if p["model"] == config["model"]), None)
+    # 兼容字段始终只表达当前默认模型，禁止沿用另一个默认值的单价。
+    config.update(
+        input_price=default_price["input_price"] if default_price else None,
+        output_price=default_price["output_price"] if default_price else None,
+        currency=default_price["currency"] if default_price else config["currency"],
+    )
     old_secret = vault.get(config_id) if old else None
     secret = params.get("key", "")
     if not isinstance(secret, str) or len(secret) > 10000:

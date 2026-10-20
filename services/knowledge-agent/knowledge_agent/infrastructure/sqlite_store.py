@@ -32,8 +32,10 @@ from .library_store import LibraryStorage
 from .merge_schema import migrate_merges
 from .merge_store import MergeStorage
 from .model_catalog_schema import migrate_catalog
+from .model_prices import migrate_prices, read_prices
 from .topic_schema import migrate_topics, populate_index, register_tokens
 from .topic_store import TopicStorage
+from .usage_store import summarize_usage
 
 
 class Store(TopicStorage, LibraryStorage, MergeStorage):
@@ -65,7 +67,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         record("storage.schema", schema_version=schema_version)
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 4:
+        if schema_version > 5:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
         # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
@@ -104,6 +106,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         migrate_catalog(self.db, self.root, schema_version)
         migrate_topics(self.db, self.root)
         migrate_merges(self.db, self.root)
+        migrate_prices(self.db, self.root)
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
         # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
@@ -330,6 +333,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
                 **dict(row),
                 "active": bool(row["active"]),
                 "has_key": bool(row["has_key"]),
+                "model_prices": read_prices(self.db, row["id"]),
                 "models": [
                     item[0]
                     for item in self.db.execute(
@@ -437,6 +441,25 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
                 "INSERT INTO provider_models VALUES (?,?,?)",
                 [(config_id, model, index) for index, model in enumerate(config["models"])],
             )
+            # 删除目录会级联删除旧价格，新价格与目录在同一事务写入。
+            prices = config.get("model_prices")
+            if prices is None:
+                prices = [
+                    {
+                        "model": config["model"],
+                        "input_price": config["input_price"],
+                        "output_price": config["output_price"],
+                        "currency": config["currency"],
+                    }
+                ]
+            self.db.executemany(
+                "INSERT INTO provider_model_prices VALUES (?,?,?,?,?)",
+                [
+                    (config_id, p["model"], p["input_price"], p["output_price"], p["currency"])
+                    for p in prices
+                    if p["model"] in config["models"]
+                ],
+            )
             # 没有启用项时才默认选择本配置，编辑其他配置不改变当前接口。
             if not any(p["active"] for p in self.providers()):
                 self.db.execute("UPDATE providers SET active=1 WHERE id=?", (config_id,))
@@ -485,6 +508,11 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
                 "UPDATE attempts SET status=?,elapsed_ms=?,input_tokens=?,output_tokens=?,cost=? WHERE id=?",
                 (status, elapsed_ms, input_tokens, output_tokens, cost, attempt_id),
             )
+
+    # 全历史聚合保留未知值，不受明细数量上限影响。
+    @traced
+    def usage_summary(self) -> dict:
+        return summarize_usage(self.db)
 
     # 按时间返回最近调用，各币种费用由界面分别统计。
     @traced

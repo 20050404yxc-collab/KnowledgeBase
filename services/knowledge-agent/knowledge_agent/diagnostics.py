@@ -222,6 +222,7 @@ OPERATIONS = frozenset(
         "question.plan",
         "recommendations",
         "usage.list",
+        "usage.summary",
         "knowledge.tree",
         "knowledge.search",
         "knowledge.learn",

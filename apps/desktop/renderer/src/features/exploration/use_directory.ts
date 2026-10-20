@@ -349,7 +349,7 @@ function useProjectRevocation(
         }
         if (
           page !== '知识库' &&
-          page !== 'API 配置' &&
+          page !== '设置' &&
           options.taskOwner === page &&
           options.taskRunning.current &&
           (snapshot.materials !== materials || snapshot.input !== options.query)

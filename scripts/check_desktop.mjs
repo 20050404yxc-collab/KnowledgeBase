@@ -276,7 +276,7 @@ try {
     'source library'
   )
   await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
   )
   await screenshot('desktop-settings.png')
   assert.equal(await ui.evaluate(`document.querySelector('input[type=password]') !== null`), true)

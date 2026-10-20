@@ -241,3 +241,8 @@ Compose one reusable directory/detail workspace. Use page-owned directory state 
 - `merge_schema.py` migrates 3 to 4 with a unique consistent recovery point and transactional DDL/version advancement. `merge_store.py` resolves canonical IDs, keeps originals/provenance, unions use days and guards deletion. Snapshot versions cover bucket/classification/citations/mappings and exclude use days.
 - Canonical list/tree/search/reuse retain searchable hidden originals. Original reads use an additive `knowledge.get` option and one chunk per response. Archived evidence remains part of repeated restructuring without becoming independent active targets.
 - React keeps a single current advance request; Python owns and joins both HTTP children. This is the request-set boundary for actual concurrency. Review/preview results bind both draft and revision; canceled/error requests can resync summary. New contract fields are runtime validated while old merge-free fixtures remain compatible.
+
+
+## Revision 12 implementation design
+
+Compose SettingsPage with the public provider feature; keep shared provider drafts, own path loading state and discard late results. registerStorageIpc owns fixed host paths and main-frame trust checks. Keep DesktopAPI capabilities distinct from Python business operations. Domain model_prices validates ownership/value rules; resolve_generation binds actual-model prices; provider_settings coordinates backward compatibility and vault compensation. Infrastructure price migration uses schema 5 after merge schema 4 and usage_store aggregates all attempts. Retain call-time snapshots and per-currency totals. No arbitrary filesystem capability or path relocation.

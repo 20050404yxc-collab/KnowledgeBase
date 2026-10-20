@@ -660,3 +660,11 @@ The development application SHALL identify itself as test0.01. Source and reprod
 - R7-03: One explicit material submission per visible project group SHALL process all pending points with the same selected documents, independently enforcing material relevance per point. Documents for another group SHALL NOT be implicitly selected.
 - R7-04: Supplements SHALL remain uncommitted previews until explicit per-point review. Reading another point MAY preserve valid material evidence but SHALL revoke public consent. File/query/scope/page changes SHALL revoke project material permission.
 - R7-05: Each frequency page SHALL offer only a question input and confirm button as its composer, using exploration planning/settings and independent draft/directory/reading state. Navigation and late results SHALL NOT leak page state.
+
+
+## Revision 12 settings requirements
+
+- R12-01: Settings SHALL contain existing API configuration and read-only actual data/database/sources/log paths. Fixed directory actions SHALL validate active main-frame origin and accept only data/logs/sources identifiers. Switching views SHALL preserve provider drafts and cancel obsolete discovery/results.
+- R12-02: Optional prices SHALL belong to each configured model independently. Complete actual usage and both finite nonnegative prices are required for estimates; blank/partial values remain unknown and explicit zero is valid. Call-time model/currency/price snapshots and historical costs SHALL remain unchanged by later edits. Legacy default-price calls remain compatible.
+- R12-03: Usage SHALL aggregate all attempts independently of the recent-500 detail limit; distinguish known subtotals, missing inputs/outputs, empty history and unknown data; currencies SHALL remain separate.
+- R12-04: Schema 4→5 SHALL back up consistently before transactional price migration, map old prices only to the old default, preserve knowledge/merges/citations/uses/configuration and reject unsupported versions. Failure SHALL roll back and stop writes; retry/reopen SHALL be idempotent.

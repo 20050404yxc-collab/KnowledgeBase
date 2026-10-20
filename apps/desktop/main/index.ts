@@ -6,6 +6,7 @@ import { app, dialog, type BrowserWindow } from 'electron'
 import { resolve } from 'node:path'
 import { registerIpc } from './ipc_gateway'
 import { createWindow } from './window_manager'
+import { registerStorageIpc } from './storage_settings'
 import { WorkerBridge } from './worker_bridge'
 import { configureDiagnostics, diagnostic, flushDiagnostics } from './diagnostics'
 
@@ -22,6 +23,7 @@ function startDesktop(): void {
     (event) => window?.webContents.send('kb:event', event)
   )
   registerIpc(() => window, bridge)
+  registerStorageIpc(() => window, process.env.KB_DATA_DIR || app.getPath('userData'))
   window = createWindow()
   window.on('closed', () => {
     diagnostic('window.closed')

@@ -3,7 +3,13 @@
 // 作用：管理启动摘要、知识检索及资料、接口和用量列表。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 import { useEffect, useRef, useState } from 'react'
-import type { Attempt, Knowledge, Provider, Source } from '../../../../../contracts/desktop'
+import type {
+  Attempt,
+  Knowledge,
+  Provider,
+  Source,
+  UsageSummary
+} from '../../../../../contracts/desktop'
 import { api, errorText } from '../shared/api/client'
 import { isBucket } from '../../../shared/protocol_validation'
 
@@ -21,6 +27,7 @@ function useLibraryState() {
   const [sources, setSources] = useState<Source[]>([])
   const [providers, setProviders] = useState<Provider[]>([])
   const [attempts, setAttempts] = useState<Attempt[]>([])
+  const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null)
   const [ready, setReady] = useState(false)
   const [dataDir, setDataDir] = useState('')
   const loadSequence = useRef(0)
@@ -37,6 +44,8 @@ function useLibraryState() {
     setProviders,
     attempts,
     setAttempts,
+    usageSummary,
+    setUsageSummary,
     ready,
     setReady,
     dataDir,
@@ -155,10 +164,15 @@ async function reloadAction(state: Feedback & Navigation & LibraryState) {
 
 // 刷新当前调用记录，不触发模型请求。
 async function loadUsageAction(state: Feedback & Navigation & LibraryState) {
-  const { guarded, setAttempts } = state
+  const { guarded, setAttempts, setUsageSummary } = state
 
   await guarded(async () => {
-    setAttempts(await api.request('usage.list'))
+    const [attempts, summary] = await Promise.all([
+      api.request('usage.list'),
+      api.request('usage.summary')
+    ])
+    setAttempts(attempts)
+    setUsageSummary(summary)
   })
 }
 

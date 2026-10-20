@@ -14,6 +14,7 @@ from knowledge_agent.infrastructure.sqlite_store import Store
 def version_three(root):
     store = Store(root)
     item = store.save("迁移前手工知识", "原始内容不可丢失")
+    store.db.execute("DROP TABLE provider_model_prices")
     store.db.execute("DROP TRIGGER merge_root")
     for table in ("knowledge_merges", "restructure_provenance", "restructure_originals"):
         store.db.execute("DROP TABLE " + table)

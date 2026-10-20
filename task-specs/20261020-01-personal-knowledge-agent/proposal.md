@@ -1,9 +1,9 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 11 implemented and isolated acceptance passed; revision 9 implemented after navigation commit 4a7447f; isolated acceptance passed
+- Status: navigation committed as 4a7447f; restructuring committed as a398697; revision 12 settings implemented, required checks and isolated desktop/visual verification passed
 - Workflow mode: execute
-- Plan revision: 11
+- Plan revision: 12
 - Approval status: user explicitly requests sequential execution of navigation, restructuring and settings, committing each completed item before the next
 - Approved revision: 11 navigation and retained revision 9 restructuring; settings continues after both commits with its latest documents and preserved work
 - Revision 8 approval basis (historical): User requested navigation-independent work, a hierarchical all-library page, confirmed restructuring and automatic expansion classification. User explicitly selected classification/key-point organization with body diffs before confirmation, preserving hand edits and citations. The follow-up explicitly includes 常用/在学/归档 in hierarchical display and says continue; the subsequent instruction “开始改” explicitly authorizes this complete revision for implementation. No publication, production data access, paid tests or version change.
@@ -156,3 +156,8 @@ Implemented on the test0.03 baseline without release/version or credential-servi
 ## Git upload follow-up
 
 After the completed implementation, the user explicitly requested "git进行上传". This authorizes committing the revision-3 source, tests and reconciled documentation and pushing the existing `main` branch to the configured `origin` repository. No new release, tag, version increment or product change is included.
+
+
+## Revision 12 settings continuation
+
+User authorizes continuing the paused implementation after the first two commits. Trusted prior user choices select per-model optional pricing and read-only actual storage/log paths with open-directory actions. Reuse existing pages/task, retain all pre-existing settings changes and complete them. No production migration, paid API, credential identity/data-location change or publication. R9 is committed as a398697; schema 4 belongs to merge storage, so pricing continues at schema 5.

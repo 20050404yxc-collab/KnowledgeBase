@@ -9,6 +9,9 @@ import {
   isRestructureReceipt
 } from './library_validation'
 import type {
+  ModelPrice,
+  UsageSummary,
+  StoragePaths,
   Answer,
   ProjectContext,
   PublicProject,
@@ -183,7 +186,38 @@ const recommendation = object<Recommendation>({
 })
 const protocol: Check<Provider['protocol']> = (value): value is Provider['protocol'] =>
   value === 'responses' || value === 'chat-completions' || value === 'anthropic'
+const modelPrice = object<ModelPrice>({
+  model: string,
+  input_price: nullable(number),
+  output_price: nullable(number),
+  currency: string
+})
+const usageSummary = object<UsageSummary>({
+  calls: number,
+  successful: number,
+  input_tokens: nullable(number),
+  output_tokens: nullable(number),
+  total_tokens: nullable(number),
+  missing_input: number,
+  missing_output: number,
+  currencies: array(
+    object({
+      currency: string,
+      cost: nullable(number),
+      estimated: number,
+      unknown: number
+    })
+  )
+})
+// 路径只由宿主返回，渲染层不能传入任意目录。
+export const isStoragePaths = object<StoragePaths>({
+  data: string,
+  logs: string,
+  sources: string,
+  database: string
+})
 const provider = object<Provider>({
+  model_prices: optional(array(modelPrice)),
   id: string,
   name: string,
   protocol,
@@ -272,6 +306,7 @@ const results: { [K in Operation]: Check<ResultMap[K]> } = {
   'providers.select': array(provider),
   'providers.test': object({ message: string }),
   'providers.models': object({ models: array(string), partial: boolean }),
+  'usage.summary': usageSummary,
   'usage.list': array(attempt),
   question: answer,
   recommendations: array(recommendation)

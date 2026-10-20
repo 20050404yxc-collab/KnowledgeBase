@@ -4,9 +4,9 @@
 # 说明：保持既有协议与数据兼容。
 from __future__ import annotations
 
-import math
 from urllib.parse import urlsplit
 
+from knowledge_agent.domain.model_prices import generation_prices, price_value, validate_prices
 from knowledge_agent.domain.models import ProviderDraft
 
 PROTOCOLS = {"responses", "chat-completions", "anthropic"}
@@ -45,15 +45,10 @@ def validate_provider(params: dict) -> ProviderDraft:
     if result["currency"] not in {"USD", "CNY", "EUR"}:
         raise ValueError("请选择 USD、CNY 或 EUR")
     for key in ["input_price", "output_price"]:
-        value = params.get(key)
-        # 未填写价格保持未知；已填写必须是可计费的有限非负数值。
-        if value is None or value == "":
-            result[key] = None
-        else:
-            value = float(value)
-            if not math.isfinite(value) or value < 0:
-                raise ValueError("单价须为非负有限数值")
-            result[key] = value
+        result[key] = price_value(params.get(key))
+    # 新调用方显式提供模型价格；未提供时由应用兼容旧默认价格。
+    if "model_prices" in params:
+        result["model_prices"] = validate_prices(params["model_prices"], result["models"])
     return result
 
 
@@ -89,7 +84,6 @@ def resolve_generation(config: dict, params: dict) -> dict:
     if config["protocol"] == "anthropic" and effort != "auto":
         raise ValueError("此协议暂只支持由模型决定推理强度")
     result = {**config, "model": model, "reasoning_effort": effort}
-    # 原配置单价仅属于默认模型，不能在临时换模型时误算费用。
-    if model != config["model"]:
-        result.update(input_price=None, output_price=None)
+    # 固定本次实际模型对应的单价，调用记录继续保存这个时点的价格。
+    result.update(generation_prices(config, model))
     return result

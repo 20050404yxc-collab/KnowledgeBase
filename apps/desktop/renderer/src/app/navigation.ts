@@ -9,7 +9,7 @@ export const sections = [
   '在学',
   '归档',
   '资料库',
-  'API 配置',
+  '设置',
   '用量统计'
 ] as const
 export type Section = (typeof sections)[number]

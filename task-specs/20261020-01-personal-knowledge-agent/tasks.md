@@ -188,3 +188,12 @@ R3 handoff: implemented and verified on test0.03; `npm run check` passes (78 Pyt
 - [x] Add compact question forms with page-owned planning/drafts/results.
 - [x] Verify batch failures, review, cancellation, materials and page isolation with isolated tests.
 - [x] Run npm run check and npm run test:ui; inspect screenshots and record actual limits.
+
+
+## Revision 12 settings continuation
+
+- [x] R12.1 Recover prior user selections and preserved implementation; reconcile existing task/human documents and per-task commit boundary.
+- [x] R12.2 Complete fixed-path settings UI/IPC, discovery lifecycle and provider-draft behavior; R12-01.
+- [x] R12.3 Complete per-model optional prices, compatibility, call snapshots and full-history usage; R12-02/03.
+- [x] R12.4 Integrate schema 4→5 backup/rollback/restart with merge storage; R12-04.
+- [x] R12.5 Run isolated tests, required checks/UI and wide/narrow review; record limits and commit this task separately without push.

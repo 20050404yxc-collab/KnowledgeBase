@@ -13,7 +13,10 @@ export function UsageHeading() {
       <div>
         <div className="eyebrow">USAGE & COSTS</div>
         <h1>每一次调用，都心中有数。</h1>
-        <p>最近 500 次调用。缺失用量显示未知，费用按请求时价格估算，各币种分别统计。</p>
+        <p>
+          总览统计全部历史调用，明细展示最近 500 次。token
+          按接口实际返回汇总；只有配置了价格才能估算费用，各币种分别统计。
+        </p>
       </div>
       <button onClick={() => void loadUsage()}>刷新记录</button>
     </div>

@@ -90,3 +90,13 @@ schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来�
 `knowledge.get` 默认沿旧 ID 解析保留点，并返回可选 original_sources（source_id/version/title/chunks）。以 `{id,original:true,source_id,version,page?}` 逐个 7000 字符片段只读打开原版本，返回 read_only/original_locator/original_page/original_total，不记录使用日。常规 get／编辑／分区／补充均作用于 canonical；树、列表、搜索和复用排除独立隐藏来源，但原内容可检索为保留点。使用日按组内自然日集合计算。合并组普通删除拒绝；未合并知识正常删除其关联快照。恢复方法见 [使用说明](../README.md#重构知识库)。
 
 普通 `question`／推荐拓展新增收录要求模型返回合法 `category/subcategory`，与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。
+
+## Settings and full-history usage
+
+`ProviderInput.model_prices` is an optional complete list of per-model `{model,input_price,output_price,currency}` entries. Models must belong to the catalog and be unique; prices may be blank/null (unknown) or finite nonnegative values, including explicit zero. Currency is USD/CNY/EUR. Saved `Provider.model_prices` returns nullable numeric values. Legacy default price fields remain compatible and refer only to the default model. Generation selects actual-model prices and preserves the call-time snapshot; historical attempts are never recalculated.
+
+`usage.summary` accepts `{}` and returns all-history `calls`, `successful`, nullable input/output/total tokens, missing-input/output counts and per-currency nullable estimated cost plus estimated/unknown counts. Known subtotals do not claim complete usage; no-history tokens are zero and all-missing history remains unknown. `usage.list` continues to return the latest 500 attempts.
+
+Preload exposes `storagePaths()` and `openDirectory('data'|'logs'|'sources')` as fixed Electron capabilities, independently of Python operations. The main host checks the active window/main-frame identity and request identifier; it resolves paths from the worker's data root and accepts no arbitrary path. The paths DTO contains `data`, `database`, `sources`, `logs`. Path access/open errors carry correlation identifiers. Paths cannot be edited or migrated by this interface.
+
+Model-price persistence upgrades schema 4 to 5 with a unique consistent backup and transactional rollback, after schema 4 merge migration. Existing default prices migrate only to that default model. Unsupported higher schemas are rejected.

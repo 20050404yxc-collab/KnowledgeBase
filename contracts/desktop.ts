@@ -177,7 +177,35 @@ export interface Recommendation {
   preview: string
   knowledge_id?: string
 }
+export interface ModelPrice {
+  model: string
+  input_price: number | null
+  output_price: number | null
+  currency: string
+}
+export interface ModelPriceInput extends Omit<ModelPrice, 'input_price' | 'output_price'> {
+  input_price: string | number | null
+  output_price: string | number | null
+}
+export interface StoragePaths {
+  data: string
+  logs: string
+  sources: string
+  database: string
+}
+export type StorageDirectory = 'data' | 'logs' | 'sources'
+export interface UsageSummary {
+  calls: number
+  successful: number
+  input_tokens: number | null
+  output_tokens: number | null
+  total_tokens: number | null
+  missing_input: number
+  missing_output: number
+  currencies: { currency: string; cost: number | null; estimated: number; unknown: number }[]
+}
 export interface Provider {
+  model_prices?: ModelPrice[]
   id: string
   name: string
   protocol: 'responses' | 'chat-completions' | 'anthropic'
@@ -229,6 +257,8 @@ export interface DesktopAPI {
     id?: string
   ): Promise<ResultMap[K]>
   cancel(id: string): Promise<void>
+  storagePaths(): Promise<StoragePaths>
+  openDirectory(directory: StorageDirectory): Promise<void>
   chooseFiles(): Promise<string[]>
   pathsForFiles(files: File[]): string[]
   onEvent(callback: (event: WorkerEvent) => void): () => void
@@ -268,6 +298,7 @@ export interface NoteInput {
   content: string
 }
 export interface ProviderInput {
+  model_prices?: ModelPriceInput[]
   id?: string
   name: string
   protocol: Provider['protocol']
@@ -347,6 +378,7 @@ export interface RequestMap {
   'providers.select': { id: string }
   'providers.test': { id: string } & GenerationOptions
   'providers.models': ModelDiscovery
+  'usage.summary': Record<string, never>
   'usage.list': Record<string, never>
   question: {
     query: string
@@ -384,6 +416,7 @@ export interface ResultMap {
   'providers.select': Provider[]
   'providers.test': { message: string }
   'providers.models': ModelCatalog
+  'usage.summary': UsageSummary
   'usage.list': Attempt[]
   question: Answer
   recommendations: Recommendation[]

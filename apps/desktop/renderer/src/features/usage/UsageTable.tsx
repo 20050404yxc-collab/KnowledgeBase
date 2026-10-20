@@ -13,11 +13,17 @@ export function UsageTable() {
       <table>
         <thead>
           <tr>
-            {['时间 / 用途', '接口 / 模型', '结果', '输入', '输出', '耗时', '费用估算'].map(
-              (label) => (
-                <th key={label}>{label}</th>
-              )
-            )}
+            {[
+              '时间 / 用途',
+              '接口 / 模型',
+              '结果',
+              '输入 token',
+              '输出 token',
+              '耗时',
+              '费用估算'
+            ].map((label) => (
+              <th key={label}>{label}</th>
+            ))}
           </tr>
         </thead>
         <tbody>

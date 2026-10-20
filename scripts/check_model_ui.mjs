@@ -8,6 +8,7 @@ import { checkPageUi } from './check_page_ui.mjs'
 import { checkProjectUi, checkLatePage } from './check_project_ui.mjs'
 import { checkBatchUi } from './check_batch_ui.mjs'
 import { checkLibraryUi } from './check_library_ui.mjs'
+import { checkSettingsUi } from './check_settings_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
@@ -60,7 +61,7 @@ async function providers(ui) {
 async function createDraft(context) {
   const { ui, fill, click, waitFor, fixture } = context
   await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
   )
   await fill('.provider-form input[placeholder="例如：我的 GPT 接口"]', 'UI 模型测试')
   await fill('.provider-form input[type=url]', fixture.url.replace('/v1', '/slow/v1'))
@@ -142,7 +143,7 @@ async function generate(context) {
   )
   assert.equal(fixture.state.posts.length, 0)
   await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('API 配置')).click()`
+    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
   )
   await editDraft(context)
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
@@ -475,6 +476,7 @@ export async function checkModelUi(context) {
     await checkLatePage({ ...value, finish })
     await checkBatchUi({ ...value, finish })
     await checkLibraryUi({ ...value, finish })
+    await checkSettingsUi(value)
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )

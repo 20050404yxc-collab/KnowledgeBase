@@ -1888,3 +1888,54 @@ td small {
 .restructure-panel select {
   width: 100%;
 }
+
+/* 设置页集中管理配置和只读路径，长路径可换行。 */
+.settings-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.settings-tabs [aria-selected='true'] {
+  background: var(--accent, #506c59);
+  color: white;
+}
+.storage-settings {
+  max-width: 960px;
+}
+.storage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 0;
+  border-bottom: 1px solid #e5e8e1;
+}
+.storage-row > div {
+  min-width: 0;
+}
+.storage-row code {
+  display: block;
+  overflow-wrap: anywhere;
+  margin-top: 8px;
+  font-size: 13px;
+}
+.storage-row button {
+  flex-shrink: 0;
+}
+.model-price-settings {
+  border-top: 1px solid #e5e8e1;
+  padding-top: 18px;
+  margin-top: 20px;
+}
+.provider-form .model-price-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.model-price-toggle input {
+  width: auto;
+}
+.usage-summary {
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}

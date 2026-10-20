@@ -387,3 +387,61 @@ test('library tree and restructure reject damaged responses', () => {
     })
   )
 })
+
+// 系统目录能力只信任当前主 frame，并只打开宿主固定目录。
+test('storage capability rejects foreign frames and arbitrary paths', async () => {
+  const stub = `export const handlers=new Map(); export const opened=[]; export let failure='';
+    export const setFailure=(value)=>{failure=value};
+    export const ipcMain={handle:(name,fn)=>handlers.set(name,fn)};
+    export const shell={openPath:async(path)=>{opened.push(path);return failure}};`
+  const url = 'data:text/javascript;base64,' + Buffer.from(stub).toString('base64')
+  const host = await import(url)
+  const logger =
+    'data:text/javascript;base64,' +
+    Buffer.from('export const diagnostic=()=>{}').toString('base64')
+  const { registerStorageIpc } = await loadModule('../apps/desktop/main/storage_settings.ts', {
+    "'electron'": JSON.stringify(url),
+    "'./diagnostics'": JSON.stringify(logger)
+  })
+  const frame = {},
+    contents = { mainFrame: frame },
+    window = { webContents: contents }
+  registerStorageIpc(() => window, 'D:/isolated-fixture/data')
+  const event = { sender: contents, senderFrame: frame }
+  const paths = host.handlers.get('kb:storage-paths')(event, 'test-request')
+  assert.equal(validation.isStoragePaths(paths), true)
+  assert.equal(validation.isStoragePaths({ ...paths, logs: null }), false)
+  assert.throws(() => host.handlers.get('kb:storage-paths')({ ...event, senderFrame: {} }), /来源/)
+  const open = host.handlers.get('kb:open-directory')
+  await assert.rejects(open({ ...event, sender: {} }, 'data', 'test'), /来源/)
+  for (const directory of ['../outside', paths.data, 'database', null]) {
+    await assert.rejects(open(event, directory, 'test'), /无效目录/)
+  }
+  await assert.rejects(open(event, 'logs', 'bad/id'), /无效目录/)
+  assert.equal(host.opened.length, 0)
+  await open(event, 'logs', 'test-request')
+  assert.deepEqual(host.opened, [paths.logs])
+  host.setFailure('private system path failure')
+  await assert.rejects(open(event, 'sources', 'test-request'), /无法打开目录/)
+})
+
+// 全历史 DTO 的未知值有效，非法汇总及模型价格在沙箱边界拒绝。
+test('usage summary validates additive unknown values and rejects damaged responses', () => {
+  const summary = {
+    calls: 2,
+    successful: 1,
+    input_tokens: 10,
+    output_tokens: null,
+    total_tokens: 10,
+    missing_input: 0,
+    missing_output: 2,
+    currencies: [{ currency: 'USD', cost: null, estimated: 0, unknown: 2 }]
+  }
+  assert.deepEqual(validation.decodeResult('usage.summary', summary), summary)
+  for (const value of [
+    { ...summary, total_tokens: '10' },
+    { ...summary, currencies: [{ currency: 'USD' }] }
+  ]) {
+    assert.throws(() => validation.decodeResult('usage.summary', value))
+  }
+})
