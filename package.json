@@ -1,6 +1,6 @@
 {
   "name": "knowledgebase",
-  "version": "0.0.1-test.0.2",
+  "version": "0.0.1-test.0.3",
   "private": true,
   "description": "Local-first personal knowledge desktop application",
   "engines": {
@@ -9,15 +9,19 @@
   },
   "packageManager": "npm@11.16.0",
   "scripts": {
-    "check:env:node": "node scripts/check-node.mjs",
-    "check:env:python": ".venv\\Scripts\\python.exe scripts/check-python.py",
+    "check:env:node": "node scripts/check_node.mjs",
+    "check:env:python": ".venv\\Scripts\\python.exe scripts/check_python.py",
     "dev": "electron-vite dev",
     "start": "electron-vite preview",
     "build": "electron-vite build",
     "typecheck": "tsc --noEmit",
     "test": ".venv\\Scripts\\python.exe -m pytest tests -q",
-    "test:ui": "node scripts/check-desktop.mjs",
-    "check": "npm run typecheck && npm test && npm run build"
+    "test:ui": "node scripts/check_desktop.mjs",
+    "test:host": "node --test tests/desktop_boundaries.test.mjs",
+    "check:standards": "node scripts/check_standards.mjs && .venv\\Scripts\\python.exe scripts/check_standards.py",
+    "lint:python": ".venv\\Scripts\\python.exe -m ruff check services/knowledge-agent tests scripts && .venv\\Scripts\\python.exe -m ruff format --check services/knowledge-agent tests scripts",
+    "format:check": "prettier --check apps contracts scripts/*.mjs tests/*.mjs electron.vite.config.ts package.json tsconfig.json .prettierrc.json",
+    "check": "npm run check:standards && npm run format:check && npm run lint:python && npm run typecheck && npm test && npm run test:host && npm run build"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -31,6 +35,7 @@
     "@vitejs/plugin-react-swc": "4.3.3",
     "electron": "44.9.1",
     "electron-vite": "6.0.0",
+    "prettier": "3.6.2",
     "typescript": "7.0.2",
     "vite": "8.3.4"
   },

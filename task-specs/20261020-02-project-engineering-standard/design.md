@@ -1,25 +1,28 @@
-# Documentation Design
+# Implementation Design — Revision 3
 
-## Current State and Evidence
+## Baseline and compatibility
 
-README and package.json establish the Electron/React/TypeScript/Python/SQLite stack. electron.vite.config.ts defines three desktop entries; tsconfig.json enables strict checking. contracts/desktop.ts has a generic request API. main/index.ts and main/worker.ts implement trusted IPC and worker lifecycle. worker.py dispatches JSON Lines to KnowledgeService; service.py directly accesses store.db. renderer/src/main.tsx combines several pages and interactions.
+Revision 2 adopted the architecture but left main.tsx, worker/service/store/providers/parsers monoliths in place. Revision 3 migrates the existing supported behavior. Keep worker.py, npm commands and the root launcher; retain wire fields/operations, SQLite schema user_version=1, data location and credential service KnowledgeBase.test0.01. Pending API editing/model catalog work is a separate uncommitted plan.
 
-These are targeted static observations, not a conformance audit. Additional review found bucket_for in store.py is pure domain logic, while providers.py mixes protocol, credentials, configuration orchestration, accounting SQL and answer validation. Existing product verification remains historical.
+## Ownership and dependencies
 
-## Approach
+- React: main.tsx mounts App. app owns navigation/session composition; features own exploration, knowledge, providers, sources and usage UI/hooks. Shared code contains the constrained API, feedback and styles. Cross-feature collaboration uses public entries. No renderer SQL, provider HTTP or Node access.
+- Electron: index assembles window_manager, ipc_gateway and worker_bridge. request_registry owns one-settlement promises/timers. The IPC gateway validates the current main frame, allowed operations and object parameters. WorkerBridge owns its spawned process tree and event correlation. Preserve 15s/180s/2.5s startup/request/shutdown deadlines.
+- Python: entrypoints validates/routes protocol; application orchestrates questions, evidence, attachments, credential/config compensation and generation accounting through ports.py; domain holds identity, limits, frequency, answer/provider validation, typed records and usage state; infrastructure owns SQL, snapshots, parsing, HTTP/SSE and Windows credentials. bootstrap injects implementations and closes partial construction resources.
+- contracts contains DTOs, operation maps, protocol.md and shared synthetic samples. Runtime predicates live at the desktop boundary rather than in declaration-only contracts. Predicates validate complete known DTO fields before use.
 
-Maintain one effective standard under docs/确认页/工程规范/ and add a root AGENTS.md binding future work. Replace the initial three-layer mapping with React/Electron/Python boundaries, Python entrypoints/application/domain/infrastructure, application-owned ports and bootstrap composition; frontend uses app/features/shared. Preserve current launch roots. Retain language-specific comments and naming, detailed stage/branch explanations and the 80-effective-line rule.
+## State and failure paths
 
-No architecture interfaces, schemas, migrations, formatters or dependencies are implemented. Synchronize test0.02 public literals in VERSION, package.json/lock, Electron main/preload/UI, Python worker/service and desktop-test report. Leave providers.py SERVICE unchanged to retain secrets. npm uses valid SemVer 0.0.1-test.0.2. Exact refactoring batches remain later work.
+QuestionLocks counts owners and queued callers, releasing entries after the last exit including cancellation. Questions validates scope, collects/budgets evidence, handles offline/reuse, generates and validates, then yields at the final cancellation checkpoint before synchronous atomic capture. Streaming text never becomes partially saved knowledge.
 
-## File Changes
+Parsing copies and reads in the same background operation. A cancelled awaiter transfers snapshot cleanup to completion; the service settles work before resource close. Filesystem/SQL are separate resources: copy before metadata insertion, compensate on insertion failure, delete owned bytes before metadata, and retain startup orphan recovery. Never delete user originals. Credential writes retain the old secret until metadata success. Compensation and terminal accounting failures attach controlled context without replacing the primary error/cancellation.
 
-- New: effective standard and root AGENTS.md.
-- Modified: overview, README and CHANGELOG for effective rules and release scope.
-- Modified version literals only: VERSION, package.json, package-lock.json, apps/desktop/main/index.ts, apps/desktop/preload/index.ts, apps/desktop/renderer/src/main.tsx, services/knowledge-agent/worker.py, services/knowledge-agent/service.py, scripts/check-desktop.mjs.
-- New/updated: this task's proposal/specs/design/tasks/verification records.
-- Unchanged: existing product task, source standards, credential adapter identity, data, dependencies and global skills.
+Each model request captures prices and starts an attempt before HTTP. Infrastructure returns text and GenerationState; application records known usage/cost in terminal cleanup. Invalid/unknown tokens retain null semantics; no inferred free cancellation and no automatic retry.
 
-## Verification Plan
+## Conventions and tooling
 
-Check AC-01/02 against sources and targeted evidence; check links, fences and changed-file scope for AC-03. Verify version strings, lockfile dependency preservation and credential identity for AC-04, run TypeScript checking, existing Python tests, Ruff and build; run isolated desktop checks after build because visible/runtime versions changed. Verify remote refs after publishing. Record actual evidence, not assumed success.
+Use snake_case scripts, PascalCase React components, Chinese four-line headers and function/step explanations. Split normal-formatted functions to <=80 effective lines including JSX. Prettier 3.6.2 is the sole added dependency; existing dependencies are not upgraded. Ruff checks Python imports/syntax and formats at 100 characters. Strict TS also checks unused locals/parameters. AST checks cover selected imports, scale, names and headers, not all semantic/comment-quality rules.
+
+## Validation and documentation
+
+Retain existing pytest behavior tests with migrated imports. Add shared protocol fixtures and focused fault/lifecycle tests. Run npm run check, PowerShell parsing and built desktop regression with independent Electron profile and temporary KB_DATA_DIR. Real paid APIs, OCR preparation, environment reinstalls, schema migrations and packaging are excluded. Reconcile Chinese standard, migration page, README, AGENTS, environment instructions and release metadata. Stage only refactor-owned changes; publish main plus a new annotated test0.03 tag.

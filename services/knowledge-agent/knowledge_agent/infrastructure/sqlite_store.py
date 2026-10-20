@@ -1,0 +1,406 @@
+# 文件：sqlite_store.py
+# 层：Python infrastructure
+# 作用：提供知识、资料、配置和调用记录的 SQLite 仓库。
+# 说明：保持既有协议与数据兼容。
+from __future__ import annotations
+
+import hashlib
+import json
+import sqlite3
+import uuid
+from datetime import datetime
+from pathlib import Path
+
+from knowledge_agent.domain.knowledge_rules import (
+    BUCKETS,
+    bucket_for,
+    now,
+    relevance,
+    validate_note,
+)
+from knowledge_agent.domain.models import (
+    Document,
+    EvidenceBlock,
+    Knowledge,
+    ProviderConfig,
+    ProviderDraft,
+    SourceSummary,
+)
+
+
+class Store:
+    # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
+    def __init__(self, data_dir: Path) -> None:
+        self.root = data_dir.resolve()
+        self.root.mkdir(parents=True, exist_ok=True)
+        self.sources_dir = self.root / "sources"
+        self.sources_dir.mkdir(exist_ok=True)
+        self.db = sqlite3.connect(self.root / "knowledge.sqlite3")
+        try:
+            self._initialize_database()
+        except Exception:
+            self.db.close()
+            raise
+
+    # 初始化表结构并恢复应用拥有的资源，失败由构造方关闭连接。
+    def _initialize_database(self) -> None:
+        self.db.row_factory = sqlite3.Row
+        self.db.execute("PRAGMA foreign_keys=ON")
+        self.db.execute("PRAGMA journal_mode=WAL")
+        schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
+        # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
+        if schema_version > 1:
+            raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
+        # 保留既有表结构和外键；本次只移动实现，不执行结构升级。
+        self.db.executescript("""
+            CREATE TABLE IF NOT EXISTS knowledge (
+                id TEXT PRIMARY KEY, concept TEXT NOT NULL UNIQUE, title TEXT NOT NULL,
+                content TEXT NOT NULL, digest TEXT NOT NULL, created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL, generated INTEGER NOT NULL, edited INTEGER NOT NULL DEFAULT 0,
+                manual_bucket TEXT, citations TEXT NOT NULL DEFAULT '[]', model TEXT, provider_name TEXT
+            );
+            CREATE TABLE IF NOT EXISTS uses (
+                knowledge_id TEXT NOT NULL REFERENCES knowledge(id) ON DELETE CASCADE,
+                day TEXT NOT NULL, timezone TEXT NOT NULL, PRIMARY KEY (knowledge_id, day)
+            );
+            CREATE TABLE IF NOT EXISTS generation_keys (
+                concept TEXT PRIMARY KEY, knowledge_id TEXT NOT NULL REFERENCES knowledge(id) ON DELETE CASCADE
+            );
+            CREATE TABLE IF NOT EXISTS sources (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL, filename TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL, blocks TEXT NOT NULL, warnings TEXT NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS providers (
+                id TEXT PRIMARY KEY, name TEXT NOT NULL, protocol TEXT NOT NULL, base_url TEXT NOT NULL,
+                model TEXT NOT NULL, has_key INTEGER NOT NULL, active INTEGER NOT NULL DEFAULT 0,
+                input_price REAL, output_price REAL, currency TEXT NOT NULL
+            );
+            CREATE UNIQUE INDEX IF NOT EXISTS one_active_provider ON providers(active) WHERE active=1;
+            CREATE TABLE IF NOT EXISTS attempts (
+                id TEXT PRIMARY KEY, purpose TEXT NOT NULL, provider TEXT NOT NULL, model TEXT NOT NULL,
+                status TEXT NOT NULL, started_at TEXT NOT NULL, elapsed_ms INTEGER NOT NULL DEFAULT 0,
+                input_tokens INTEGER, output_tokens INTEGER, cost REAL, currency TEXT NOT NULL,
+                input_price REAL, output_price REAL
+            );
+            PRAGMA user_version=1;
+        """)
+        with self.db:
+            self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
+        # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
+        managed = {r[0] for r in self.db.execute("SELECT filename FROM sources")}
+        for path in self.sources_dir.iterdir():
+            if path.is_file() and path.name not in managed:
+                path.unlink(missing_ok=True)
+
+    # 释放本对象持有的资源，不修改用户原件。
+    def close(self) -> None:
+        self.db.close()
+
+    # 将数据库记录转换为知识摘要，动态计算分区和资料保留状态。
+    def knowledge(self, row: sqlite3.Row) -> Knowledge:
+        result = dict(row)
+        result.pop("concept", None)
+        result.pop("digest", None)
+        result["generated"] = bool(result["generated"])
+        result["edited"] = bool(result["edited"])
+        result["citations"] = json.loads(result["citations"])
+        # 保留状态从当前资料元数据读取；删除资料不删除知识中的引用摘录。
+        for citation in result["citations"]:
+            citation["retained"] = bool(
+                self.db.execute(
+                    "SELECT 1 FROM sources WHERE id=?", (citation["source_id"],)
+                ).fetchone()
+            )
+        days = [
+            r[0]
+            for r in self.db.execute("SELECT day FROM uses WHERE knowledge_id=?", (result["id"],))
+        ]
+        result["bucket"] = bucket_for(result["created_at"], days, result["manual_bucket"])
+        return result
+
+    # 按稳定标识读取当前记录，缺失状态由所属适配器明确处理。
+    def get(self, item_id: str, active_use: bool = False) -> Knowledge:
+        row = self.db.execute("SELECT * FROM knowledge WHERE id=?", (item_id,)).fetchone()
+        # 缺失条目可观察地失败；主动打开按本地自然日幂等计入使用记录。
+        if not row:
+            raise ValueError("知识不存在或已删除")
+        if active_use:
+            current = datetime.now().astimezone()
+            with self.db:
+                self.db.execute(
+                    "INSERT OR IGNORE INTO uses VALUES (?, ?, ?)",
+                    (item_id, current.date().isoformat(), str(current.tzinfo)),
+                )
+        return self.knowledge(row)
+
+    # 扫描最近条目并排序，摘要裁剪不改变持久化正文。
+    def list_knowledge(
+        self, query: str = "", bucket: str | None = None, brief: bool = True
+    ) -> list[dict]:
+        result = []
+        # 先按关键词和分区过滤，再只裁剪列表摘要；持久化正文保持完整。
+        for row in self.db.execute("SELECT * FROM knowledge ORDER BY updated_at DESC LIMIT 5000"):
+            score = relevance(query, row["title"], row["content"]) if query.strip() else 1
+            if score <= 0:
+                continue
+            item = self.knowledge(row)
+            if bucket and item["bucket"] != bucket:
+                continue
+            if brief:
+                item["content"] = item["content"][:260]
+                item["citations"] = []
+            result.append((score, item))
+        result.sort(key=lambda pair: pair[0], reverse=True)
+        return [item for _, item in result[:200]]
+
+    # 原子保存知识和问题复用标识，重复生成不得覆盖个人编辑。
+    def save(
+        self,
+        title: str,
+        content: str,
+        *,
+        item_id: str | None = None,
+        generated: bool = False,
+        citations: list[EvidenceBlock] | None = None,
+        model: str = "",
+        provider_name: str = "",
+        capture_key: str | None = None,
+    ) -> dict:
+        title, content, concept = validate_note(title, content)
+        digest = hashlib.sha256(content.encode()).hexdigest()
+        # 明确编辑已有 ID 时才更新正文，并拒绝与其他条目标题冲突。
+        if item_id:
+            self.get(item_id)
+            other = self.db.execute(
+                "SELECT id FROM knowledge WHERE concept=? AND id!=?", (concept, item_id)
+            ).fetchone()
+            if other:
+                raise ValueError("同标题知识已存在，请更换标题或编辑已有条目")
+            with self.db:
+                self.db.execute(
+                    "UPDATE knowledge SET concept=?,title=?,content=?,digest=?,updated_at=?,edited=1 WHERE id=?",
+                    (concept, title, content, digest, now(), item_id),
+                )
+            return self.get(item_id)
+        existing = self.db.execute(
+            "SELECT id FROM knowledge WHERE concept=? OR digest=?", (concept, digest)
+        ).fetchone()
+        # 新建或生成命中标题／正文时只复用，可补问题映射但不覆盖旧正文。
+        if existing:
+            if capture_key:
+                with self.db:
+                    self.db.execute(
+                        "INSERT OR IGNORE INTO generation_keys VALUES (?,?)",
+                        (capture_key, existing[0]),
+                    )
+            return self.get(existing[0])
+        item_id, stamp = str(uuid.uuid4()), now()
+        # 新知识和问题复用键在同一 SQLite 事务内提交，失败不会写半套关联。
+        with self.db:
+            self.db.execute(
+                """INSERT INTO knowledge
+                (id,concept,title,content,digest,created_at,updated_at,generated,citations,model,provider_name)
+                VALUES (?,?,?,?,?,?,?,?,?,?,?)""",
+                (
+                    item_id,
+                    concept,
+                    title,
+                    content,
+                    digest,
+                    stamp,
+                    stamp,
+                    int(generated),
+                    json.dumps(citations or [], ensure_ascii=False),
+                    model,
+                    provider_name,
+                ),
+            )
+            if capture_key:
+                self.db.execute(
+                    "INSERT OR IGNORE INTO generation_keys VALUES (?,?)", (capture_key, item_id)
+                )
+        return self.get(item_id)
+
+    # 固定有效分区或恢复自动计算，拒绝其他分区值。
+    def set_bucket(self, item_id: str, bucket: str | None) -> dict:
+        if bucket is not None and bucket not in BUCKETS:
+            raise ValueError("无效分区")
+        self.get(item_id)
+        with self.db:
+            self.db.execute("UPDATE knowledge SET manual_bucket=? WHERE id=?", (bucket, item_id))
+        return self.get(item_id)
+
+    # 删除知识及外键关联记录，不删除资料或用户文件。
+    def delete_knowledge(self, item_id: str) -> dict:
+        with self.db:
+            self.db.execute("DELETE FROM knowledge WHERE id=?", (item_id,))
+        return {"deleted": True}
+
+    # 仅返回资料摘要，不将完整来源正文暴露为列表。
+    def list_sources(self) -> list[SourceSummary]:
+        return [
+            {
+                "id": r["id"],
+                "name": r["name"],
+                "created_at": r["created_at"],
+                "blocks": len(json.loads(r["blocks"])),
+                "warnings": json.loads(r["warnings"]),
+            }
+            for r in self.db.execute("SELECT * FROM sources ORDER BY created_at DESC")
+        ]
+
+    # 读取已保留资料的证据，明确附加来源标识和保留状态。
+    def source_blocks(self) -> list[EvidenceBlock]:
+        result = []
+        for row in self.db.execute("SELECT id, name, blocks FROM sources"):
+            result.extend(
+                {**block, "source_id": row["id"], "name": row["name"], "retained": True}
+                for block in json.loads(row["blocks"])
+            )
+        return result
+
+    # 返回无密钥配置，SQLite 整数字段映射为协议布尔值。
+    def providers(self) -> list[ProviderConfig]:
+        return [
+            {**dict(row), "active": bool(row["active"]), "has_key": bool(row["has_key"])}
+            for row in self.db.execute("SELECT * FROM providers ORDER BY name")
+        ]
+
+    # 按标识读取配置；未指定标识时只取当前启用项。
+    def provider(self, provider_id: str | None = None) -> ProviderConfig | None:
+        return next(
+            (
+                p
+                for p in self.providers()
+                if p["id"] == provider_id or (not provider_id and p["active"])
+            ),
+            None,
+        )
+
+    # 在同一事务中切换唯一启用配置，不改变凭据。
+    def select_provider(self, provider_id: str) -> list[dict]:
+        # 不存在的目标拒绝切换，避免先清空已有启用配置。
+        if not self.provider(provider_id):
+            raise ValueError("API 配置不存在")
+        with self.db:
+            self.db.execute("UPDATE providers SET active=0")
+            self.db.execute("UPDATE providers SET active=1 WHERE id=?", (provider_id,))
+        return self.providers()
+
+    # 判断资料元数据是否已持久化，不访问用户原始路径。
+    def has_source(self, item_id: str) -> bool:
+        return self.source_filename(item_id) is not None
+
+    # 返回应用持有的副本名，缺失资料返回空。
+    def source_filename(self, item_id: str) -> str | None:
+        row = self.db.execute("SELECT filename FROM sources WHERE id=?", (item_id,)).fetchone()
+        return row[0] if row else None
+
+    # 以单次事务写入资料及解析片段，文件补偿由应用协调。
+    def insert_source(self, document: Document, filename: str) -> None:
+        with self.db:
+            self.db.execute(
+                "INSERT INTO sources VALUES (?,?,?,?,?,?)",
+                (
+                    document["id"],
+                    document["name"],
+                    filename,
+                    now(),
+                    json.dumps(document["blocks"], ensure_ascii=False),
+                    json.dumps(document["warnings"], ensure_ascii=False),
+                ),
+            )
+
+    # 移除资料元数据，保留知识中已有的引用摘录。
+    def remove_source(self, item_id: str) -> None:
+        with self.db:
+            self.db.execute("DELETE FROM sources WHERE id=?", (item_id,))
+
+    # 检查规范化概念是否已存在，避免生成重复推荐。
+    def concept_exists(self, concept: str) -> bool:
+        return (
+            self.db.execute("SELECT 1 FROM knowledge WHERE concept=?", (concept,)).fetchone()
+            is not None
+        )
+
+    # 按问题复用映射读取已有知识，始终保留其最新编辑。
+    def generation_item(self, concept: str) -> Knowledge | None:
+        row = self.db.execute(
+            "SELECT knowledge_id FROM generation_keys WHERE concept=?", (concept,)
+        ).fetchone()
+        return self.get(row[0]) if row else None
+
+    # 更新同标识配置并维持唯一启用项，不把密钥写入 SQLite。
+    def save_provider_config(self, config_id: str, config: ProviderDraft) -> None:
+        with self.db:
+            self.db.execute(
+                """INSERT INTO providers
+                (id,name,protocol,base_url,model,has_key,active,input_price,output_price,currency)
+                VALUES (?,?,?,?,?,?,0,?,?,?) ON CONFLICT(id) DO UPDATE SET
+                name=excluded.name, protocol=excluded.protocol, base_url=excluded.base_url,
+                model=excluded.model, has_key=1, input_price=excluded.input_price,
+                output_price=excluded.output_price, currency=excluded.currency""",
+                (
+                    config_id,
+                    config["name"],
+                    config["protocol"],
+                    config["base_url"],
+                    config["model"],
+                    1,
+                    config["input_price"],
+                    config["output_price"],
+                    config["currency"],
+                ),
+            )
+            # 没有启用项时才默认选择本配置，编辑其他配置不改变当前接口。
+            if not any(p["active"] for p in self.providers()):
+                self.db.execute("UPDATE providers SET active=1 WHERE id=?", (config_id,))
+
+    # 只删除指定配置，是否处理系统凭据由应用层决定。
+    def delete_provider(self, config_id: str) -> list[dict]:
+        with self.db:
+            self.db.execute("DELETE FROM providers WHERE id=?", (config_id,))
+        return self.providers()
+
+    # 在请求之前记录调用与价格快照，崩溃后可标记中断。
+    def start_attempt(self, attempt_id: str, config: ProviderConfig, purpose: str) -> None:
+        with self.db:
+            self.db.execute(
+                """INSERT INTO attempts
+                (id,purpose,provider,model,status,started_at,currency,input_price,output_price)
+                VALUES (?,?,?,?,?,?,?,?,?)""",
+                (
+                    attempt_id,
+                    purpose,
+                    config["name"],
+                    config["model"],
+                    "running",
+                    now(),
+                    config["currency"],
+                    config["input_price"],
+                    config["output_price"],
+                ),
+            )
+
+    # 写入实际调用终态和已知用量，不推断未知费用。
+    def finish_attempt(
+        self,
+        attempt_id: str,
+        status: str,
+        elapsed_ms: int,
+        input_tokens: int | None,
+        output_tokens: int | None,
+        cost: float | None,
+    ) -> None:
+        with self.db:
+            self.db.execute(
+                "UPDATE attempts SET status=?,elapsed_ms=?,input_tokens=?,output_tokens=?,cost=? WHERE id=?",
+                (status, elapsed_ms, input_tokens, output_tokens, cost, attempt_id),
+            )
+
+    # 按时间返回最近调用，各币种费用由界面分别统计。
+    def list_attempts(self) -> list[dict]:
+        return [
+            dict(row)
+            for row in self.db.execute("SELECT * FROM attempts ORDER BY started_at DESC LIMIT 500")
+        ]

@@ -21,11 +21,21 @@ Read [proposal](proposal.md), [requirements](specs.md), [design](design.md), and
 - [x] 3.4 Validate docs, bounded diff, version/dependency compatibility, typecheck, tests, Ruff, build and isolated desktop flow (AC-03/04).
 - [x] 3.5 Commit, create annotated test0.02 tag, push main and this tag, verify remote refs (AC-04).
 
+## 4. Normalize Existing Code — Revision 3
+
+- [x] 4.1 Record explicit authorization and preserve unrelated pending product/model plans (AC-09).
+- [x] 4.2 Introduce operation maps, runtime validation, protocol docs and shared samples (AC-06).
+- [x] 4.3 Split frontend features and desktop window/IPC/request/worker responsibilities (AC-05).
+- [x] 4.4 Extract Python domain, application ports/use cases, infrastructure and bootstrap; migrate imports without schema changes (AC-05).
+- [x] 4.5 Test cancellation/commit, parser ownership, lock cleanup, compensation/primary errors and request terminals (AC-07).
+- [x] 4.6 Normalize scripts/conventions/formatting/checks; reconcile Chinese docs and release versions (AC-08/09).
+- [ ] 4.7 Finish final checks, diff/link review, commit and publish normal main plus a new test0.03 tag; verify remote refs (AC-08/09).
+
 ## Handoff
 
-- Mode / revision / approval: execute / 2 / approved by user architecture selection plus explicit publish/version request.
-- Progress: adopted standard and test0.02 released; checks and remote refs verified. This completion note is a follow-up documentation commit.
-- Workspace: pre-existing changes belonged to this task's revision-1 draft; no unrelated user changes observed.
+- Mode / revision / approval: execute / 3 / approved by “进行规范” and “规范完提交代码”, plus existing publication/version authorization.
+- Progress: actual code normalization implemented; final verification and publication in progress. Revision-2 evidence remains historical.
+- Workspace: preserve pending product/technical docs and all five product task records; stage only this task's hunks in the mixed overview.
 - Blockers: none observed.
-- Next action: future development follows root AGENTS.md; plan any concrete architecture migration separately within its authorized scope.
-- Unverified: full architecture conformance, real APIs, migrations and packaging. No architecture refactoring performed.
+- Next action: finish verification and publication, then follow root AGENTS.md.
+- Unverified: real providers, OCR, performance, clean-machine installation and pending API/model features. Static conformance checks do not prove all semantics.

@@ -1,54 +1,61 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
-import { join, resolve } from 'node:path'
-import { WorkerBridge } from './worker'
+// 文件：index.ts
+// 层：Electron 启动装配
+// 作用：连接窗口、受限 IPC 和 Python 桥接。
+// 说明：保持单实例和既有用户数据位置。
+import { app, dialog, type BrowserWindow } from 'electron'
+import { resolve } from 'node:path'
+import { registerIpc } from './ipc_gateway'
+import { createWindow } from './window_manager'
+import { WorkerBridge } from './worker_bridge'
 
 app.setName('KnowledgeBase')
-const root = resolve(__dirname, '../..')
 let window: BrowserWindow | null = null
-let bridge: WorkerBridge
+let bridge: WorkerBridge | undefined
 let quitting = false
-const operations = new Set(['bootstrap', 'knowledge.list', 'knowledge.get', 'knowledge.save', 'knowledge.delete',
-  'knowledge.bucket', 'attachments.add', 'attachments.remove', 'sources.list', 'sources.retain', 'sources.delete',
-  'providers.save', 'providers.delete', 'providers.select', 'providers.test', 'usage.list', 'question', 'recommendations'])
 
-if (!app.requestSingleInstanceLock()) app.quit()
-else {
-  app.on('second-instance', () => { if (window?.isMinimized()) window.restore(); window?.focus() })
-  app.whenReady().then(() => {
-    bridge = new WorkerBridge(root, process.env.KB_DATA_DIR || app.getPath('userData'), event => window?.webContents.send('kb:event', event))
-    const trusted = (event: Electron.IpcMainInvokeEvent) => {
-      if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame) throw new Error('请求来源无效')
-    }
-    ipcMain.handle('kb:request', (event, operation: string, params: Record<string, unknown>, id?: string) => {
-      trusted(event)
-      if (!operations.has(operation) || !params || typeof params !== 'object' || Array.isArray(params)) throw new Error('无效操作')
-      return bridge.request(operation, params, id)
-    })
-    ipcMain.handle('kb:cancel', (event, id: string) => { trusted(event); if (typeof id === 'string') bridge.cancel(id) })
-    ipcMain.handle('kb:files', async event => {
-      trusted(event)
-      const result = await dialog.showOpenDialog(window!, {
-        title: '加入本次提问', properties: ['openFile', 'multiSelections'],
-        filters: [{ name: '支持的文档', extensions: ['md', 'txt', 'docx', 'pdf'] }]
-      })
-      return result.canceled ? [] : result.filePaths
-    })
-    window = new BrowserWindow({
-      width: 1320, height: 900, minWidth: 980, minHeight: 700, backgroundColor: '#f7f8fa',
-      title: '知序 · test0.02', autoHideMenuBar: true,
-      webPreferences: { preload: join(__dirname, '../preload/index.js'), contextIsolation: true, nodeIntegration: false, sandbox: true }
-    })
-    window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
-    window.webContents.on('will-navigate', event => event.preventDefault())
-    window.webContents.on('will-attach-webview', event => event.preventDefault())
-    if (process.env.ELECTRON_RENDERER_URL) window.loadURL(process.env.ELECTRON_RENDERER_URL)
-    else window.loadFile(join(__dirname, '../renderer/index.html'))
-    window.on('closed', () => { window = null })
+// 应用就绪后装配；窗口关闭触发后台有界退出。
+function startDesktop(): void {
+  bridge = new WorkerBridge(
+    resolve(__dirname, '../..'),
+    process.env.KB_DATA_DIR || app.getPath('userData'),
+    (event) => window?.webContents.send('kb:event', event)
+  )
+  registerIpc(() => window, bridge)
+  window = createWindow()
+  window.on('closed', () => {
+    window = null
   })
+}
+
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+} else {
+  app.on('second-instance', () => {
+    if (window?.isMinimized()) {
+      window.restore()
+    }
+    window?.focus()
+  })
+  // 启动失败给出恢复入口，避免留下未处理 Promise 和不可操作的窗口。
+  void app
+    .whenReady()
+    .then(startDesktop)
+    .catch(() => {
+      dialog.showErrorBox('启动失败', '无法初始化桌面程序，请检查运行环境后重新启动。')
+      app.quit()
+    })
   app.on('window-all-closed', () => app.quit())
-  app.on('before-quit', event => {
-    if (quitting || !bridge) return
-    event.preventDefault(); quitting = true
-    bridge.stop().finally(() => app.quit())
+  app.on('before-quit', (event) => {
+    if (quitting || !bridge) {
+      return
+    }
+    event.preventDefault()
+    quitting = true
+    void bridge
+      .stop()
+      .catch(() => {
+        console.error('后台关闭失败；请检查本应用后台是否已退出。')
+      })
+      .finally(() => app.quit())
   })
 }

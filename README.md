@@ -1,8 +1,8 @@
 # 知序 · 个人知识库
 
-当前版本：**test0.02**。这是 Windows 桌面开发测试版，采用 Electron + React / TypeScript + Python + SQLite。
+当前版本：**test0.03**。这是 Windows 桌面开发测试版，采用 Electron + React / TypeScript + Python + SQLite。
 
-本次迭代正式纳入[项目编码与分层规范](docs/确认页/工程规范/项目编码与分层规范.md)，并通过根目录 [AGENTS.md](AGENTS.md) 要求后续开发遵守：按进程划职责、Python 后台四层、前端按功能组织。业务能力沿用 test0.01，源码架构尚未整体迁移；凭据和数据位置保持兼容。
+本次已按[项目编码与分层规范](docs/确认页/工程规范/项目编码与分层规范.md)整改存量代码：React 按探索、知识、资料、接口和用量组织；Electron 分开窗口、IPC 与后台生命周期；Python 采用入口、应用、领域、基础设施四层，由装配点注入实现。相关说明见[存量代码整改](docs/确认页/工程规范/存量代码整改.md)，后续开发遵守根目录 [AGENTS.md](AGENTS.md)。已有功能、数据库结构、凭据身份和用户数据位置保持兼容。
 
 ## 启动
 
@@ -45,15 +45,14 @@ npm start
 ## 验证与版本管理
 
 ```powershell
-npm run typecheck
-npm test
-npm run build
+npm run check
 npm run test:ui
-.venv\Scripts\python.exe -m ruff check services/knowledge-agent tests
 ```
 
-桌面测试使用临时数据目录和本地合成文件；本版报告与截图保存在忽略提交的 `artifacts/test0.02/`。执行桌面测试前须先构建。
+`check` 包含命名、文件头、函数规模、分层边界、Prettier／Ruff、严格类型、Python 与宿主边界测试及构建。格式由 `.prettierrc.json` 和 `ruff.toml` 定义；新增开发工具 Prettier 锁定为 3.6.2，既有依赖未升级。协议说明及两端共用样例位于 [contracts](contracts/protocol.md)。自动检查不代替行为和注释评审。
 
-Git 默认分支为 `main`，本版标签为 `test0.02`；npm 使用预发布版本 `0.0.1-test.0.2`。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
+桌面测试使用独立 Electron profile、临时数据目录和本地合成文件，可与正式运行实例共存；本版报告与截图保存在忽略提交的 `artifacts/test0.03/`。执行桌面测试前须先构建。
+
+Git 默认分支为 `main`，本版标签为 `test0.03`；npm 使用预发布版本 `0.0.1-test.0.3`。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
 
 完整产品方向与未完成的 v1 验收要求见 [确认文档总览](docs/确认页/确认文档总览.md)。

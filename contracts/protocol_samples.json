@@ -1,0 +1,52 @@
+{
+  "scenarios": [
+    {
+      "request": { "id": "bootstrap-sample", "operation": "bootstrap", "params": {} },
+      "response": {
+        "id": "bootstrap-sample",
+        "type": "result",
+        "result": {
+          "version": "test0.03",
+          "data_dir": "<temporary>",
+          "providers": [],
+          "knowledge": [],
+          "sources": [],
+          "notice": "关键词检索 · 未启用语义索引；OCR、旧 DOC 与安装包仍待验证"
+        }
+      }
+    },
+    {
+      "request": { "id": "usage-sample", "operation": "usage.list", "params": {} },
+      "response": { "id": "usage-sample", "type": "result", "result": [] }
+    },
+    {
+      "request": {
+        "id": "question-sample",
+        "operation": "question",
+        "params": {
+          "query": "协议样例",
+          "scope": "knowledge",
+          "attachment_ids": [],
+          "purpose": "question"
+        }
+      },
+      "response": {
+        "id": "question-sample",
+        "type": "result",
+        "result": {
+          "content": "未找到关键词相关的本地内容。换个说法试试，或在 API 配置中添加接口后生成学习内容。",
+          "citations": [],
+          "recommendations": [],
+          "notice": "本地检索结果；未调用模型、未自动收录。关键词检索；未启用语义索引，同义内容可能漏检。"
+        }
+      }
+    }
+  ],
+  "invalid_requests": [
+    null,
+    [],
+    42,
+    { "id": "bad", "operation": [] },
+    { "id": "bad", "operation": "bootstrap", "params": [] }
+  ]
+}
