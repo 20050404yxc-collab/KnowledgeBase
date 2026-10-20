@@ -201,7 +201,7 @@ try {
     'edit note'
   )
   assert.equal(await ui.evaluate('window.__noteExecuted === undefined'), true)
-  report.checks.push('edit note; hostile HTML displayed as text, never executed')
+  report.checks.push('edit note; hostile HTML blocked and never executed')
   await fill('.inline-search', '天文学')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('没有找到匹配的知识')`),
@@ -222,17 +222,26 @@ try {
     'attachment parsing'
   )
   await fill('#question', '数据库事务')
-  await click('检索并提问 ↗')
+  await ui.evaluate(`(() => {
+    const input = document.querySelector('[aria-label="回答范围"]')
+    Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(input, 'files')
+    input.dispatchEvent(new Event('change', {bubbles: true}))
+  })()`)
+  await click('拆解并学习 ↗')
   await waitFor(
     () =>
       ui.evaluate(
-        `document.querySelector('.answer-panel')?.innerText.includes('尚未配置生成接口')`
+        `document.querySelector('.directory-panel')?.innerText.includes('本次文件') && document.body.innerText.includes('尚未配置生成接口')`
       ),
     'offline question'
   )
   assert.equal(await ui.evaluate('window.__documentExecuted === undefined'), true)
-  assert.ok(await ui.evaluate(`document.querySelectorAll('.citations button').length > 0`))
-  await ui.evaluate(`document.querySelector('.citations button').click()`)
+  assert.ok(await ui.evaluate(`document.querySelectorAll('.directory-hit').length > 0`))
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.directory-panel').innerText.includes('已有知识')`),
+    false
+  )
+  await ui.evaluate(`document.querySelector('.directory-hit button').click()`)
   await waitFor(
     () => ui.evaluate(`document.querySelector('.citation-locator') !== null`),
     'citation excerpt'

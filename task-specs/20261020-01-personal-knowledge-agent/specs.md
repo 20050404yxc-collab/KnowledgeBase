@@ -2,6 +2,8 @@
 
 ## Purpose
 
+Revision 4 implements safe reading, independent lexical retrieval, question-point directories and continuing supplements. The user selected lexical-only scope and authorized implementation with "开始修改". R4-01..R4-08 below are locally verified with isolated data and mocked providers; real-provider quality, production migration and semantic search are not claimed.
+
 Revision-3 API/model additions were authorized by "开始修改" and implemented on the test0.03 baseline. Current isolated evidence is in verification.md; prior test0.01 results remain historical and do not substitute for this validation.
 
 Define the planned observable behavior of the personal knowledge desktop agent. These remain the full v1 requirements for authorized revision-2 development. test0.01 provides partial implementation evidence; it does not establish final launch acceptance or settle OCR/DOC decisions. Library candidates and implementation details belong in design.md.
@@ -337,7 +339,76 @@ Formal knowledge SHALL be durably committed independently of rebuildable search 
 
 ## MODIFIED Requirements
 
-None. The workspace contained no existing implementation baseline.
+### Requirement: R4-01 Readable and safe knowledge content (AC-01/05/17)
+The system SHALL render Markdown headings, emphasis, lists, tables and code safely, preserve editable source, and map authorized citation markers outside code to navigable references. Raw HTML, scripts and dangerous URLs MUST NOT execute.
+
+#### Scenario: Markdown and malicious content in one result
+- GIVEN complete content containing headings, bold text, a table, code with literal markers, authorized evidence markers and malicious HTML/URLs
+- WHEN the user opens the detail
+- THEN formatting and real references are readable, code remains literal, and active content is blocked
+- AND old note source is not rewritten to achieve display formatting.
+
+### Requirement: R4-02 Independent complete local lexical retrieval (AC-02/14/19)
+The system SHALL expose a zero-model-call local search of knowledge, supplements and allowed retained source blocks, with grouped hits, excerpts, explicit scope and pagination. Retrieval MUST NOT silently exclude records merely because they are older than the latest 5000 entries. Frequency filters SHALL remain separate from themes.
+
+#### Scenario: Offline retrieval of older supplements
+- GIVEN more than 5000 notes, an older matching supplement and retained source, and no model/network
+- WHEN the user searches all frequency buckets with Chinese and multiple keyword input
+- THEN the older match and allowed source are reachable through pages with stable links and no model request
+- AND limited synonym recall and actual scope are disclosed.
+
+### Requirement: R4-03 Question points rather than question titles (AC-01/02/08)
+The system SHALL normalize a question and return validated, bounded, theme-grouped knowledge points with focused titles, facets and existing/new/supplement/review statuses. It MUST NOT use a whole raw question as the new knowledge title or force multiple categories for a single simple point. A directory label alone MUST NOT count as captured knowledge.
+
+#### Scenario: Several facets in one question
+- GIVEN a question asking camera integration, UI responsiveness and reconnect handling
+- WHEN the user requests decomposition with an available model
+- THEN distinct focused knowledge points are returned in related themes rather than a single article named after the question
+- AND invalid/duplicate/oversized plans fail observably while local results remain available.
+
+### Requirement: R4-04 Selectable directory and on-demand details (AC-01/08/11/13)
+The system SHALL show a directory before new detail generation. Opening existing content SHALL use local storage; new learning and supplements SHALL require selecting the relevant point/action. Unselected points MUST NOT generate detail or claim capture. Only active reading counts under the existing frequency policy; planning and each generation attempt SHALL be accounted separately.
+
+#### Scenario: Open one of several planned points
+- GIVEN a directory with an existing point and several new points
+- WHEN the user opens the existing point then requests learning for one new point
+- THEN the existing detail causes no model call and only the selected new point is generated and captured after complete validation
+- AND returning to the directory retains completed statuses without generating the remaining points.
+
+### Requirement: R4-05 Attributable incremental accumulation (AC-08/16/19)
+The system SHALL preserve stable knowledge identity and original user-edited content, append attributable complete supplements to confirmed targets, and include supplements in subsequent reading/search. A repeated question or title MUST NOT alone suppress genuinely new facets or new attachment evidence. Supplements SHALL support independent edit/delete with index consistency.
+
+#### Scenario: Later evidence enriches an existing point
+- GIVEN an existing edited reconnect note and a later question with new backoff evidence
+- WHEN the user requests and completes a supplement to the confirmed reconnect target
+- THEN the original note remains unchanged and the supplement retains time/model/citations across restart
+- AND editing/deleting that supplement updates search without deleting the original note or source file.
+
+### Requirement: R4-06 Conservative identity and idempotency (AC-08/15/16/19)
+The system SHALL distinguish same-named points in different contexts, reuse exact duplicate content and serialize or revalidate target writes. Ambiguous association and conflicting claims SHALL remain reviewable and MUST NOT silently merge or overwrite. Duplicate clicks/retries/terminal events MUST NOT duplicate capture.
+
+#### Scenario: Concurrent enrichment and ambiguous names
+- GIVEN concurrent requests to supplement one target and another context with the same short title
+- WHEN completions arrive after a target edit or deletion
+- THEN writes are revalidated, repeated content is stored at most once, and ambiguous/conflicting candidates require target confirmation or separate capture
+- AND stale completions cannot recreate a deleted target or overwrite manual content.
+
+### Requirement: R4-07 Scoped failure and cancellation behavior (AC-05/13/14/15/17)
+The system SHALL retain local results on model failure, reject late UI responses, enforce selected evidence scope and report per-point commit outcomes. Cancellation before a point commits SHALL prevent that capture; previously committed points SHALL remain and MUST NOT be reported as undone. Model planning/detail requests SHALL use snapshotted configuration and no implicit retry.
+
+#### Scenario: Cancellation after an earlier point committed
+- GIVEN a completed first point and a second point generating within file-only scope
+- WHEN the second request is cancelled or fails and a stale response arrives after a selection change
+- THEN the first point remains, the second incomplete content is not captured, the active selection is unchanged and knowledge-library evidence never leaks into file-only scope.
+
+### Requirement: R4-08 Recoverable additive migration (AC-16/19)
+The system SHALL migrate schema 2 to 3 only after a consistent recoverable backup, atomically apply topic/supplement/index changes, preserve old records/configuration/frequency/credentials and idempotently reopen. Failed migration SHALL roll back and stop writes, while an unsupported newer schema SHALL be rejected. Old notes MUST NOT be rewritten or model-reclassified in bulk.
+
+#### Scenario: Migration fault and retry
+- GIVEN an isolated schema-2 database with edited knowledge, citations, uses and provider configuration
+- WHEN a schema-3 migration fails mid-transaction then is retried after recovery
+- THEN a consistent backup exists, the failure leaves version/data intact, and retry/reopen produces one valid migrated dataset
+- AND old data remains readable/searchable with unchanged IDs, original content and credential identity.
 
 ## REMOVED Requirements
 

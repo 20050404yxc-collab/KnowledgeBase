@@ -11,6 +11,7 @@ import uuid
 from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.domain.models import ProviderConfig
 
+from .generation_prompts import instructions_for
 from .ports import AttemptRepository, CredentialVault, Emit, ModelTransport
 
 
@@ -27,6 +28,7 @@ class ProviderClient:
     async def generate(
         self, config: ProviderConfig, prompt: str, purpose: str, emit: Emit, *, test: bool = False
     ) -> str:
+        config = {**config, "_instructions": instructions_for(purpose)}
         secret = self.vault.get(config["id"])
         if not secret:
             raise ValueError("Windows 凭据中未找到 API Key，请重新保存该配置")

@@ -7,6 +7,7 @@ import { useNavigation } from './use_navigation'
 import { useLibrary } from './use_library'
 import { useReading } from '../features/knowledge/use_reading'
 import { useKnowledge } from '../features/knowledge/use_knowledge'
+import { useDirectory } from '../features/exploration/use_directory'
 import { useExploration } from '../features/exploration/use_exploration'
 import { useModelSelection } from '../features/providers'
 import { useProviderForm } from '../features/providers/use_provider_form'
@@ -27,6 +28,15 @@ export function useAppModel() {
     ...reading,
     generationOptions
   })
+  const directory = useDirectory({
+    ...feedback,
+    ...navigation,
+    ...reading,
+    ...knowledge,
+    ...exploration,
+    reload: library.reload,
+    generationOptions
+  })
   const providerForm = useProviderForm()
   return {
     ...feedback,
@@ -35,8 +45,10 @@ export function useAppModel() {
     ...reading,
     ...knowledge,
     ...exploration,
+    ...directory,
     ...providerForm,
     ...selection,
+    openItem: directory.openLocalItem,
     generationOptions
   }
 }

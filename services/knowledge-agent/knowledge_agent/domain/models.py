@@ -27,6 +27,19 @@ class Document(TypedDict):
     retained: bool
 
 
+class Supplement(TypedDict):
+    id: str
+    knowledge_id: str
+    title: str
+    content: str
+    created_at: str
+    updated_at: str
+    citations: list[EvidenceBlock]
+    model: str
+    provider_name: str
+    edited: bool
+
+
 class Knowledge(TypedDict):
     id: str
     title: str
@@ -40,6 +53,9 @@ class Knowledge(TypedDict):
     citations: list[EvidenceBlock]
     model: str | None
     provider_name: str | None
+    theme: NotRequired[str]
+    version: NotRequired[str]
+    supplements: NotRequired[list[Supplement]]
 
 
 class SourceSummary(TypedDict):

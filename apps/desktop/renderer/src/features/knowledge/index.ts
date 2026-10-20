@@ -5,3 +5,4 @@
 export type { Reading } from './use_reading'
 export { AnswerPanel } from './AnswerPanel'
 export { KnowledgeList } from './KnowledgeList'
+export { MarkdownContent } from './MarkdownContent'

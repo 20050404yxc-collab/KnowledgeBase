@@ -11,14 +11,19 @@ import type { Bucket } from '../../../../../../contracts/desktop'
 
 // 显示回答标题、收录状态和手动保存入口。
 export function AnswerHeading() {
-  const { guarded, reload, selected, setSelected } = useAppContext()
+  const { guarded, reload, selected, setSelected, answer, selectedPoint } = useAppContext()
+  let label = '未收录内容'
+  if (selected) {
+    label = selected.generated ? 'AI 学习内容' : '我的知识'
+  }
+  if (answer?.review) {
+    label = '待核对补充'
+  }
   return (
     <div className="answer-heading">
       <div>
-        <span className="pill">
-          {selected?.generated ? 'AI 学习内容' : selected ? '我的知识' : '本地检索'}
-        </span>
-        <h2>{selected?.title ?? '检索与回答'}</h2>
+        <span className="pill">{label}</span>
+        <h2>{selected?.title ?? selectedPoint?.title ?? '检索与回答'}</h2>
       </div>
       {selected && (
         <select

@@ -109,6 +109,7 @@ async function askAction(
     return
   }
   const id = crypto.randomUUID()
+  const sequence = ++state.selectionSequence.current
   // 提交时清空上一轮显示，并以本次 ID 关联后续事件与取消。
   activeRequest.current = id
   setBusy(id)
@@ -133,12 +134,15 @@ async function askAction(
       },
       id
     )
+    void reload()
+    if (sequence !== state.selectionSequence.current) {
+      return
+    }
     setAnswer(value)
     // 只在完整终态到达后展示知识和推荐，流片段不表示收录。
     setSelected(value.knowledge ?? null)
     setRecommendations(value.recommendations)
     setSection('探索')
-    void reload()
   } catch (err) {
     setError(errorText(err))
   } finally {

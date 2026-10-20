@@ -1,7 +1,11 @@
 {
   "scenarios": [
     {
-      "request": { "id": "bootstrap-sample", "operation": "bootstrap", "params": {} },
+      "request": {
+        "id": "bootstrap-sample",
+        "operation": "bootstrap",
+        "params": {}
+      },
       "response": {
         "id": "bootstrap-sample",
         "type": "result",
@@ -16,8 +20,16 @@
       }
     },
     {
-      "request": { "id": "usage-sample", "operation": "usage.list", "params": {} },
-      "response": { "id": "usage-sample", "type": "result", "result": [] }
+      "request": {
+        "id": "usage-sample",
+        "operation": "usage.list",
+        "params": {}
+      },
+      "response": {
+        "id": "usage-sample",
+        "type": "result",
+        "result": []
+      }
     },
     {
       "request": {
@@ -40,13 +52,64 @@
           "notice": "本地检索结果；未调用模型、未自动收录。关键词检索；未启用语义索引，同义内容可能漏检。"
         }
       }
+    },
+    {
+      "request": {
+        "id": "search-sample",
+        "operation": "knowledge.search",
+        "params": {
+          "query": "协议样例"
+        }
+      },
+      "response": {
+        "id": "search-sample",
+        "type": "result",
+        "result": {
+          "items": [],
+          "total": 0,
+          "page": 0,
+          "notice": "本地关键词检索；未调用模型，同义内容可能漏检。"
+        }
+      }
+    },
+    {
+      "request": {
+        "id": "plan-sample",
+        "operation": "question.plan",
+        "params": {
+          "query": "协议样例",
+          "scope": "knowledge"
+        }
+      },
+      "response": {
+        "id": "plan-sample",
+        "type": "result",
+        "result": {
+          "plan_id": "",
+          "points": [],
+          "search": {
+            "items": [],
+            "total": 0,
+            "page": 0,
+            "notice": "本地关键词检索；未调用模型，同义内容可能漏检。"
+          },
+          "notice": "本地检索结果；尚未配置生成接口，未调用模型。"
+        }
+      }
     }
   ],
   "invalid_requests": [
     null,
     [],
     42,
-    { "id": "bad", "operation": [] },
-    { "id": "bad", "operation": "bootstrap", "params": [] }
+    {
+      "id": "bad",
+      "operation": []
+    },
+    {
+      "id": "bad",
+      "operation": "bootstrap",
+      "params": []
+    }
   ]
 }

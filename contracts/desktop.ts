@@ -25,6 +25,65 @@ export interface Knowledge {
   citations: Citation[]
   model?: string | null
   provider_name?: string | null
+  theme?: string
+  version?: string
+  supplements?: Supplement[]
+}
+export interface Supplement {
+  id: string
+  knowledge_id: string
+  title: string
+  content: string
+  created_at: string
+  updated_at: string
+  citations: Citation[]
+  model: string
+  provider_name: string
+  edited: boolean
+}
+export interface SearchHit {
+  id: string
+  kind: 'knowledge' | 'supplement' | 'source'
+  knowledge_id: string
+  title: string
+  theme: string
+  excerpt: string
+  citation?: Citation
+}
+export interface SearchResult {
+  items: SearchHit[]
+  total: number
+  page: number
+  notice: string
+}
+export interface DirectoryPoint {
+  id: string
+  title: string
+  theme: string
+  facet: string
+  target_id: string
+  status: string
+  citation_ids: string[]
+  candidates: { id: string; title: string; theme: string }[]
+}
+export interface QuestionPlan {
+  plan_id: string
+  points: DirectoryPoint[]
+  search: SearchResult
+  notice: string
+}
+export interface LearnInput extends GenerationOptions {
+  plan_id: string
+  point_id: string
+  action: 'learn' | 'supplement' | 'confirm' | 'separate'
+  target_id?: string
+}
+export interface SupplementInput {
+  id: string
+  knowledge_id: string
+  version: string
+  title?: string
+  content?: string
 }
 export interface Attachment {
   id: string
@@ -81,6 +140,7 @@ export interface Answer {
   citations: Citation[]
   recommendations: Recommendation[]
   notice: string
+  review?: boolean
 }
 export interface WorkerEvent {
   id: string
@@ -145,6 +205,17 @@ export interface ModelCatalog {
 }
 export interface RequestMap {
   bootstrap: Record<string, never>
+  'knowledge.search': {
+    query: string
+    page?: number
+    bucket?: Bucket | null
+    scope?: Scope
+    attachment_ids?: string[]
+  }
+  'question.plan': RequestMap['question']
+  'knowledge.learn': LearnInput
+  'supplements.save': SupplementInput
+  'supplements.delete': SupplementInput
   'knowledge.list': { query?: string; bucket?: Bucket | null }
   'knowledge.get': { id: string }
   'knowledge.save': NoteInput
@@ -171,6 +242,11 @@ export interface RequestMap {
 }
 export interface ResultMap {
   bootstrap: Bootstrap
+  'knowledge.search': SearchResult
+  'question.plan': QuestionPlan
+  'knowledge.learn': Answer
+  'supplements.save': Knowledge
+  'supplements.delete': Knowledge
   'knowledge.list': Knowledge[]
   'knowledge.get': Knowledge
   'knowledge.save': Knowledge

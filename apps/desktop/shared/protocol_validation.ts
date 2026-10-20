@@ -4,6 +4,11 @@
 // 说明：每个 DTO 字段均由对应校验器覆盖，不信任 JSON 类型断言。
 import type {
   Answer,
+  Supplement,
+  SearchHit,
+  SearchResult,
+  DirectoryPoint,
+  QuestionPlan,
   Attachment,
   Attempt,
   Bootstrap,
@@ -65,6 +70,51 @@ const citation = object<Citation>({
   text: string,
   retained: optional(boolean)
 })
+const supplement = object<Supplement>({
+  id: string,
+  knowledge_id: string,
+  title: string,
+  content: string,
+  created_at: string,
+  updated_at: string,
+  citations: array(citation),
+  model: string,
+  provider_name: string,
+  edited: boolean
+})
+const kind: Check<SearchHit['kind']> = (value): value is SearchHit['kind'] =>
+  value === 'knowledge' || value === 'supplement' || value === 'source'
+const searchHit = object<SearchHit>({
+  id: string,
+  kind,
+  knowledge_id: string,
+  title: string,
+  theme: string,
+  excerpt: string,
+  citation: optional(citation)
+})
+const searchResult = object<SearchResult>({
+  items: array(searchHit),
+  total: number,
+  page: number,
+  notice: string
+})
+const directoryPoint = object<DirectoryPoint>({
+  id: string,
+  title: string,
+  theme: string,
+  facet: string,
+  target_id: string,
+  status: string,
+  citation_ids: array(string),
+  candidates: array(object({ id: string, title: string, theme: string }))
+})
+const questionPlan = object<QuestionPlan>({
+  plan_id: string,
+  points: array(directoryPoint),
+  search: searchResult,
+  notice: string
+})
 const knowledge = object<Knowledge>({
   id: string,
   title: string,
@@ -77,7 +127,10 @@ const knowledge = object<Knowledge>({
   manual_bucket: nullable(isBucket),
   citations: array(citation),
   model: optional(nullable(string)),
-  provider_name: optional(nullable(string))
+  provider_name: optional(nullable(string)),
+  theme: optional(string),
+  version: optional(string),
+  supplements: optional(array(supplement))
 })
 const attachment = object<Attachment>({
   id: string,
@@ -135,7 +188,8 @@ const answer = object<Answer>({
   knowledge: optional(nullable(knowledge)),
   citations: array(citation),
   recommendations: array(recommendation),
-  notice: string
+  notice: string,
+  review: optional(boolean)
 })
 const bootstrap = object<Bootstrap>({
   version: string,
@@ -147,6 +201,11 @@ const bootstrap = object<Bootstrap>({
 })
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
   bootstrap,
+  'knowledge.search': searchResult,
+  'question.plan': questionPlan,
+  'knowledge.learn': answer,
+  'supplements.save': knowledge,
+  'supplements.delete': knowledge,
   'knowledge.list': array(knowledge),
   'knowledge.get': knowledge,
   'knowledge.save': knowledge,

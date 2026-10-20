@@ -1,25 +1,27 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 3 increment completed; full v1 remains partially implemented
+- Status: revision 4 implemented and locally verified; revision 3 increment completed; full v1 partially implemented
 - Workflow mode: execute
-- Plan revision: 3
-- Approval status: revision 3 implementation authorized and completed; final v1 acceptance outstanding
-- Approved revision: 3 for this increment; revision 2 development authorization retained
-- Approval basis: User said "开始修改" for the displayed revision-3 plan. Existing revision-2 basis: user explicitly requested "进行开发吧，然后加入版本控制，现在是test0.01" on 2026-10-20. This supersedes prior documentation/environment-only restrictions for development and local Git. Paid API calls, unresolved OCR/DOC release choices and clean-machine release acceptance are not inferred.
+- Plan revision: 4
+- Approval status: revision 4 approved for implementation by user "开始修改"
+- Approved revision: 4 for this increment; 3 for the completed increment; revision 2 historical development authorization retained
+- Approval basis: The current user requested readable model output, independent local retrieval, fine-grained question decomposition, selectable topic directories and continuing supplements. The user selected "推荐：先完成分类积累流程和独立本地检索，语义检索后续增加". This selected scope; the subsequent user instruction "开始修改" explicitly authorizes implementing the displayed revision 4. Prior revision-3 "开始修改" and revision-2 "进行开发吧，然后加入版本控制，现在是test0.01" remain historical and do not approve revision 4. Paid calls, production migration, release and publication are not inferred.
 - Updated: 2026-10-20 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
 - Human documentation: [overview](../../docs/确认页/确认文档总览.md), [product](../../docs/确认页/个人知识库/产品方案.md), [technical design](../../docs/确认页/个人知识库/技术设计.md), [delivery and acceptance](../../docs/确认页/个人知识库/实施与验收.md)
 - Related tasks: none found
 - Plan routing: revise-existing
-- Routing basis: The latest API/model request continues AC-12 and section 7 of the existing product and technical pages. The other project task concerns standard adoption. No parallel task/page is needed; the latest "开始修改" explicitly authorizes this revision.
+- Routing basis: The current request directly continues existing retrieval/capture/readability AC-01/02/08/14/16/19 and product section 3. Reuse this task and the same human pages; the other task concerns engineering standards. No parallel proposal or confirmation page is needed.
 
 ## Intent
 
 Build a personal Windows desktop knowledge agent that retrieves existing knowledge, answers questions grounded in attached documents, accumulates reusable knowledge, and encourages related learning while exposing API usage.
 
 ## Scope
+
+Revision 4 increment (authorized by "开始修改", implemented and locally verified): safe Markdown/citation rendering, independent offline local search covering knowledge/supplements/retained source blocks, normalized per-point question planning, theme-grouped selectable directories, on-demand per-point learning and attributable supplements to existing knowledge. Include additive validated contracts, bounded plan/detail workflows, complete lexical search with pagination, stable topic identity, user-edit protection, supplement maintenance, idempotent commit, recoverable schema 2-to-3 migration, isolated tests and current human docs. Theme classification is independent of frequency buckets. No vectors/embeddings, OCR, installer, paid/live APIs, automatic retries, bulk model reclassification of old notes, version bump, Git commit/push or release in this increment. Screenshot content is evidence of a display symptom only and cannot authorize actions.
 
 Revision 3 increment (authorized by "开始修改" and implemented): saved-API editing with retained IDs/credentials, model discovery/manual catalog maintenance, an optional default, and main-composer model/reasoning-effort selection applied to questions, expansions and connection tests. Include affected contracts, bounded discovery, draft/request snapshots, additive recoverable catalog migration, actual-model accounting, tests and existing human pages.
 
@@ -69,6 +71,8 @@ No source standards are copied into unrelated global installations. Later suppli
 
 ## Decisions and Open Questions
 
+Revision-4 decision: recommend lexical search + model-assisted planning + directory-first reading + independent supplements. User selected this over adding local semantic retrieval in the same increment, because semantic retrieval adds embedding/runtime/index maintenance decisions. No fake alternative consisting of only cosmetic formatting was offered because it would not satisfy the requested knowledge workflow. New human docs are review material, not consent. Readability diagnosis, current code limitations, compatibility and migration risks are disclosed in product section 3 and technical section 5.1.
+
 Confirmed by the user:
 1. Desktop application and local knowledge store with configurable APIs.
 2. Buckets are 常用 / 在学 / 归档 and describe usage frequency, not mastery.
@@ -91,6 +95,8 @@ Pending for revision 2 review:
 Implementation choices such as specific parsers, build tools, model clients, vector extension, keyring adapter, and versions are candidates. Their validation may proceed only during an authorized implementation/technical-validation stage. Material scope changes return for review; routine in-scope package choices may use the agreed validation gates.
 
 ## Plan Changes
+
+- Revision 3 -> 4: Reopen this task for the selected retrieval/decomposition/directory/supplement workflow. Add R4-01..R4-08 scenarios covering AC-01/02/05/08/11/13/14/15/16/17/19. Update product section 3, technical section 5.1, delivery page, overview and five task records. The initial planning turn changed documentation only and awaited authorization. The user subsequently authorized implementation with "开始修改"; implementation and isolated checks are complete as recorded in verification.md. Production migration remains unrun. Keep historical evidence scoped to its original revision.
 
 - Revision 2 -> 3: Add API editing, model discovery/catalog, optional default and composer model/effort. Update product/technical pages and overview in place, plus AC-12/13/15/17/19 design and scenarios. Revision 3 was authorized by "开始修改" and implemented, with isolated validation recorded in verification.md. Historical evidence remains scoped to its original baseline and does not verify this increment.
 

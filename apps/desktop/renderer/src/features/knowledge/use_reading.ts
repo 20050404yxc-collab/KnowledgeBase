@@ -2,7 +2,7 @@
 // 层：React 交互 hook
 // 作用：持有当前知识、回答、引用弹窗及笔记编辑状态。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import type {
   Answer,
   Citation,
@@ -12,6 +12,7 @@ import type {
 
 // 持有当前知识、回答、引用弹窗及笔记编辑状态。
 export function useReading() {
+  const selectionSequence = useRef(0)
   const [answer, setAnswer] = useState<Answer | null>(null)
   const [selected, setSelected] = useState<Knowledge | null>(null)
   const [recommendations, setRecommendations] = useState<Recommendation[]>([])
@@ -22,6 +23,7 @@ export function useReading() {
   const visibleCitations = answer?.citations ?? selected?.citations ?? []
 
   return {
+    selectionSequence,
     answer,
     setAnswer,
     selected,

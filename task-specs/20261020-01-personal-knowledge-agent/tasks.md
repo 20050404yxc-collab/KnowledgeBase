@@ -1,6 +1,21 @@
 # Execution Tasks
 
-Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Product development and local Git are authorized by the user at test0.01. Full-v1 launch acceptance remains outstanding.
+Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Revision 4 was authorized with "开始修改", implemented and locally verified. Historical development/Git authorizations remain scoped to earlier increments. Full-v1 launch acceptance remains outstanding.
+
+## Revision 4 knowledge workflow (completed locally)
+
+- [x] R4.1 Inspect applicable standard, existing human docs and direct rendering/search/question/validation/persistence/caching chains; record confirmed diagnosis and unverified model behavior.
+- [x] R4.2 Obtain scope selection: lexical retrieval and classified accumulation now; semantic retrieval later.
+- [x] R4.3 Update existing human pages, UI wireframe, sequence diagram and English task records; do not change product files.
+- [x] R4.4 User said "开始修改"; obtain implementation authorization for this displayed revision and review its current docs.
+- [x] R4.5 Add validated additive plan/search/learn/supplement contracts and samples; entrypoints/allowlist/API client; preserve old operations; R4-02/03/04/07.
+- [x] R4.6 Implement stable theme/topic identity, schema-3 consistent backup/migration/rollback, supplement CRUD, atomic idempotency and rebuildable lexical index; R4-02/05/06/08.
+- [x] R4.7 Implement complete paginated lexical search with offline and scoped source results, including old notes/supplements and >5000-record coverage; R4-02/07.
+- [x] R4.8 Implement normalized bounded plan generation/validation and per-topic learning, update-aware reuse, ambiguous/conflicting target confirmation and request/target commit coordination; R4-03/04/05/06/07.
+- [x] R4.9 Implement directory/details states and responsive layout, safe Markdown/citation renderer, independent search and supplement maintenance; R4-01/02/04/05/06/07.
+- [x] R4.10 Run necessary mocked behavior/fault tests, `npm run check`, built isolated `npm run test:ui`, visual QA and migration recovery; reconcile current human docs with actual behavior; R4-01..R4-08.
+
+R4 handoff: implemented on the test0.03 architecture with no release/version change. `npm run check` passes (111 Python tests, 5 host tests, standards/format/types/build); isolated `npm run test:ui` passes 14 reported flows, with directory/Markdown/reference/supplement/narrow-window screenshots visually checked. Schema-2 backup/recovery/rollback/retry and complete >5000-record retrieval have isolated tests. All target additions require preview confirmation, old manual content is preserved. Real supplier quality, production migration, large-scale performance and full-v1 acceptance remain unverified. No paid APIs, real user credentials/data, commit/push, release or archival in this increment.
 
 ## Revision 3 API/model increment (completed)
 

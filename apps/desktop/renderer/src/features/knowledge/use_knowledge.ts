@@ -22,15 +22,24 @@ export function useKnowledge(options: Feedback & Library & Reading) {
     editor,
     setEditor,
     saving,
-    setSaving
+    setSaving,
+    selectionSequence
   } = options
   // 读取完整知识再加载推荐；主动打开计入后台使用日。
   async function openItem(id: string) {
+    const sequence = ++selectionSequence.current
     await guarded(async () => {
       const item = await api.request('knowledge.get', { id })
+      // 只更新仍由本次选择持有的详情，晚到结果不得覆盖新选择。
+      if (sequence !== selectionSequence.current) {
+        return
+      }
       setSelected(item)
       setAnswer(null)
-      setRecommendations(await api.request('recommendations', { id }))
+      const cards = await api.request('recommendations', { id })
+      if (sequence === selectionSequence.current) {
+        setRecommendations(cards)
+      }
       void reload()
     })
   }
@@ -41,12 +50,15 @@ export function useKnowledge(options: Feedback & Library & Reading) {
       return
     }
     setSaving(true)
+    const sequence = ++selectionSequence.current
     await guarded(async () => {
       const item = await api.request('knowledge.save', editor)
-      setSelected(item)
-      setAnswer(null)
+      if (sequence === selectionSequence.current) {
+        setSelected(item)
+        setAnswer(null)
+        setRecommendations([])
+      }
       setEditor(null)
-      setRecommendations([])
       setMessage('知识已保存')
       void reload()
     })

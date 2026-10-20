@@ -123,8 +123,8 @@ async function editDraft(context) {
 async function generate(context) {
   const { ui, fill, click, waitFor, fixture, screenshot } = context
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
-  await fill('#question', '模型强度界面测试新概念')
-  await click('检索并提问 ↗')
+  await fill('#question', '数据库事务：模型强度界面测试新概念')
+  await click('拆解并学习 ↗')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('请选择模型；此接口未设置默认模型')`),
     'missing model error'
@@ -143,7 +143,7 @@ async function generate(context) {
   await select(ui, '.composer-caption [aria-label="生成模型"]', 'fixture-b')
   await select(ui, '.composer-caption [aria-label="推理强度"]', 'high')
   await screenshot('desktop-model-selection.png')
-  await click('检索并提问 ↗')
+  await click('拆解并学习 ↗')
   await waitFor(async () => fixture.state.posts.length === 1, 'generation HTTP received')
   assert.equal(
     await ui.evaluate(
@@ -153,30 +153,273 @@ async function generate(context) {
   )
   assert.equal(fixture.state.posts[0].model, 'fixture-b')
   assert.deepEqual(fixture.state.posts[0].reasoning, { effort: 'high' })
-  const answer = JSON.stringify({
-    title: '模型选择验证',
-    content: '隔离服务生成的完整知识正文。',
-    citation_ids: [],
+  finish(fixture, {
+    points: [
+      { title: '模型选择验证', theme: '模型测试', facet: '临时模型和推理强度的作用' },
+      { title: '错误处理', theme: '模型测试', facet: '异常恢复策略' }
+    ]
+  })
+  await waitFor(
+    () => ui.evaluate(`document.querySelectorAll('.directory-point').length === 2`),
+    'point directory'
+  )
+  assert.equal(await ui.evaluate(`document.querySelector('.answer-panel') === null`), true)
+  await screenshot('desktop-directory.png')
+  await ui.evaluate(`document.querySelector('.directory-point').click()`)
+  await click('学习这个知识点')
+  await waitFor(async () => fixture.state.posts.length === 2, 'lazy detail HTTP received')
+  await verifyMarkdown(context)
+}
+
+// 正文验证独立覆盖格式、引用、代码字面量和危险内容拦截。
+async function verifyMarkdown(context) {
+  const { fixture, waitFor, ui } = context
+  const evidence = JSON.parse(fixture.state.posts[1].input).evidence
+  const citation = evidence[0]
+  context.citation = citation
+  const marker = citation ? `[${citation.id}]` : '[unknown]'
+  const content = [
+    '## 连接与退避',
+    '',
+    '**重点**：隔离服务生成的完整知识正文。',
+    '',
+    '- 按点学习',
+    '- 保留原笔记',
+    '',
+    '| 模型 | 状态 |',
+    '| --- | --- |',
+    '| fixture-b | 已验证 |',
+    '',
+    '```js',
+    `const literal = "${marker}"; // ${'longcode'.repeat(30)}`,
+    '```',
+    '',
+    '依据 ' + marker,
+    '',
+    '<script>window.__markdownExecuted=true</script>',
+    '',
+    '[危险链接](javascript:alert(1))',
+    '',
+    '![外部图片](https://example.test/pixel.png)'
+  ].join('\n')
+  finish(fixture, {
+    title: '不采用的整句问题',
+    content,
+    citation_ids: citation ? [citation.id] : [],
     recommendations: []
   })
-  fixture.state.response.setHeader('Content-Type', 'text/event-stream')
-  fixture.state.response.end(
-    [
-      { type: 'response.output_text.delta', delta: answer },
-      { type: 'response.completed', response: { usage: { input_tokens: 10, output_tokens: 20 } } }
-    ]
-      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
-      .join('')
-  )
   await waitFor(
     () =>
       ui.evaluate(`document.querySelector('.answer-panel')?.innerText.includes('隔离服务生成')`),
     'completed generated answer'
   )
+  await verifyRenderedMarkdown(context, marker, citation)
+}
+
+// 验证浏览器实际 DOM 与模型原始 Markdown 的可读映射。
+async function verifyRenderedMarkdown(context, marker, citation) {
+  const { ui, fixture, waitFor, screenshot } = context
+  assert.equal(
+    await ui.evaluate(
+      `!!document.querySelector('.markdown-content h2') && !!document.querySelector('.markdown-content strong') && !!document.querySelector('.markdown-content table') && !!document.querySelector('.markdown-content ul')`
+    ),
+    true
+  )
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.markdown-content code').innerText.includes(${JSON.stringify(marker)})`
+    ),
+    true
+  )
+  assert.equal(
+    await ui.evaluate(
+      `window.__markdownExecuted === undefined && !document.querySelector('.markdown-content img') && !document.querySelector('.markdown-content a[href^="javascript:"]')`
+    ),
+    true
+  )
+  if (citation) {
+    assert.equal(await ui.evaluate(`document.querySelectorAll('.inline-citation').length`), 1)
+    await ui.evaluate(`document.querySelector('.inline-citation').click()`)
+    await waitFor(
+      () => ui.evaluate(`!!document.querySelector('.citation-locator')`),
+      'inline citation'
+    )
+    await ui.evaluate(`document.querySelector('[aria-label="关闭引用"]').click()`)
+  }
+  await screenshot('desktop-markdown.png')
+  await verifyResponsive(context)
+  context.generated = (
+    await ui.evaluate(`window.knowledgeBase.request('knowledge.search', {query: '模型选择验证'})`)
+  ).items.find((hit) => hit.kind === 'knowledge')
+  assert.ok(context.generated)
+  assert.equal(fixture.state.posts.length, 2)
   assert.equal((await providers(ui))[0].model, 'fixture-a')
   const attempts = await ui.evaluate(`window.knowledgeBase.request('usage.list')`)
   assert.equal(attempts[0].model, 'fixture-b')
   assert.equal(attempts[0].cost, null)
+}
+
+// 较窄窗口目录堆叠，长代码在正文内部滚动，不撑开整个窗口。
+async function verifyResponsive({ ui, screenshot }) {
+  await ui.command('Emulation.setDeviceMetricsOverride', {
+    width: 1024,
+    height: 850,
+    deviceScaleFactor: 1,
+    mobile: false
+  })
+  try {
+    assert.equal(
+      await ui.evaluate(
+        `getComputedStyle(document.querySelector('.knowledge-workspace')).gridTemplateColumns.split(' ').length`
+      ),
+      1
+    )
+    assert.equal(
+      await ui.evaluate(`document.documentElement.scrollWidth <= window.innerWidth`),
+      true
+    )
+    assert.equal(
+      await ui.evaluate(
+        `document.querySelector('.answer-panel pre').scrollWidth > document.querySelector('.answer-panel pre').clientWidth`
+      ),
+      true
+    )
+    await ui.evaluate(`document.querySelector('.answer-panel').scrollIntoView({block: 'start'})`)
+    await screenshot('desktop-markdown-narrow.png')
+  } finally {
+    await ui.command('Emulation.clearDeviceMetricsOverride')
+  }
+}
+
+// 完整终态经真实 SSE 返回，目录与正文复用相同传输但各自独立记账。
+function finish(fixture, value) {
+  fixture.state.response.setHeader('Content-Type', 'text/event-stream')
+  fixture.state.response.end(
+    [
+      { type: 'response.output_text.delta', delta: JSON.stringify(value) },
+      { type: 'response.completed', response: { usage: { input_tokens: 10, output_tokens: 20 } } }
+    ]
+      .map((event) => `data: ${JSON.stringify(event)}\n\n`)
+      .join('')
+  )
+}
+
+// 后续问题关联原主题，补充先预览，经核对保存后单独编辑删除并同步搜索。
+async function supplement(context) {
+  const { ui, fill, click, waitFor, fixture, screenshot, generated } = context
+  await fill('#question', '模型选择验证有哪些新内容')
+  await click('拆解并学习 ↗')
+  await waitFor(async () => fixture.state.posts.length === 3, 'supplement planning')
+  finish(fixture, {
+    points: [
+      {
+        title: '模型选择验证',
+        theme: '模型测试',
+        facet: '新增重试与退避说明',
+        target_id: generated.knowledge_id
+      }
+    ]
+  })
+  await waitFor(
+    () => ui.evaluate(`document.querySelectorAll('.directory-point').length === 1`),
+    'supplement directory'
+  )
+  await ui.evaluate(`document.querySelector('.directory-point').click()`)
+  await waitFor(
+    () =>
+      ui.evaluate(`document.querySelector('.answer-panel')?.innerText.includes('隔离服务生成')`),
+    'open original locally'
+  )
+  assert.equal(fixture.state.posts.length, 3)
+  await click('生成补充')
+  await waitFor(async () => fixture.state.posts.length === 4, 'supplement generation')
+  finish(fixture, {
+    title: '补充说明',
+    content: '### 增量补充\n\n**jitterstrategy**：增加退避抖动以分散请求。',
+    citation_ids: [],
+    recommendations: []
+  })
+  await waitFor(
+    () => ui.evaluate(`document.body.innerText.includes('确认归属并保存补充')`),
+    'review before capture'
+  )
+  assert.equal(
+    (
+      await ui.evaluate(
+        `window.knowledgeBase.request('knowledge.get', {id: ${JSON.stringify(generated.knowledge_id)}})`
+      )
+    ).supplements.length,
+    0
+  )
+  await click('确认归属并保存补充')
+  await waitFor(
+    () => ui.evaluate(`document.querySelectorAll('.supplement-item').length === 1`),
+    'supplement saved'
+  )
+  assert.equal(fixture.state.posts.length, 4)
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.answer-panel').innerText.includes('隔离服务生成')`),
+    true
+  )
+  await screenshot('desktop-supplement.png')
+  await maintainSupplement(context)
+}
+
+// 补充独立维护后检索立刻反映新正文，删除不影响原笔记。
+async function maintainSupplement(context) {
+  const { ui, fill, click, waitFor, fixture } = context
+  await click('编辑补充')
+  await fill('[aria-label="补充正文"]', 'editedsupplement 修改后的补充内容')
+  await click('保存补充')
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `document.querySelector('.supplement-item')?.innerText.includes('editedsupplement')`
+      ),
+    'supplement edit'
+  )
+  assert.equal(
+    (
+      await ui.evaluate(
+        `window.knowledgeBase.request('knowledge.search', {query: 'jitterstrategy'})`
+      )
+    ).total,
+    0
+  )
+  assert.equal(
+    (
+      await ui.evaluate(
+        `window.knowledgeBase.request('knowledge.search', {query: 'editedsupplement'})`
+      )
+    ).total,
+    1
+  )
+  await ui.evaluate(`window.confirm = () => true`)
+  await click('删除补充')
+  await waitFor(
+    () => ui.evaluate(`document.querySelectorAll('.supplement-item').length === 0`),
+    'supplement delete'
+  )
+  assert.equal(
+    (
+      await ui.evaluate(
+        `window.knowledgeBase.request('knowledge.search', {query: 'editedsupplement'})`
+      )
+    ).total,
+    0
+  )
+  await fill('#question', '模型选择验证')
+  await click('本地检索')
+  await waitFor(
+    () =>
+      ui.evaluate(`document.querySelector('.local-results')?.innerText.includes('模型选择验证')`),
+    'independent local search'
+  )
+  assert.equal(fixture.state.posts.length, 4)
+  assert.equal(await ui.evaluate(`document.querySelectorAll('.directory-point').length`), 0)
+  context.report.checks.push(
+    'directory lazy learning; safe Markdown table/code/reference; review, edit, delete and index supplement; independent zero-model search'
+  )
 }
 
 // 新功能验收附加到既有桌面回归，失败也删除本轮合成系统凭据。
@@ -186,6 +429,7 @@ export async function checkModelUi(context) {
   try {
     await createDraft(value)
     await generate(value)
+    await supplement(value)
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )

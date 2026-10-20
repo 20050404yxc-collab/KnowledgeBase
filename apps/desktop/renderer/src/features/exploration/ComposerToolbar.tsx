@@ -10,7 +10,18 @@ import { readScope } from './attachment_state'
 
 // 选择文档与回答范围，并提交或取消请求。
 export function ComposerToolbar() {
-  const { guarded, ready, query, scope, setScope, busy, setPathEntry, addFiles } = useAppContext()
+  const {
+    guarded,
+    ready,
+    query,
+    scope,
+    setScope,
+    busy,
+    setPathEntry,
+    addFiles,
+    localSearch,
+    cancelTask
+  } = useAppContext()
   return (
     <div className="composer-toolbar">
       <div className="toolbar-left">
@@ -45,17 +56,21 @@ export function ComposerToolbar() {
           <option value="knowledge">仅知识库</option>
         </select>
       </div>
+      <button
+        type="button"
+        className="secondary"
+        disabled={!ready || !query.trim() || !!busy}
+        onClick={() => void localSearch()}
+      >
+        本地检索
+      </button>
       {busy ? (
-        <button
-          type="button"
-          className="secondary"
-          onClick={() => void guarded(() => api.cancel(busy))}
-        >
+        <button type="button" className="secondary" onClick={() => void cancelTask()}>
           取消任务
         </button>
       ) : (
         <button className="primary" disabled={!ready || !query.trim()}>
-          检索并提问 <span>↗</span>
+          拆解并学习 <span>↗</span>
         </button>
       )}
     </div>

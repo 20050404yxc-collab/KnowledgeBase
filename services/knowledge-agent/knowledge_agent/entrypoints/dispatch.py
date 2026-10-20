@@ -50,6 +50,14 @@ async def dispatch(
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation in {
+        "knowledge.search",
+        "question.plan",
+        "knowledge.learn",
+        "supplements.save",
+        "supplements.delete",
+    }:
+        return await dispatch_topics(service, operation, params, emit)
     if operation == "knowledge.list":
         return store.list_knowledge(str(params.get("query", "")), params.get("bucket"))
     if operation == "knowledge.get":
@@ -90,3 +98,19 @@ async def dispatch(
         item = store.get(params["id"])
         return service.recommendations(item["title"], item["content"], exclude=item["id"])
     raise ValueError("不支持的操作")
+
+
+# 目录操作单独映射，保持原有操作兼容，不在入口实现业务决策。
+async def dispatch_topics(
+    service: KnowledgeService, operation: str, params: dict, emit: Emit
+) -> dict:
+    if operation == "knowledge.search":
+        return service.topics.search(params)
+    if operation in {"supplements.save", "supplements.delete"}:
+        if any(not isinstance(params.get(key), str) for key in ("knowledge_id", "id", "version")):
+            raise ValueError("补充标识或版本无效")
+        return service.store.maintain_supplement(params, operation == "supplements.delete")
+    service.topics.client = service.client
+    if operation == "question.plan":
+        return await service.topics.plan(params, emit)
+    return await service.topics.learn(params, emit)

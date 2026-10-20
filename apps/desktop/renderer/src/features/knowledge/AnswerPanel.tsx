@@ -8,14 +8,21 @@ import { useAppContext } from '../../app/AppContext'
 import { AnswerHeading } from './AnswerHeading'
 import { CitationList } from './CitationList'
 import { NoteFooter } from './NoteFooter'
+import { MarkdownContent } from './MarkdownContent'
+import { SupplementList } from './SupplementList'
 
 // 安全显示当前回答正文与引用入口。
 export function AnswerPanel() {
-  const { answer, selected, visibleContent, visibleCitations } = useAppContext()
+  const { answer, selected, visibleContent, visibleCitations, setCitation } = useAppContext()
   return (
     <article className="answer-panel">
       <AnswerHeading />
-      <div className="reading-text">{visibleContent}</div>
+      <MarkdownContent
+        content={visibleContent ?? ''}
+        citations={visibleCitations}
+        onCitation={setCitation}
+      />
+      {selected && <SupplementList />}
       {visibleCitations.length > 0 && <CitationList />}
       {answer?.notice && <p className="result-notice">{answer.notice}</p>}
       {selected && <NoteFooter />}

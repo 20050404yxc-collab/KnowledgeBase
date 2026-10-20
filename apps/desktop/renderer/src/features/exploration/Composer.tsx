@@ -11,13 +11,13 @@ import { ComposerToolbar } from './ComposerToolbar'
 
 // 组合问题输入、附件列表与提交工具栏。
 export function Composer() {
-  const { attachments, ask } = useAppContext()
+  const { attachments, buildDirectory } = useAppContext()
   return (
     <section className="composer">
       <form
         onSubmit={(event) => {
           event.preventDefault()
-          void ask()
+          void buildDirectory()
         }}
       >
         <label className="sr-only" htmlFor="question">

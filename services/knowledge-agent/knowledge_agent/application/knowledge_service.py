@@ -11,6 +11,7 @@ from .model_catalog import discover_models
 from .ports import CatalogReader, CredentialVault, Emit, Generator, Repository, SnapshotFiles
 from .questions import Questions
 from .recommendations import Recommendations
+from .topic_workflow import TopicWorkflow
 
 
 class KnowledgeService:
@@ -33,6 +34,7 @@ class KnowledgeService:
         self.attachments = self.attachment_usecase.documents
         self.cards = Recommendations(store)
         self.questions = Questions(store, client, self.attachments, self.cards)
+        self.topics = TopicWorkflow(store, client, self.questions)
         self.closed = False
         self.catalog = catalog
 

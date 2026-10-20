@@ -9,6 +9,7 @@ import pytest
 from knowledge_agent.application.provider_settings import save_provider
 from knowledge_agent.infrastructure.model_catalog_schema import migrate_catalog
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_topics
 from test_knowledge import Vault
 from test_providers import parameters
 
@@ -21,6 +22,8 @@ def legacy_fixture(root):
     store.db.execute(
         "INSERT INTO attempts (id,purpose,provider,model,status,started_at,currency) VALUES ('old','test','p','m','success','2026-10-20','USD')"
     )
+    store.db.commit()
+    downgrade_topics(store)
     store.db.execute("DROP TABLE provider_models")
     store.db.execute("PRAGMA user_version=1")
     store.db.commit()

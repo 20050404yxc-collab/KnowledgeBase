@@ -31,7 +31,7 @@ export function NoteFooter() {
         <button
           className="danger-text"
           onClick={() => {
-            if (confirm('删除这条知识？关联使用记录会一并删除，此操作不可撤销。')) {
+            if (confirm('删除这条知识？所属补充、索引与使用记录会一并删除，此操作不可撤销。')) {
               void guarded(async () => {
                 await api.request('knowledge.delete', { id: selected.id })
                 setSelected(null)

@@ -14,6 +14,7 @@ from pathlib import Path
 from knowledge_agent.domain.knowledge_rules import (
     BUCKETS,
     bucket_for,
+    identity,
     now,
     relevance,
     validate_note,
@@ -28,9 +29,11 @@ from knowledge_agent.domain.models import (
 )
 
 from .model_catalog_schema import migrate_catalog
+from .topic_schema import migrate_topics, register_tokens
+from .topic_store import TopicStorage
 
 
-class Store:
+class Store(TopicStorage):
     # 初始化本对象拥有的状态和资源，依赖由调用方显式提供。
     def __init__(self, data_dir: Path) -> None:
         self.root = data_dir.resolve()
@@ -51,7 +54,7 @@ class Store:
         self.db.execute("PRAGMA journal_mode=WAL")
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 2:
+        if schema_version > 3:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
         # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
@@ -85,7 +88,10 @@ class Store:
                 input_price REAL, output_price REAL
             );
         """)
+        register_tokens(self.db)
+        self.db.create_function("kb_identity", 1, identity)
         migrate_catalog(self.db, self.root, schema_version)
+        migrate_topics(self.db, self.root)
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
         # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
@@ -118,6 +124,8 @@ class Store:
             for r in self.db.execute("SELECT day FROM uses WHERE knowledge_id=?", (result["id"],))
         ]
         result["bucket"] = bucket_for(result["created_at"], days, result["manual_bucket"])
+        result.update(self.topic_details(result["id"]))
+        result["version"] = self.topic_version(result)
         return result
 
     # 按稳定标识读取当前记录，缺失状态由所属适配器明确处理。
@@ -141,7 +149,7 @@ class Store:
     ) -> list[dict]:
         result = []
         # 先按关键词和分区过滤，再只裁剪列表摘要；持久化正文保持完整。
-        for row in self.db.execute("SELECT * FROM knowledge ORDER BY updated_at DESC LIMIT 5000"):
+        for row in self.db.execute("SELECT * FROM knowledge ORDER BY updated_at DESC"):
             score = relevance(query, row["title"], row["content"]) if query.strip() else 1
             if score <= 0:
                 continue
@@ -151,6 +159,7 @@ class Store:
             if brief:
                 item["content"] = item["content"][:260]
                 item["citations"] = []
+                item["supplements"] = []
             result.append((score, item))
         result.sort(key=lambda pair: pair[0], reverse=True)
         return [item for _, item in result[:200]]
@@ -169,6 +178,14 @@ class Store:
         capture_key: str | None = None,
     ) -> dict:
         title, content, concept = validate_note(title, content)
+        # 主题知识使用独立身份键，编辑标题不退回全库标题唯一规则。
+        if (
+            item_id
+            and self.db.execute(
+                "SELECT 1 FROM topic_links WHERE knowledge_id=?", (item_id,)
+            ).fetchone()
+        ):
+            concept = "topic:" + item_id
         digest = hashlib.sha256(content.encode()).hexdigest()
         # 明确编辑已有 ID 时才更新正文，并拒绝与其他条目标题冲突。
         if item_id:
