@@ -5,8 +5,8 @@
 - Date: 2026-10-20, user timezone Asia/Shanghai.
 - Workspace: `D:/code/KnowledgeBase`.
 - Shell: PowerShell; Windows 11 Pro x64 10.0.26200, RAM 34,078,760,960 bytes. Reused Node 24.18.0, npm 11.16.0, Python 3.13.14, Git 2.55.0.windows.3.
-- Current scope: explicitly authorized environment preparation with installation locations confirmed before mutations; full product revision 2 remains pending. Historical documentation/research evidence follows.
-- Product source and installer: not created. Development dependencies and disposable synthetic samples/credential were exercised; no real secret or model API call was used.
+- Current scope: explicitly authorized product development and local Git at test0.01. Historical documentation/research/environment evidence is retained; final v1 launch acceptance remains outstanding.
+- Product source: implemented and built. Installer: not created. Isolated synthetic documents, mock HTTP/SSE and disposable OS credentials were exercised; no real secret or paid model API call was used.
 
 ## Documentation Evidence
 
@@ -20,42 +20,62 @@
 
 ## Planned Product Acceptance Evidence
 
-All product requirements below are **not run**. No application exists yet, and no product build, tests, network model calls or installer checks were performed.
+The following table separates test0.01 evidence from complete v1 acceptance. Partial evidence SHALL NOT be read as full-v1 passage.
 
-| AC | Planned method | Result | Main evidence needed |
-|---|---|---|---|
-| AC-01 | Interactive desktop/background task run | not run | UI remains usable with progress and navigation |
-| AC-02 | Chinese/rephrased retrieval fixtures with configured capabilities | not run | Existing concepts returned, no automatic duplicates, partial evidence marked |
-| AC-03 | Drag, picker, local path, inaccessible file and empty-query cases | not run | Equivalent input behavior and accurate readiness/errors |
-| AC-04 | MD/TXT/DOCX/PDF and mixed scanned-page fixtures | not run | Supported structure/locators and explicit parsing/OCR limits |
-| AC-05 | Scope and citation assertions plus source navigation | not run | Actual source evidence; no invented locator or unsupported file claim |
-| AC-06 | Long summary, multi-file comparison and partial-coverage cases | not run | Document coverage and per-file/conflict attribution |
-| AC-07 | Session cleanup, explicit admission, original-file comparison | not run | Temporary/full-source policy and preserved excerpts/originals |
-| AC-08 | Success/failure/cancel/duplicate capture tests | not run | Complete attributable knowledge only, atomically saved |
-| AC-09 | Controlled 2/1/0 eligible-item stores and failure cases | not run | Relevant unique 2+1 / 1+2 / 0+3 lists or truthful failure |
-| AC-10 | Repeated in-flight/completed expansion selection | not run | On-click generation, single capture and recovery |
-| AC-11 | Controlled dates/events/timezones and manual override under confirmed A thresholds | not run | 3 distinct use days/14 days; archive age >=30 days and no use for 30 days; daily deduplication and manual override |
-| AC-12 | GPT-first plus DeepSeek/Claude/Grok actual protocol/model and capability cases | not run | Actual endpoints, protocol variants and model/embedding access remain to be verified |
-| AC-13 | Controlled returned/missing usage, retry, cancellation and currencies | not run | Attempt-level accounting, unknown values, distinct estimates |
-| AC-14 | API unavailable and embeddings absent | not run | Usable local browse/search and honest degradation |
-| AC-15 | Failure injection and shutdown/owned-process inspection | not run | Settled UI, no orphan workers, correct commit/cancel semantics |
-| AC-16 | Edited-note refresh and knowledge/source deletion | not run | User edits protected, appropriate index/citation state, originals untouched |
-| AC-17 | Secret-storage/log inspection and hostile-source fixtures | not run | No plaintext credential leakage or source-command authority |
-| AC-18 | Packaged app on clean Windows 11 x64 /16GB /no dedicated GPU | not run | Baseline confirmed, minimum requirements unmeasured; no separately installed Python, explicit OCR/conversion delivery |
-| AC-19 | Transaction/disk fault, source-version and model-dimension changes | not run | Durable canonical content, failure recovery, safe index rebuild |
+| AC | Actual test0.01 evidence | Status / remaining limitation |
+|---|---|---|
+| AC-01 | Real Electron UI, note forms, navigation, parsing status and sandbox checks | partial; complete provider/background interaction remains to be exercised |
+| AC-02 | Chinese lexical fixtures and real UI search, exact-title/content/query reuse | partial; no semantic/rephrased-concept quality acceptance |
+| AC-03 | Real path attachment, invalid URL/format handling, picker/drop implemented | partial; manual picker/drop equivalence not run |
+| AC-04 | Synthetic Chinese MD/DOCX/table sequence and text+blank PDF page | partial; representative complex/scan/OCR delivery remains outstanding |
+| AC-05 | Strict scope excludes local notes, invalid citations rejected, real excerpt modal | partial; factual grounding/conflicts and original-document viewer unverified |
+| AC-06 | Oversized full-summary rejects before API; evidence coverage notices | partial; no hierarchical summaries or real multi-document comparison |
+| AC-07 | Snapshot version retention, source cleanup and original-file comparisons; actual UI retain | passed for test build; broader crash/fault recovery still pending |
+| AC-08 | Success, exact duplicates, parallel coalescing, user edits, invalid citation and precommit cancellation | partial; actual reusable-content/model quality remains unverified |
+| AC-09 | Deterministic 2+1/1+2/0+3 inventory tests; unrelated items excluded | partial; real relevance quality and reopened expansion restoration not implemented |
+| AC-10 | Same-query concurrent/completed reuse tests and click-only UI generation path | partial; expansion quality and full real-provider retry UI not run |
+| AC-11 | Fixed-date 14/30-day boundaries, distinct-day use, new items and manual overrides | passed domain tests; configurable thresholds UI not implemented |
+| AC-12 | Three explicit mock SSE adapters, multiple saved configurations, generation-only disclosure | partial; real providers/models, embedding config and capability compatibility unverified |
+| AC-13 | Mock returned/missing usage, retry attempts, cancellation, user price snapshots and UI currency separation | passed for test build; real/cached/reasoning price semantics not accepted |
+| AC-14 | Actual offline UI browsing, editing, search, excerpt answering; lexical fallback disclosed | passed for test build; real network outages and semantic fallback not exercised |
+| AC-15 | UTF-8 protocol, task cancellation, restart, normal and suspended-tree forced Electron shutdown | partial; pending-request backend failure/recovery and full cancellation matrix not run |
+| AC-16 | Preserve edits, note deletion functions, source deletion and accurate citation-original state | partial; UI deletion confirmations and full fault matrix not run |
+| AC-17 | Actual synthetic Windows Credential Manager roundtrip, DB secret absence, safe source text and renderer sandbox | passed targeted tests; not a comprehensive security audit |
+| AC-18 | Production JS/CSS build and project-runtime startup | not accepted; no bundled Python installer or clean 16GB Windows test |
+| AC-19 | Knowledge/query-map atomic rollback, failed source-copy rollback, source snapshot consistency and durable reopen | partial; no semantic index or full migration/disk-full/crash matrix |
+| DEV-01 | Git baseline 20913b4, implementation commit/tag at delivery; consistent test0.01 metadata; launch entry | passed local development scope; no remote configured/pushed |
+
+## test0.01 Executed Checks (2026-10-20)
+
+All commands ran in `D:/code/KnowledgeBase` on the existing Windows 11 / 32GiB development machine, not a clean 16GB acceptance system.
+
+| Command / method | Result | Evidence |
+|---|---|---|
+| `npm run typecheck` | passed | TypeScript strict compilation; initial request-ID inference issue corrected |
+| `npm test` | passed | 37 tests in the final run; includes direct UTF-8 worker protocol and actual disposable Windows vault roundtrip |
+| `.venv/Scripts/python.exe -m ruff check services/knowledge-agent tests` | passed | No outstanding lint issues after import and deliberate protocol-boundary handling fixes |
+| `npm run build` | passed | Electron main/preload plus React production renderer emitted to ignored out/ |
+| `npm run test:ui` | passed | 11 isolated actual Electron checks: note create/edit, Chinese search/no-hit, local file parsing/citation/retention, source/settings, durable reopen, no offline API attempts, sandbox and normal/forced process-tree cleanup |
+| Visual inspection | passed for captured screens | Viewed artifacts/test0.01/desktop-empty.png, desktop-settings.png and desktop-knowledge.png; actual citation screenshot also generated; no clipping observed in viewed screens at the tested window size |
+| Launcher script | passed | Start-KnowledgeBase.ps1 opens the visible 知序 window with isolated data and closes through its main window; initial hidden-window launch was corrected |
+| Local Markdown links/fences and version metadata | passed | Relative links, balanced fences, exact npm/lock version, VERSION and runtime UI/preload version checked; see test0.01-check.json |
+| Real providers, paid calls, OCR product workflow, installer | not run | No payment/credential assumptions; unresolved launch policy preserved |
+
+The first shutdown test incorrectly expected one Python PID. Inspection established the normal Windows virtualenv launcher/runtime tree; the assertion now verifies one owned tree and absence of all its PIDs. The production timeout cleanup was strengthened to terminate only this owned tree. A fault fixture suspended the isolated tree and verified the 2.5-second timeout cleanup without orphan workers. The protocol test was corrected to wait for replies before EOF, since EOF intentionally cancels pending work during shutdown.
+
+UTF-8 was made explicit in worker output after a direct-launch protocol test exposed the Windows default codepage. Knowledge and repeated-query keys now share one transaction; an injected SQLite-trigger abort proves no partial note is committed. Source-retention trigger failure similarly proves copied managed files are rolled back and the original remains intact.
 
 ## Documentation and Standards Review
 
-The Chinese human pages are intended for user review; the task records use English. Confirmed frequency, provider direction, local-path scope and Windows baseline retain their individual approval; full revision 2 remains pending. Environment preparation was separately authorized after location confirmation and is complete; final OCR/product delivery remains undecided. The Mermaid diagram has not been rendered. Historical revision-2 documentation checks remain recorded above; current environment/static evidence is below. All product behavior remains not run.
+The same Chinese product/technical/delivery/environment pages and overview now distinguish test0.01 behavior from full-v1 goals; README and CHANGELOG explain launch, limits and local Git. English task records retain historical decisions and outstanding acceptance work. User-provided reading/verification instructions and the confirmed no-extra-standards choice were followed; no subagents, global runtime modifications, real API keys or remote publication were used. Existing Mermaid diagram remains a design artifact and has not been rendered.
 
 ## Unverified Items and Residual Risks
 
-- Exact development candidate releases and model hashes are now recorded. Complete dependency/model redistribution terms, product compatibility and packaging have not been audited/validated.
-- Windows 11 x64 /16GB /no dedicated GPU is confirmed. The preparation host/build and candidate model sizes are now recorded, but the clean 16GB acceptance host and representative document set are not established. Real-document parsing accuracy, peak OCR resources, minimum requirements and product installation behavior remain unknown.
-- Actual provider protocols, embedding availability, price semantics and API costs are unknown until the user's configuration and controlled tests exist.
-- Retrieval/capture quality, citation accuracy and duplication control require behavioral evaluation; document structure checks cannot establish them.
-- Frequency A and local-only file addresses are confirmed. Final OCR choice, OCR/DOC launch scope/resource delivery and optional cost controls remain pending review.
-- Product implementation and acceptance are outstanding, not passed or complete.
+- Real-provider availability, structured-output quality, citation entailment and related-learning relevance remain unverified; schema/ID checks cannot prove truth.
+- Chinese lexical search can miss paraphrases; title/content/query identity does not solve semantic duplicates. Scan/OCR, old DOC, semantic indices and hierarchical summaries are unimplemented.
+- Picker/drop share the path backend but manual equivalence was not exercised. PDF embedded-image omissions, complex layouts and representative Chinese PDF quality remain unmeasured.
+- Broad disk-full/crash/migration/late cancellation matrices and restart during an active request remain outstanding. Targeted rollback and both normal/forced shutdown checks passed.
+- No installer, bundled runtime, redistribution/license audit, clean-machine validation, peak resource measurement or measured minimum hardware is delivered.
 
 ## Environment Preparation Evidence (2026-10-20)
 
@@ -80,3 +100,5 @@ Initial smoke-script issues (OmegaConf enum serialization, Vite 8 entry/result A
 Logical file sizes after installation: .venv about 389.3MiB; node_modules about 474.1MiB; OCR models about 30.3MiB, in addition to retained download caches. These are development directory totals, not installer size or physical disk allocation. Alternative OCR/layout stacks, LibreOffice, Docker, CUDA and native build tools were not needed/installed. Basic preparation is complete; full-plan review and all product ACs above remain outstanding.
 
 ENV-01 is satisfied by installation locations plus the entry-script interpreter/cache checks. ENV-02 is satisfied by dependency/model locks, Electron checksum verification, Node/Python smoke receipts and explicit product-verification limits. Environment preparation is complete without archiving the unfinished product task.
+
+Same-title/different-body generated answers now explicitly report that no new note was saved and keep the generated answer separate from the existing note metadata. A strict-file-scope regression test checks original-note preservation, current-file citations and the unsaved-content notice.

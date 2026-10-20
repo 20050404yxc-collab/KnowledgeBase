@@ -5,6 +5,12 @@ __pycache__/
 .ruff_cache/
 build/
 dist/
+out/
+artifacts/
+release/
+*.log
+.coverage
+*.tsbuildinfo
 *.spec
 .env
 .env.*

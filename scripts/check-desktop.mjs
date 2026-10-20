@@ -1,0 +1,192 @@
+// Isolated end-to-end test through Chromium DevTools; never uses the user's data or API credentials.
+import { spawn } from 'node:child_process'
+import { mkdtemp, mkdir, writeFile, rm } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import { resolve, join } from 'node:path'
+import { createServer } from 'node:net'
+import assert from 'node:assert/strict'
+
+const root = resolve(import.meta.dirname, '..')
+const artifactDir = join(root, 'artifacts', 'test0.01')
+await mkdir(artifactDir, { recursive: true })
+const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
+const fixture = join(dataDir, '引用测试.md')
+await writeFile(fixture, '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n', 'utf8')
+const report = { version: 'test0.01', checks: [], screenshots: [] }
+let child, socket
+const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
+async function waitFor(fn, description, timeout = 15000) {
+  const deadline = Date.now() + timeout
+  while (Date.now() < deadline) {
+    const result = await fn().catch(() => false)
+    if (result) return result
+    await delay(120)
+  }
+  throw new Error(`Timed out: ${description}`)
+}
+
+async function launch() {
+  const port = await new Promise(resolve => {
+    const server = createServer()
+    server.listen(0, '127.0.0.1', () => { const value = server.address().port; server.close(() => resolve(value)) })
+  })
+  const env = { ...process.env, KB_DATA_DIR: dataDir }
+  delete env.ELECTRON_RUN_AS_NODE
+  child = spawn(join(root, 'node_modules', 'electron', 'dist', 'electron.exe'), [root, `--remote-debugging-port=${port}`], {
+    cwd: root, env, windowsHide: true, stdio: ['ignore', 'ignore', 'pipe']
+  })
+  child.stderr.resume()
+  const target = await waitFor(async () => (await (await fetch(`http://127.0.0.1:${port}/json`)).json()).find(page => page.type === 'page'), 'debug target')
+  socket = new WebSocket(target.webSocketDebuggerUrl)
+  await new Promise((resolve, reject) => { socket.addEventListener('open', resolve, { once: true }); socket.addEventListener('error', reject, { once: true }) })
+  let sequence = 0
+  const pending = new Map()
+  socket.addEventListener('message', event => {
+    const message = JSON.parse(event.data)
+    const entry = pending.get(message.id)
+    if (entry) { pending.delete(message.id); message.error ? entry.reject(new Error(JSON.stringify(message.error))) : entry.resolve(message.result) }
+  })
+  const command = (method, params = {}) => new Promise((resolve, reject) => {
+    const id = ++sequence; pending.set(id, { resolve, reject }); socket.send(JSON.stringify({ id, method, params }))
+  })
+  const evaluate = async expression => {
+    const result = await command('Runtime.evaluate', { expression, awaitPromise: true, returnByValue: true, userGesture: true })
+    if (result.exceptionDetails) throw new Error(result.exceptionDetails.exception?.description || JSON.stringify(result.exceptionDetails))
+    return result.result.value
+  }
+  await waitFor(() => evaluate(`document.body.innerText.includes('本地后台已连接')`), 'backend handshake')
+  return { command, evaluate }
+}
+
+async function closeApp(ui) {
+  const current = child
+  const exited = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => { current.kill(); reject(new Error('Application did not exit gracefully')) }, 8000)
+    current.once('exit', code => { clearTimeout(timer); resolve(code) })
+  })
+  await ui.evaluate('window.close()').catch(() => {})
+  await exited
+  socket?.close()
+  child = undefined
+}
+
+try {
+  let ui = await launch()
+  const click = async text => ui.evaluate(`(() => { const button = [...document.querySelectorAll('button')].find(b => b.textContent.trim() === ${JSON.stringify(text)}); if (!button) throw Error('Missing button'); button.click() })()`)
+  const fill = async (selector, value) => ui.evaluate(`(() => { const element = document.querySelector(${JSON.stringify(selector)}); if (!element) throw Error('Missing input'); const prototype = element.tagName === 'TEXTAREA' ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype; Object.getOwnPropertyDescriptor(prototype, 'value').set.call(element, ${JSON.stringify(value)}); element.dispatchEvent(new Event('input', {bubbles:true})); })()`)
+  const screenshot = async name => {
+    const result = await ui.command('Page.captureScreenshot', { format: 'png', captureBeyondViewport: false })
+    await writeFile(join(artifactDir, name), Buffer.from(result.data, 'base64')); report.screenshots.push(name)
+  }
+  await screenshot('desktop-empty.png')
+  assert.equal(await ui.evaluate(`typeof require`), 'undefined')
+  report.checks.push('sandboxed renderer: Node require unavailable')
+  await click('＋ 新建知识')
+  await fill('.editor input', '数据库事务与一致性')
+  await fill('.editor textarea', '事务把一组操作视为整体。\n\n成功时全部提交；失败时全部回滚。\n\n这是桌面端到端测试创建的笔记。')
+  await click('保存知识')
+  await waitFor(() => ui.evaluate(`!document.querySelector('.editor') && document.body.innerText.includes('知识已保存')`), 'create note')
+  report.checks.push('create note using actual React form')
+  await click('编辑')
+  await fill('.editor textarea', '事务将多步操作视为整体。\n\n提交与回滚保证操作的原子性；一致性还依赖约束和业务规则。\n\n<script>window.__noteExecuted=true</script>')
+  await click('保存知识')
+  await waitFor(() => ui.evaluate(`!document.querySelector('.editor') && document.body.innerText.includes('业务规则')`), 'edit note')
+  assert.equal(await ui.evaluate('window.__noteExecuted === undefined'), true)
+  report.checks.push('edit note; hostile HTML displayed as text, never executed')
+  await fill('.inline-search', '天文学')
+  await waitFor(() => ui.evaluate(`document.body.innerText.includes('没有找到匹配的知识')`), 'empty search')
+  await fill('.inline-search', '事务')
+  await waitFor(() => ui.evaluate(`document.querySelectorAll('.knowledge-card').length === 1`), 'Chinese retrieval')
+  report.checks.push('Chinese keyword search and no-hit state')
+  await fill('.inline-search', '')
+  await click('本地路径')
+  await fill('.modal input', fixture)
+  await click('解析并加入')
+  await waitFor(() => ui.evaluate(`document.querySelector('.attachment.ready') !== null`), 'attachment parsing')
+  await fill('#question', '数据库事务')
+  await click('检索并提问 ↗')
+  await waitFor(() => ui.evaluate(`document.querySelector('.answer-panel')?.innerText.includes('尚未配置生成接口')`), 'offline question')
+  assert.equal(await ui.evaluate('window.__documentExecuted === undefined'), true)
+  assert.ok(await ui.evaluate(`document.querySelectorAll('.citations button').length > 0`))
+  await ui.evaluate(`document.querySelector('.citations button').click()`)
+  await waitFor(() => ui.evaluate(`document.querySelector('.citation-locator') !== null`), 'citation excerpt')
+  await screenshot('desktop-citation.png')
+  await ui.evaluate(`document.querySelector('[aria-label="关闭引用"]').click()`)
+  await click('保留')
+  await waitFor(() => ui.evaluate(`document.body.innerText.includes('资料已保留')`), 'retain source')
+  report.checks.push('local path attachment, offline scoped evidence, safe citation modal and source retention')
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[4].click()`)
+  await waitFor(() => ui.evaluate(`document.querySelector('.source-row') !== null`), 'source library')
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[5].click()`)
+  await screenshot('desktop-settings.png')
+  assert.equal(await ui.evaluate(`document.querySelector('input[type=password]') !== null`), true)
+  report.checks.push('source and provider settings screens render')
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
+  await waitFor(() => ui.evaluate(`document.querySelector('.knowledge-card') !== null`), 'back to exploration')
+  await screenshot('desktop-knowledge.png')
+  await closeApp(ui)
+  report.checks.push('graceful Electron shutdown')
+  ui = await launch()
+  assert.ok(await ui.evaluate(`document.querySelector('.knowledge-card')?.innerText.includes('数据库事务与一致性')`))
+  await ui.evaluate(`document.querySelector('.knowledge-card').click()`)
+  await waitFor(() => ui.evaluate(`document.querySelector('.reading-text')?.innerText.includes('业务规则')`), 'reopen durable edited note')
+  report.checks.push('restart retains edited note and source database')
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[6].click()`)
+  await waitFor(() => ui.evaluate(`document.body.innerText.includes('还没有调用记录')`), 'usage screen')
+  report.checks.push('offline operations incur no API attempts')
+  const processes = await new Promise((resolve, reject) => {
+    const probe = spawn('powershell.exe', ['-NoProfile', '-Command', `@(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -like '*${dataDir.replaceAll("'", "''")}*' } | Select-Object ProcessId,ParentProcessId) | ConvertTo-Json -Compress`], { windowsHide: true })
+    let output = ''; probe.stdout.on('data', value => output += value); probe.once('error', reject); probe.once('exit', () => resolve(JSON.parse(output)))
+  })
+  const pids = processes.map(p => p.ProcessId)
+  assert.equal(processes.filter(p => !pids.includes(p.ParentProcessId)).length, 1, 'one owned Python process tree (venv launcher and runtime)')
+  await closeApp(ui)
+  const alive = pids.filter(pid => { try { process.kill(pid, 0); return true } catch { return false } })
+  assert.equal(alive.length, 0, 'no owned worker after shutdown')
+  report.checks.push('owned Python worker exits with Electron')
+  // Fault injection: suspend only this isolated app's known worker PIDs, forcing its timeout path.
+  ui = await launch()
+  const stoppedPids = await new Promise((resolve, reject) => {
+    const source = `
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public static class KnowledgeBaseFaultFixture {
+  [DllImport("kernel32.dll")] public static extern IntPtr OpenProcess(uint access, bool inherit, int pid);
+  [DllImport("ntdll.dll")] public static extern int NtSuspendProcess(IntPtr process);
+  [DllImport("kernel32.dll")] public static extern bool CloseHandle(IntPtr handle);
+}
+'@
+$owned = @(Get-CimInstance Win32_Process | Where-Object { $_.Name -eq 'python.exe' -and $_.CommandLine -like '*${dataDir.replaceAll("'", "''")}*' })
+foreach ($entry in $owned) {
+  $handle = [KnowledgeBaseFaultFixture]::OpenProcess(0x0800, $false, $entry.ProcessId)
+  if ($handle -eq [IntPtr]::Zero) { throw 'Cannot suspend isolated fixture worker' }
+  $status = [KnowledgeBaseFaultFixture]::NtSuspendProcess($handle)
+  [void][KnowledgeBaseFaultFixture]::CloseHandle($handle)
+  if ($status -ne 0) { throw 'Suspend failed' }
+}
+$owned | Select-Object -ExpandProperty ProcessId
+`
+    const probe = spawn('powershell.exe', ['-NoProfile', '-Command', source], { windowsHide: true })
+    let output = ''; probe.stdout.on('data', value => output += value); probe.stderr.resume()
+    probe.once('error', reject); probe.once('exit', code => code === 0 ? resolve(output.trim().split(/\s+/).filter(Boolean).map(Number)) : reject(new Error('Fault fixture setup failed')))
+  })
+  assert.ok(stoppedPids.length >= 1)
+  const forcedStart = Date.now()
+  await closeApp(ui)
+  assert.ok(Date.now() - forcedStart >= 2300, 'bounded shutdown timeout was exercised')
+  assert.equal(stoppedPids.filter(pid => { try { process.kill(pid, 0); return true } catch { return false } }).length, 0)
+  report.checks.push('forced timeout shutdown terminates suspended owned Python tree without orphans')
+  report.status = 'passed'
+  await writeFile(join(artifactDir, 'desktop-check.json'), JSON.stringify(report, null, 2) + '\n')
+  console.log(JSON.stringify(report, null, 2))
+} catch (error) {
+  report.status = 'failed'; report.error = String(error)
+  await writeFile(join(artifactDir, 'desktop-check.json'), JSON.stringify(report, null, 2) + '\n')
+  throw error
+} finally {
+  socket?.close()
+  if (child) { child.kill(); await delay(1000) }
+  await rm(dataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 300 }).catch(() => {})
+}

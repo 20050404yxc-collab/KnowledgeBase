@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Define the planned observable behavior of the personal knowledge desktop agent. These are reviewable requirements for revision 2, preserving individually confirmed user decisions without claiming implementation or full-plan approval. Library candidates and implementation details belong in design.md.
+Define the planned observable behavior of the personal knowledge desktop agent. These remain the full v1 requirements for authorized revision-2 development. test0.01 provides partial implementation evidence; it does not establish final launch acceptance or settle OCR/DOC decisions. Library candidates and implementation details belong in design.md.
 
 ## Authorized Environment Preparation (separate from product revision approval)
 
@@ -288,3 +288,14 @@ None. The workspace contained no existing implementation baseline.
 ## REMOVED Requirements
 
 None.
+
+## Authorized Development Version
+
+### Requirement: DEV-01 Local version control and first test build
+The development application SHALL identify itself as test0.01. Source and reproducible dependency locks SHALL be tracked in a local Git repository; generated dependencies, user data, secrets and build outputs SHALL remain excluded. The test delivery SHALL explicitly distinguish its verified behavior from outstanding full-v1 requirements.
+
+#### Scenario: Review and start the first test version
+- GIVEN the prepared development environment
+- WHEN the application is built and started using the documented entry point
+- THEN its UI identifies test0.01, local workflows operate, and Git retains a test0.01 source tag
+- AND the README describes outstanding installation, OCR, semantic retrieval and real-provider validation

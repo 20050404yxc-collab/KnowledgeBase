@@ -1,8 +1,8 @@
 {
-  "name": "knowledgebase-development-environment",
-  "version": "0.0.0",
+  "name": "knowledgebase",
+  "version": "0.0.1-test.0.01",
   "private": true,
-  "description": "Development dependencies only; application implementation is pending.",
+  "description": "Local-first personal knowledge desktop application",
   "engines": {
     "node": ">=24.18.0 <25",
     "npm": ">=11 <12"
@@ -10,7 +10,14 @@
   "packageManager": "npm@11.16.0",
   "scripts": {
     "check:env:node": "node scripts/check-node.mjs",
-    "check:env:python": ".venv\\Scripts\\python.exe scripts/check-python.py"
+    "check:env:python": ".venv\\Scripts\\python.exe scripts/check-python.py",
+    "dev": "electron-vite dev",
+    "start": "electron-vite preview",
+    "build": "electron-vite build",
+    "typecheck": "tsc --noEmit",
+    "test": ".venv\\Scripts\\python.exe -m pytest tests -q",
+    "test:ui": "node scripts/check-desktop.mjs",
+    "check": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -26,5 +33,6 @@
     "electron-vite": "6.0.0",
     "typescript": "7.0.2",
     "vite": "8.3.4"
-  }
+  },
+  "main": "out/main/index.js"
 }

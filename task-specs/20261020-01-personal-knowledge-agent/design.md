@@ -2,7 +2,7 @@
 
 ## Current State and Evidence
 
-The workspace `D:/code/KnowledgeBase` was initially documentation-only. The authorized environment preparation added dependency manifests/locks, isolated `.venv`, project `node_modules`, environment scripts and check receipts. No product application exists. The actual host is Windows 11 x64 build 26200 with 34,078,760,960 bytes RAM, Node 24.18.0/npm 11.16.0, Python 3.13.14 and Git 2.55.0. It is not the 16GB clean acceptance host. Exact candidate versions and synthetic environment checks are recorded in verification.md and the Chinese environment page.
+The workspace `D:/code/KnowledgeBase` was initially documentation-only. The authorized environment preparation added dependency manifests/locks, isolated `.venv`, project `node_modules`, environment scripts and check receipts. This historical environment baseline is now superseded by the test0.01 implementation described below. The actual host is Windows 11 x64 build 26200 with 34,078,760,960 bytes RAM, Node 24.18.0/npm 11.16.0, Python 3.13.14 and Git 2.55.0. It is not the 16GB clean acceptance host. Exact candidate versions and synthetic environment checks are recorded in verification.md and the Chinese environment page.
 
 Selected stack: Electron, React/TypeScript, Python, SQLite. All other named packages are candidates. The Chinese [technical page](../../docs/确认页/个人知识库/技术设计.md) is the reviewer-facing design and must remain aligned with this record.
 
@@ -89,7 +89,7 @@ Current environment preparation includes the following paths and updates:
 - `environment-models.lock.json` and environment-check JSON receipts in this task: model provenance/hashes and environment evidence.
 - Generated files: project `.venv` and `node_modules`; download caches under `D:/dev-tools/cache`; models/config/receipt under `D:/dev-models/KnowledgeBase/rapidocr`.
 
-Future product implementation is proposed under `apps/desktop/`, `services/knowledge-agent/`, `contracts/`, and `tests/fixtures/`; those paths were not created. The preparation does not approve product implementation or OCR launch delivery.
+The current product implementation is under `apps/desktop/`, `services/knowledge-agent/`, `contracts/`, and `tests/`; fixtures are generated inside temporary test directories. The later user request authorizes development and Git, while OCR launch delivery remains undecided.
 
 ## Documentation Plan
 
@@ -100,3 +100,17 @@ Maintain the current Chinese pages in place, keeping approval separate from impl
 Environment verification covers dependency integrity, React/SWC/Vite/Electron execution, Pydantic/httpx mocks, synthetic MD/DOCX/PDF parsing, PDFium rendering, SQLite FTS5/vector loading, disposable Windows credentials, checked local OCR models and offline CPU Chinese/English recognition. GitHub PowerShell endpoints returned 200; Node direct github.com timed out while the official API asset path worked. Install-Electron.ps1 downloads from the official release API and checks the npm package's SHA-256 before extraction. Model copies are checked against the pinned RapidOCR model metadata. No global runtime upgrade or permanent system environment change is required. No product AC is established by these checks.
 
 Future authorized verification combines deterministic domain tests, controlled provider responses, licensed/deidentified document fixtures, interactive citation checks, failure injection, owned-process shutdown inspection, and a clean Windows packaged-app run. Validate binary extension loading, parser/model resource delivery and licenses before dependency lock-in. Record exact commands/results only when actually performed in verification.md.
+
+## test0.01 Implemented Design
+
+- `apps/desktop/main/worker.ts` owns one UTF-8 JSON-lines Python process tree, readiness/pending requests, failure rejection, cancellation and 2.5-second graceful shutdown before owned-tree termination. Windows venv uses a launcher plus runtime; suspended-tree fault injection verified forced cleanup.
+- `apps/desktop/main/index.ts` owns singleton startup, sandboxed windows, sender/frame validation, IPC operation allowlist and file picker. `preload/index.ts` exposes typed bounded operations and Electron file-path extraction without Node access in the renderer.
+- `renderer/src/main.tsx` provides the full local desktop navigation, note CRUD, attachment status, path/picker/drop inputs, scope, safe text/citation display, API settings and unknown/currency-aware usage. Source HTML is rendered as text; a Markdown visual renderer is not implemented.
+- `services/knowledge-agent/store.py` owns SQLite schema 1, canonical notes, local use dates/timezones, providers, attempts and admitted sources. Search is bounded Chinese-bigram/English lexical ranking over the latest 5000 notes, returning at most 200. No semantic vectors or concept-level similarity are advertised.
+- `parsers.py` parses copied session snapshots, not mutable original paths. MD/TXT preserve text positions, DOCX preserves body/table sequence and PDF pages preserve locators; limits/warnings describe omitted images, scans and structures. Single-file limits: 50MiB, PDF 200 pages and extracted text 2M characters.
+- `service.py` handles strict/mixed/knowledge scopes, up to 20 attachments, 28000-character evidence, full-summary rejection on exceeded coverage, retained copies and cleanup, local-first exact reuse, per-query in-flight locks and atomic capture with generation keys. Exact-title/content/query deduplication protects edits; semantic duplicates remain possible.
+- `providers.py` isolates Windows Credential Manager entries and explicit Responses/Chat Completions/Anthropic SSE adapters. It checks normal termination, bounds output, validates generated title/content and allowed citation IDs, records every attempt and keeps missing usage unknown. It does not verify factual entailment or model quality. Price snapshots use user-supplied base input/output rates only.
+- `tests/` constructs MD, DOCX and mixed text/blank PDF fixtures, protocol and mock-provider data, cancellation, transaction-trigger faults and a disposable Windows credential entry. `scripts/check-desktop.mjs` drives the real isolated Electron application over DevTools and verifies normal and suspended-worker shutdown.
+- `VERSION`, package metadata, UI and preload identify test0.01 (npm semver `0.0.1-test.0.01`). README, CHANGELOG, launch scripts, Git attributes and ignores make local review/reproduction possible. The app still requires the development runtime; no installer or remote push was performed.
+
+Official Responses and Chat Completions schema pages were fetched on 2026-10-20 from developers.openai.com before adapter implementation. Anthropic and third-party real wire compatibility remain unverified beyond the explicit mock adapters. No model ID or current price is hardcoded or claimed tested.

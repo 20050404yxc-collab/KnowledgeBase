@@ -1,19 +1,19 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: draft
-- Workflow mode: execute (environment preparation only; product revision 2 remains pending)
+- Status: implementing
+- Workflow mode: execute
 - Plan revision: 2
-- Approval status: pending
-- Approved revision: none
-- Approval basis: Earlier confirmed direction and stack remain valid. Frequency A, Windows baseline, mainstream-provider direction and local paths retain their individual approval. The latest request authorizes environment preparation; the user explicitly confirmed installation locations before installation. Product revision 2, final OCR selection and product feature implementation remain pending.
+- Approval status: approved for development; final release decisions remain pending
+- Approved revision: 2 (development authorization; not final acceptance)
+- Approval basis: User explicitly requested "进行开发吧，然后加入版本控制，现在是test0.01" on 2026-10-20. This supersedes prior documentation/environment-only restrictions for development and local Git. Paid API calls, unresolved OCR/DOC release choices and clean-machine release acceptance are not inferred.
 - Updated: 2026-10-20 (Asia/Shanghai)
 - Docs language: Simplified Chinese
 - Task-specs language: English
 - Human documentation: [overview](../../docs/确认页/确认文档总览.md), [product](../../docs/确认页/个人知识库/产品方案.md), [technical design](../../docs/确认页/个人知识库/技术设计.md), [delivery and acceptance](../../docs/确认页/个人知识库/实施与验收.md)
 - Related tasks: none found
-- Plan routing: new-unrelated
-- Routing basis: Repeated directory listing and rg file discovery found the current workspace empty before this task. No human docs, active task records, archived plans, source, or adopted OpenSpec tree were present. This is the first record for the continued conversation objective; no related project records were available to reuse.
+- Plan routing: continue
+- Routing basis: This turn continues the sole existing personal-knowledge-agent record. Existing product, technical, delivery and environment documents were inspected before implementation; no parallel task was created. Original empty-workspace discovery remains historical evidence.
 
 ## Intent
 
@@ -31,13 +31,13 @@ In scope for the product plan:
 - OCR/scanned PDFs and legacy DOC compatibility assessment; launch inclusion is explicitly undecided.
 
 Authorized in the latest turn:
-- Prepare isolated development dependencies and tools based on the selected stack, preserve lockfiles and installation guidance, and run environment smoke checks.
-- User explicitly confirmed project `.venv`, project `node_modules`, `D:/dev-tools`, and `D:/dev-models/KnowledgeBase` before installation. This is authorization for environment preparation only, not approval of the full product revision.
+- Implement the existing product design, beginning with a runnable test0.01 desktop development build; initialize local Git, commit the baseline and implementation, and tag test0.01.
+- Preserve the complete v1 acceptance plan. First-test delivery does not mark unimplemented semantic indexing, OCR, legacy DOC, hierarchical summaries or installer acceptance complete.
+- Use configurable Responses, Chat Completions and Anthropic Messages adapters with mock-based validation; real credentials are configured by the user in the app.
 
 Out of scope:
-- Product feature implementation, paid/model API calls, deployment, full product acceptance or archival in this turn. Candidate-library installation is authorized only for environment preparation.
-- Cloud sync, accounts, collaboration, online document/website ingestion, automated web research, quizzes/mastery scores, and modification of other applications' provider configuration.
-- Treating candidate libraries, unverified protocols, OCR delivery, minimum hardware, or unmeasured performance as approved facts.
+- Paid API calls during development, remote publication/push, cloud sync, accounts or collaboration.
+- Silently deciding unresolved OCR/DOC launch inclusion or claiming clean-machine installer acceptance.
 
 ## Approach
 
@@ -67,7 +67,7 @@ Confirmed by the user:
 2. Buckets are 常用 / 在学 / 归档 and describe usage frequency, not mastery.
 3. Sources are retained on demand; complete reusable new knowledge accumulates automatically.
 4. The recommended Electron + React/TypeScript + Python + SQLite stack is selected.
-5. Generate documentation now; do not begin product implementation.
+5. Earlier documentation-only instruction is superseded for development by the 2026-10-20 request to develop and add Git at test0.01.
 6. GPT is the primary integration direction, with DeepSeek, Claude, Grok and other mainstream providers; model IDs stay configurable.
 7. Frequency option A: three distinct usage days in 14 days for 常用; age >=30 days and 30 consecutive days without use for 归档; new/remaining automatic items 在学, daily deduplication and manual override as described in the discussion.
 8. File addresses are local paths only for v1.
@@ -91,3 +91,11 @@ Implementation choices such as specific parsers, build tools, model clients, vec
 ## Environment Preparation Authorization (2026-10-20)
 
 The user requested environment/tool installation from the development documents, then required installation locations to be confirmed first. Read-only inspection preceded confirmation. The user explicitly selected: 采用上述位置，开始准备环境. Reuse existing Node 24.18.0/npm 11.16.0, Python 3.13.14 and Git 2.55.0; install project packages in the confirmed directories. Candidate versions may be evaluated without deciding product launch scope or final OCR selection. Prior documentation-only restrictions describe the previous turn and are superseded only for this environment scope. Full product revision-2 approval remains pending.
+
+## test0.01 Execution Boundary
+
+The user authorized development and local version control. The first runnable build includes desktop/worker lifecycle, SQLite notes, Chinese lexical search, local attachments with locators, source retention, scoped provider generation, complete-result capture, related cards, frequency A, OS-backed secrets and usage attempts. Development-runtime dependencies remain required. All v1 criteria retain their original final-acceptance meaning; partial evidence is reported as partial. No final product archival is authorized or performed.
+
+## test0.01 Result
+
+A runnable development build is implemented. Background tests (37), TypeScript checking, Electron production build, lint and isolated desktop flows passed. Full v1 remains implementing: semantic indexing, hierarchical summaries, OCR/DOC launch decisions, real-provider/document quality and clean-machine packaging remain outstanding. The local Git baseline is 20913b4; implementation is committed and tagged at delivery. No remote is configured or pushed, and no paid API request was made.

@@ -1,6 +1,6 @@
 # Execution Tasks
 
-Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Environment preparation is authorized; product feature implementation and full revision-2 approval remain pending.
+Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evidence](verification.md). Product development and local Git are authorized by the user at test0.01. Full-v1 launch acceptance remains outstanding.
 
 ## 0. Documentation and decisions
 
@@ -11,12 +11,12 @@ Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evide
 - [x] 0.5 Research existing open-source OCR as requested; evidence: official RapidOCR/PaddleOCR/Docling/OCRmyPDF source review recorded in the Chinese technical page. No runtime or final-library approval inferred.
 - [x] 0.6 Update the same nine documentation artifacts to revision 2 for the latest user request; preserve candidate/confirmed status and approval scope.
 - [x] 0.7 Recheck changed revision-2 links, AC mappings, consistency and statuses; evidence: nine Markdown files, 19 resolved local links, 19 ACs, 30 scenarios and full task coverage, zero static-check issues; see verification.md.
-- [ ] 0.8 Review full revision 2 and resolve remaining provider configuration, OCR/DOC delivery and sample/measurement details; do not infer implementation permission from discussion decisions.
+- [ ] 0.8 Resolve real provider configuration, OCR/DOC launch delivery and representative sample/measurement details before final release acceptance; development is now authorized.
 
 ## 1. Compatibility and packaged technical validation
 
 - [ ] 1.1 Retain confirmed Windows 11 x64 / 16GB / no-dedicated-GPU, frequency A and local paths; resolve actual official/proxy protocols for GPT/DeepSeek/Claude/Grok, sample documents, concrete test machine and OCR/DOC launch policy; AC-03–06, AC-11–13, AC-18.
-- [ ] 1.2 Create an authorized desktop/worker/protocol skeleton under `apps/desktop/`, `services/knowledge-agent/`, and `contracts/`; demonstrate ready/stream/error/cancel/shutdown; AC-01, AC-15, AC-17.
+- [x] 1.2 Create an authorized desktop/worker/protocol skeleton under `apps/desktop/`, `services/knowledge-agent/`, and `contracts/`; demonstrate ready/stream/error/cancel/shutdown; AC-01, AC-15, AC-17.
 - [ ] 1.3 Evaluate and lock parser candidates with MD/DOCX/text-PDF Chinese fixtures, page/block locators and partial scans; prioritize RapidOCR + ONNX Runtime CPU evaluation, assess Docling if layout fixtures need it, measure dependency/model preparation, cold/warm latency, memory and license provenance; resolve OCR/DOC gate explicitly; AC-04–06, AC-18.
 - [ ] 1.4 Validate provider streaming, capability testing, credential access and returned usage with actual selected protocol; AC-12–13, AC-17.
 - [ ] 1.5 Package an early Windows application with the Python runtime and validate the minimal file/question/citation/save flow on the confirmed clean target; record binary-extension/dependency evidence; AC-01, AC-05, AC-08, AC-18–19.
@@ -35,9 +35,9 @@ Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evide
 
 ## 4. Frequency and API management
 
-- [ ] 4.1 Implement confirmed usage-event policy, time-controlled bucket calculation and manual overrides; AC-11.
+- [x] 4.1 Implement confirmed usage-event policy, time-controlled bucket calculation and manual overrides; AC-11.
 - [ ] 4.2 Implement multi-configuration selection, capability tests, credential storage and offline/degraded UI; AC-12, AC-14, AC-17.
-- [ ] 4.3 Implement per-attempt accounting, missing-usage handling, price snapshots and currency-safe summaries; AC-13.
+- [x] 4.3 Implement per-attempt accounting, missing-usage handling, price snapshots and currency-safe summaries; AC-13.
 
 ## 5. Integration, documentation, and acceptance
 
@@ -47,14 +47,24 @@ Read [proposal](proposal.md), [specs](specs.md), [design](design.md), and [evide
 - [ ] 5.4 Reconcile the same Chinese pages with implemented support, known limits, install prerequisites and troubleshooting; verify status and all relevant links; AC-01–19.
 - [ ] 5.5 Deliver the agreed installer and evidence only after required checks pass; leave unverified scope incomplete; AC-18 and final acceptance.
 
+## test0.01 Development Delivery
+
+- [x] D.1 Build Electron/React/preload/managed Python skeleton and UTF-8 allowlisted protocol; AC-01/15/17.
+- [x] D.2 Implement SQLite notes, exact duplicate protection, Chinese lexical retrieval, user-edit preservation and frequency A; AC-02/08/11/14/16/19. Semantic and conceptual-duplicate evaluation remain incomplete.
+- [x] D.3 Implement bounded local document snapshots, positions, warnings, temporary cleanup, explicit retention and safe source deletion; AC-03–07/16/19. Drag/picker manual equivalence and real document quality remain unverified.
+- [x] D.4 Implement explicit streamed protocol adapters, structure/citation-ID checks, atomic capture plus repeated-query keys and inventory-dependent recommendation assembly; AC-05/08–10/12/15/17. Real-provider grounding and recommendation quality remain unverified.
+- [x] D.5 Implement Windows vault storage and attempt-level usage with unknown values, snapshots and currency separation; AC-12/13/17. Actual credentials were not used; a disposable synthetic vault entry was verified and removed.
+- [x] D.6 Run 37 Python tests, typecheck, production build, lint and isolated Electron flows including graceful/forced tree shutdown; evidence in verification.md and test0.01-check.json.
+- [x] D.7 Reconcile the same Chinese docs, add README/CHANGELOG and startup entry, initialize local Git, commit baseline and implementation, and tag test0.01; DEV-01.
+
 ## Handoff
 
-- Selected workflow mode, current plan revision, and approval basis: environment preparation authorized and completed for the explicitly confirmed locations; product revision 2 remains pending.
-- Current step and actual progress: Python and Node/Electron dependencies installed and locked, OCR resources prepared/hashed, synthetic environment checks passed, environment documentation reconciled. All product ACs remain not run.
-- Last observed workspace state: environment manifests/locks/scripts/receipts plus project `.venv` and `node_modules`; models at `D:/dev-models/KnowledgeBase/rapidocr`, caches at `D:/dev-tools/cache`. No product code, installer or model API call. Workspace has no Git repository metadata; Git was reused but `git init` was not requested or performed.
-- Required input: actual provider endpoints/protocols/model IDs/embedding availability, OCR/DOC launch policy and resource delivery, representative files/concrete machine and measured limits. Frequency A, local paths and Windows baseline are confirmed and must not be re-asked.
-- Next action: review the three Chinese topic pages and resolve material pending choices. Subsequent implementation requires user authorization and resolution of decisions affecting that work.
-- Unverified work: all product ACs, complete redistribution license audit, representative parsing/OCR quality, provider protocols, Chinese retrieval, product lifecycle, runtime resource limits, packaging and clean-machine operation. Base SQLite extension loading and local CPU OCR smoke checks have passed.
+- Workflow/revision/authorization: execute; revision 2 development authorized by "进行开发吧，然后加入版本控制，现在是test0.01". Full-v1 release remains incomplete; no archival.
+- Actual progress: first runnable desktop test build delivered, with local Git and test0.01 tag. Existing full-v1 tasks above remain unchecked where only partial evidence exists.
+- Workspace: source under apps/desktop, services/knowledge-agent, contracts and tests; out contains the local production build and artifacts/test0.01 contains ignored UI reports/screenshots. User data defaults to the Electron profile, separate from the repository. Node/Python dependencies remain local and ignored.
+- Next work: prioritize early Windows packaging/runtime-bundling validation, then real configured provider/document fixtures, OCR/DOC launch choices, semantic indexing, richer duplicate/coverage/related-learning behavior and complete v1 acceptance.
+- Required input: actual provider configuration for paid integration tests; final OCR/DOC release policy and representative sample/machine details. None was required to complete this isolated test build.
+- Unverified: real GPT/DeepSeek/Claude/Grok access, actual answer grounding/recommendation quality, semantic retrieval, full large-document summaries, scan/OCR product workflow, manual drag/picker equivalence, redistribution/license audit, real resource measurements, clean-machine installation and broad crash/disk fault recovery.
 
 ## Environment Preparation (authorized 2026-10-20)
 

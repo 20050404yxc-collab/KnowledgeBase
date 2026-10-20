@@ -1,0 +1,41 @@
+{
+  "version": "test0.01",
+  "checks": [
+    "sandboxed renderer: Node require unavailable",
+    "create note using actual React form",
+    "edit note; hostile HTML displayed as text, never executed",
+    "Chinese keyword search and no-hit state",
+    "local path attachment, offline scoped evidence, safe citation modal and source retention",
+    "source and provider settings screens render",
+    "graceful Electron shutdown",
+    "restart retains edited note and source database",
+    "offline operations incur no API attempts",
+    "owned Python worker exits with Electron",
+    "forced timeout shutdown terminates suspended owned Python tree without orphans"
+  ],
+  "screenshots": [
+    "desktop-empty.png",
+    "desktop-citation.png",
+    "desktop-settings.png",
+    "desktop-knowledge.png"
+  ],
+  "status": "passed",
+  "date": "2026-10-20",
+  "timezone": "Asia/Shanghai",
+  "python_tests": 37,
+  "commands": {
+    "typecheck": "passed",
+    "pytest": "37 passed",
+    "ruff": "passed",
+    "build": "passed",
+    "desktop": "11 checks passed",
+    "launcher": "visible main window opened and closed with isolated data"
+  },
+  "docs": {
+    "markdown_files": 12,
+    "local_links": 33,
+    "broken_links": 0,
+    "balanced_fences": true,
+    "version_consistent": true
+  }
+}
