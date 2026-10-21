@@ -35,6 +35,23 @@ def response_for(protocol, text):
     return httpx.Response(200, content=sse(events))
 
 
+# 原生审核格式绑定本轮目标，其他协议保持原请求形状，不额外发送供应商参数。
+def assert_review_format(body, targets, protocol):
+    if protocol != "responses":
+        assert "text" not in body and "response_format" not in body
+        return
+    output = body["text"]["format"]
+    assert output["type"] == "json_schema" and output["strict"] is True
+    schema = output["schema"]
+    assert schema["required"] == ["decisions"]
+    assert schema["additionalProperties"] is False
+    rows = schema["properties"]["decisions"]
+    assert rows["minItems"] == rows["maxItems"] == targets["expected_count"]
+    assert rows["items"]["properties"]["id"]["enum"] == targets["expected_ids"]
+    assert rows["items"]["additionalProperties"] is False
+    assert set(rows["items"]["required"]) == set(rows["items"]["properties"])
+
+
 # 通过用例到实际请求编码验证提示分流，计划与学习分别记账，覆盖模型不改默认配置。
 @pytest.mark.parametrize("protocol", ["responses", "chat-completions", "anthropic"])
 def test_topic_instructions_and_accounting(tmp_path, protocol):
@@ -60,7 +77,18 @@ def test_topic_instructions_and_accounting(tmp_path, protocol):
         elif len(bodies) == 2:
             assert '"decisions"' in instructions
             prompt = body.get("input") or body["messages"][-1]["content"]
-            text = approved_points(json.loads(prompt)["points"])
+            targets = json.loads(prompt)
+            assert "candidates" not in targets and "explicit_points" not in targets
+            assert targets["expected_count"] == len(targets["points"]) == 1
+            assert targets["expected_ids"] == [p["id"] for p in targets["points"]]
+            assert all(set(p) == {"id", "title", "theme", "facet"} for p in targets["points"])
+            assert_review_format(body, targets, protocol)
+            decisions = json.loads(approved_points(targets["points"]))["decisions"]
+            for row in decisions:
+                row.update(category_path=["网络", "通用方法"], material_request="", search_terms="")
+                row.pop("category")
+                row.pop("subcategory")
+            text = json.dumps({"decisions": decisions})
         else:
             assert "conflict" in instructions
             text = json.dumps(
@@ -98,5 +126,49 @@ def test_topic_instructions_and_accounting(tmp_path, protocol):
         assert {a["purpose"] for a in attempts} == {"topic-plan", "topic-review", "topic-learn"}
         assert all(a["status"] == "success" and a["cost"] is None for a in attempts)
         assert "_instructions" not in service.store.provider()
+        assert "_output_schema" not in service.store.provider()
+        assert "text" not in bodies[0] and "text" not in bodies[2]
+    finally:
+        service.close()
+
+
+# 不支持结构化审核的网关明确失败并按实际调用记账，不自动增加付费重试或放行目录。
+def test_review_schema_rejection_is_not_retried(tmp_path):
+    service = create_service(tmp_path, vault=Vault())
+    save_provider(service.store, service.vault, parameters())[0]
+    bodies = []
+
+    # 规划成功后拒绝审核请求，错误体模拟包含私密供应商内容。
+    def handler(request):
+        body = json.loads(request.content)
+        bodies.append(body)
+        if len(bodies) == 1:
+            return response_for(
+                "responses",
+                json.dumps(
+                    {"points": [{"theme": "网络", "title": "重连退避", "facet": "失败退避"}]}
+                ),
+            )
+        assert body["text"]["format"]["type"] == "json_schema"
+        return httpx.Response(400, text="private-provider-error")
+
+    service.client = create_client(service.store, service.vault, httpx.MockTransport(handler))
+    try:
+        result = asyncio.run(
+            dispatch(
+                service,
+                "question.plan",
+                {"query": "重连退避", "scope": "knowledge"},
+                lambda _: None,
+            )
+        )
+        assert not result["plan_id"] and not result["points"]
+        assert "审核失败" in result["notice"] and "private-" not in result["notice"]
+        assert len(bodies) == 2 and not service.topics.sessions
+        attempts = service.store.list_attempts()
+        assert {a["purpose"]: a["status"] for a in attempts} == {
+            "topic-plan": "success",
+            "topic-review": "failed",
+        }
     finally:
         service.close()

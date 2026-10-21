@@ -1,3 +1,20 @@
+## Revision 17: complete topic-review output
+
+- Workflow mode: execute
+- Plan revision: 17
+- Approval status: approved
+- Approved revision: 17
+- Approval basis: User requested “进行修复” after the displayed diagnosis of repeated incomplete topic reviews. This directly authorizes this bounded repair.
+- Implementation status: implemented and verified in isolation; npm run check and npm run test:ui passed. Real-provider output/support remains unverified.
+- Updated: 2026-10-21
+- Docs language: Chinese; Task-specs language: English.
+- Plan routing: revise-existing; repairs the topic qualification flow of this task.
+- Standards: root AGENTS.md and project coding/layering standard revision 2 read and remain active; skill standards index contains no additional standard.
+- Evidence: newest worker log has four successful plan/transport completions followed by `topic.validate_review` incomplete-review failures. The code mixes existing-library candidates and review targets in the review prompt. Logs do not retain output shape/counts, so this ambiguity is a confirmed weakness, not a proven explanation of every failure.
+- Scope: isolate review targets and explicit count/IDs; Responses native JSON Schema only for this review; retain cross-protocol prompt compatibility and local full-coverage validation; add safe structured diagnostics and actionable existing-notice text with request reference; avoid a model review for zero targets.
+- Risks/limits: a Responses-compatible gateway/model may reject JSON Schema; fail visibly without retry or unreviewed release. Native structure does not prove semantic correctness. Real providers and production data are outside verification.
+- No retry, migration, credentials/config persistence, version, release or publication changes.
+
 ## Revision 16: hierarchical knowledge tree
 
 - Workflow mode: execute
@@ -197,3 +214,8 @@ After the completed implementation, the user explicitly requested "git进行上�
 ## Revision 12 settings continuation
 
 User authorizes continuing the paused implementation after the first two commits. Trusted prior user choices select per-model optional pricing and read-only actual storage/log paths with open-directory actions. Reuse existing pages/task, retain all pre-existing settings changes and complete them. No production migration, paid API, credential identity/data-location change or publication. R9 is committed as a398697; schema 4 belongs to merge storage, so pricing continues at schema 5.
+
+
+## Revision 17 Git upload follow-up
+
+The user explicitly requested “上传git” after the completed repair. This authorizes committing the revision-17 source, regression tests and reconciled documentation and pushing the existing `main` branch to `origin`. Prior no-publication scope describes implementation verification and is superseded for this upload only. No new release, tag, version bump or unrelated changes are included.

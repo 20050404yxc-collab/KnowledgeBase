@@ -242,3 +242,12 @@ R3 handoff: implemented and verified on test0.03; `npm run check` passes (78 Pyt
 - [x] R12.3 Complete per-model optional prices, compatibility, call snapshots and full-history usage; R12-02/03.
 - [x] R12.4 Integrate schema 4→5 backup/rollback/restart with merge storage; R12-04.
 - [x] R12.5 Run isolated tests, required checks/UI and wide/narrow review; record limits and commit this task separately without push.
+
+
+## Revision 17 implementation
+
+- [x] R17.1 Trace latest failure logs, prompt construction, transport, validators and caller/result ownership.
+- [x] R17.2 Isolate review inputs, constrain Responses output and clarify complete per-ID decisions.
+- [x] R17.3 Preserve fail-closed validation with safe structural diagnostics and meaningful notices.
+- [x] R17.4 Cover actual wire requests, invalid/mixed reviews, local preservation, empty plans, cancellation and private-content exclusion.
+- [x] R17.5 Run required project checks and isolated desktop checks; reconcile evidence and limits.

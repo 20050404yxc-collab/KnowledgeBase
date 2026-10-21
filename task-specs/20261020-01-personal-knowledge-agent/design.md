@@ -282,3 +282,12 @@ Compose one reusable directory/detail workspace. Use page-owned directory state 
 ## Revision 12 implementation design
 
 Compose SettingsPage with the public provider feature; keep shared provider drafts, own path loading state and discard late results. registerStorageIpc owns fixed host paths and main-frame trust checks. Keep DesktopAPI capabilities distinct from Python business operations. Domain model_prices validates ownership/value rules; resolve_generation binds actual-model prices; provider_settings coordinates backward compatibility and vault compensation. Infrastructure price migration uses schema 5 after merge schema 4 and usage_store aggregates all attempts. Retain call-time snapshots and per-currency totals. No arbitrary filesystem capability or path relocation.
+
+
+## Revision 17: topic review contract repair
+
+Application `topic_review_contract` projects question/scope/authorized evidence/coverage/taxonomy and only id/title/theme/facet for review targets. It explicitly declares expected IDs/count, and supplies a transient `_output_schema` only to Responses reviews. Infrastructure encodes it as `text.format` with strict JSON Schema; no provider data is persisted. Schema fixes output shape/count/ID scope; domain validation still rejects duplicate IDs, incomplete qualification, taxonomy and project material fields. Chat Completions and Anthropic use the same unambiguous prompt without extra protocol fields. No automatic fallback/retry is added. Empty plans return an empty review without external work.
+
+Domain `ReviewValidationError` carries only enumerated structural rule, actual type and aggregate expected/actual/missing/duplicate/unknown counts. Diagnostics applies allowlists and bounded integer filtering. Application formats existing `notice` using fixed templates plus the request reference, not arbitrary exception text. Existing cancellation propagation, request snapshot, session creation after complete validation and formal capture remain unchanged.
+
+Official request reference fetched 2026-10-21: https://developers.openai.com/api/docs/guides/structured-outputs (Responses text.format, strict schema, required fields, additionalProperties=false and array minItems/maxItems). Model/gateway support remains an explicit real-environment limitation.

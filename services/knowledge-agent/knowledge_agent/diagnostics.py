@@ -22,7 +22,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Callable, Iterator, ParamSpec, TypeVar
 
-from knowledge_agent.domain.validation_errors import FieldValidationError
+from knowledge_agent.domain.validation_errors import FieldValidationError, ReviewValidationError
 
 P = ParamSpec("P")
 T = TypeVar("T")
@@ -291,6 +291,8 @@ def error_details(error: BaseException) -> list[dict]:
         # 领域校验不携带正文；字段名和规则仍须白名单验证。
         if isinstance(error, FieldValidationError):
             detail["validation"] = field_validation_details(error)
+        if isinstance(error, ReviewValidationError):
+            detail["validation"] = review_validation_details(error)
         # 精确匹配固定提示；未知字符串即使是 ValueError 也不当作安全内容。
         if (
             len(error.args) == 1
@@ -317,6 +319,38 @@ def error_details(error: BaseException) -> list[dict]:
         chain.append(detail)
         error = error.__cause__ or (None if error.__suppress_context__ else error.__context__)
     return chain
+
+
+# 审核诊断仅允许固定规则、已知类型和有界统计，不能序列化业务标识或模型正文。
+def review_validation_details(error: ReviewValidationError) -> dict:
+    return {
+        "field": "decisions",
+        "rule": error.rule
+        if error.rule in {"required_list", "count_mismatch", "id_mismatch"}
+        else "unknown",
+        "actual_type": error.actual_type
+        if error.actual_type in {"str", "NoneType", "bool", "int", "float", "list", "dict"}
+        else "other",
+        **{
+            key: value if type(value) is int and 0 <= value <= 1_000_000 else None
+            for key in (
+                "expected_count",
+                "actual_count",
+                "missing_count",
+                "duplicate_count",
+                "unknown_count",
+            )
+            for value in (getattr(error, key, None),)
+        },
+    }
+
+
+# 复用当前任务的请求编号；没有合法上下文时不虚构编号或暴露其他上下文。
+def request_reference() -> str:
+    request_id = CONTEXT.get().get("request_id")
+    if isinstance(request_id, str) and re.fullmatch(r"[a-zA-Z0-9-]{1,80}", request_id):
+        return f"\n日志请求 ID：{request_id}"
+    return ""
 
 
 # 只接受程序定义的字段、类型和规则，防止扩展异常属性夹带模型内容。

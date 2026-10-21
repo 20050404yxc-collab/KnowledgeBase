@@ -709,3 +709,10 @@ The development application SHALL identify itself as test0.01. Source and reprod
 - R12-02: Optional prices SHALL belong to each configured model independently. Complete actual usage and both finite nonnegative prices are required for estimates; blank/partial values remain unknown and explicit zero is valid. Call-time model/currency/price snapshots and historical costs SHALL remain unchanged by later edits. Legacy default-price calls remain compatible.
 - R12-03: Usage SHALL aggregate all attempts independently of the recent-500 detail limit; distinguish known subtotals, missing inputs/outputs, empty history and unknown data; currencies SHALL remain separate.
 - R12-04: Schema 4→5 SHALL back up consistently before transactional price migration, map old prices only to the old default, preserve knowledge/merges/citations/uses/configuration and reject unsupported versions. Failure SHALL roll back and stop writes; retry/reopen SHALL be idempotent.
+
+
+## Revision 17: topic review completeness
+
+- R17-01: The review request SHALL identify only newly planned points as review targets, with expected count and exact IDs. Existing-library candidates SHALL NOT appear as alternative review targets. Responses requests SHALL use a strict JSON schema binding item count and allowed IDs; other protocols SHALL retain their wire format.
+- R17-02: Every target SHALL still receive exactly one valid decision, including excluded and uncertain items. Missing/wrong list, count mismatch, duplicate or foreign IDs SHALL produce no learnable session and no capture; local search SHALL remain available. Empty plans SHALL require no review call.
+- R17-03: Controlled fallback SHALL report stage, safe structural/count reason and request reference in the existing notice. Logs SHALL include rule/type/counts and correlation, never target IDs, question, evidence or model text. Failures and cancellation SHALL NOT trigger retries; valid reviews SHALL preserve classification and project gates.

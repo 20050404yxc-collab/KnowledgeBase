@@ -303,3 +303,12 @@ Logical file sizes after installation: .venv about 389.3MiB; node_modules about 
 ENV-01 is satisfied by installation locations plus the entry-script interpreter/cache checks. ENV-02 is satisfied by dependency/model locks, Electron checksum verification, Node/Python smoke receipts and explicit product-verification limits. Environment preparation is complete without archiving the unfinished product task.
 
 Same-title/different-body generated answers now explicitly report that no new note was saved and keep the generated answer separate from the existing note metadata. A strict-file-scope regression test checks original-note preservation, current-file citations and the unsaved-content notice.
+
+
+## Revision 17 verification — 2026-10-21
+
+- `npm run check`: passed. Standards (121 JS/TS and 95 Python files), Prettier, Ruff, TypeScript, 273 Python tests, 23 host tests and Electron production build passed. Initial runs found an oversized test function and imported-fixture lint collision; both were corrected before the final complete passing run.
+- `npm run test:ui`: passed; report status passed, 35 checks and 41 screenshots. Added the real renderer/preload/Electron/worker/HTTP fallback scenario: successful model transport with zero decisions for one target shows exact expected/actual counts and a request reference; local matches survive, no directory points appear and only two HTTP attempts occur. Screenshot `artifacts/test0.03/desktop-topic-review-failure.png` visually inspected: complete message readable with wrapped request ID, local results and empty learning workspace retained. Report `artifacts/test0.03/desktop-check.json` is ignored evidence, not source.
+- New regression coverage: missing/wrong decisions list, short/extra counts, equal-count duplicate/foreign IDs, mixed keep/exclude/clarify, zero-target review skipping, cancellation propagation, per-request schema IDs and unchanged provider persistence, all three HTTP protocols, schema-rejecting HTTP 400 without retry, request-associated safe logs and hostile error metadata filtering.
+- `git diff --check`: passed before final documentation reconciliation; final reconciliation rechecked independently.
+- Scope/limits: isolated temporary stores and mock/local HTTP only. No real provider, formal credentials/data, migration, version bump, packaging/release, Git commit/push or user-app restart. Strict output support of configured model/gateway and semantic correctness require real usage; schema is not a fact-verification guarantee.

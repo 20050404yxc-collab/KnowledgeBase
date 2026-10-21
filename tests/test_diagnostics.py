@@ -446,3 +446,78 @@ def test_grouping_failure_preserves_private_draft_and_request_context(diagnostic
         and row["errors"][0]["reason"] == "同类知识判断格式无效，已有目录与分析保留"
         for row in failures
     )
+
+
+# 审核失败保持本地结果，日志区分结构、数量、ID 规则并关联界面请求编号。
+@pytest.mark.parametrize("fault", ["missing", "type", "short", "duplicate", "foreign"])
+def test_topic_review_failure_logs_safe_counts_and_request_id(diagnostic_session, fault):
+    from knowledge_agent.bootstrap import create_service
+    from test_knowledge import Vault, config
+    from test_topics_workflow import Client, plan
+
+    service = create_service(diagnostic_session.parent / "review-data", vault=Vault())
+    config(service)
+    original = Client().generate
+
+    # 响应只在审核阶段损坏，私密问题和模型理由都不得进入结构化错误日志。
+    async def generate(settings, prompt, purpose, emit):
+        text = await original(settings, prompt, purpose, emit)
+        if purpose != "topic-review":
+            return text
+        rows = json.loads(text)["decisions"]
+        if fault == "missing":
+            return "{}"
+        if fault == "type":
+            return '{"decisions":{"private-body":"private-model-response"}}'
+        rows[0]["reason"] = "private-review-reason"
+        if fault == "short":
+            rows.pop()
+        elif fault == "duplicate":
+            rows[1]["id"] = rows[0]["id"]
+        else:
+            rows[1]["id"] = "private-foreign-id"
+        return json.dumps({"decisions": rows})
+
+    service.client.generate = generate
+    try:
+        service.store.save("private-query", "private-note-body")
+        with logs.request_context("review-failure", "question.plan"):
+            result = asyncio.run(plan(service, query="private-query"))
+        assert result["search"]["items"] and not result["plan_id"]
+        assert result["notice"].endswith("日志请求 ID：review-failure")
+    finally:
+        service.close()
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
+    assert "private-" not in text
+    rows = [json.loads(line) for line in text.splitlines()]
+    failure = next(row for row in rows if row["event"] == "topic.plan_fallback")
+    assert failure["request_id"] == "review-failure" and failure["stage"] == "review"
+    metadata = failure["errors"][0]["validation"]
+    assert metadata["field"] == "decisions" and metadata["expected_count"] == 2
+    if fault in {"missing", "type"}:
+        assert metadata["rule"] == "required_list" and metadata["actual_count"] is None
+        assert metadata["actual_type"] == ("NoneType" if fault == "missing" else "dict")
+    else:
+        assert metadata["rule"] == ("count_mismatch" if fault == "short" else "id_mismatch")
+        assert metadata["actual_count"] == (1 if fault == "short" else 2)
+        assert metadata["missing_count"] == 1
+        assert metadata["duplicate_count"] == int(fault == "duplicate")
+        assert metadata["unknown_count"] == int(fault == "foreign")
+    assert any(
+        row["event"] == "step.failed" and row["step"] == "topic.validate_review" for row in rows
+    )
+
+
+# 扩展异常属性仍按白名单过滤，不能利用规则、类型或计数字段写入私密数据。
+def test_review_validation_metadata_rejects_untrusted_attributes(diagnostic_session):
+    from knowledge_agent.domain.validation_errors import ReviewValidationError
+
+    error = ReviewValidationError([], {"private-target"}, "private-rule")
+    error.actual_type = "private-type"
+    error.actual_count = "private-count"
+    logs.record("topic.plan_fallback", error=error)
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
+    assert "private-" not in text
+    metadata = json.loads(text.splitlines()[-1])["errors"][0]["validation"]
+    assert metadata["rule"] == "unknown" and metadata["actual_type"] == "other"
+    assert metadata["actual_count"] is None

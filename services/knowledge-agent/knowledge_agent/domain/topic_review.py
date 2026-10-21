@@ -5,21 +5,25 @@
 from .knowledge_rules import identity
 from .taxonomy import encode_path, parent_path, path_fields
 from .topic_rules import json_object, short_field
+from .validation_errors import ReviewValidationError
 
 
 # 所有候选必须恰好审核一次，排除与待澄清项不进入可学习会话。
 def review_points(text: str, points: list[dict]) -> tuple[list[dict], list[dict]]:
     decisions = json_object(text).get("decisions")
     allowed = {p["id"]: p for p in points}
-    if not isinstance(decisions, list) or len(decisions) != len(points):
-        raise ValueError("知识点审核不完整，未放行")
+    if not isinstance(decisions, list):
+        # 缺失或错误类型与漏项分开诊断，但都不能生成可学习会话。
+        raise ReviewValidationError(decisions, set(allowed), "required_list")
+    if len(decisions) != len(points):
+        raise ReviewValidationError(decisions, set(allowed), "count_mismatch")
     accepted, rejected, seen = [], [], set()
     for raw in decisions:
         if not isinstance(raw, dict):
             raise ValueError("审核结构无效")
         item_id = raw.get("id")
         if not isinstance(item_id, str) or item_id not in allowed or item_id in seen:
-            raise ValueError("审核标识无效")
+            raise ReviewValidationError(decisions, set(allowed), "id_mismatch")
         seen.add(item_id)
         decision = raw.get("decision")
         reason = short_field(raw.get("reason"), "审核理由", 500)

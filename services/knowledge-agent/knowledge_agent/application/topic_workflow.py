@@ -24,6 +24,7 @@ from .project_learning import ProjectLearning
 from .question_locks import QuestionLocks
 from .questions import Questions, select_evidence, validate_question
 from .topic_context import file_hits, learning_context, require_attachments
+from .topic_review_contract import failure_notice, request_review
 
 
 # 详情统一转换为既有 Answer 格式，待核对内容不能谎报已经收录。
@@ -154,26 +155,21 @@ class TopicWorkflow:
                 {"id": k["id"], "title": k["title"], "theme": k["theme"]} for k in local
             ],
         }
+        stage = "plan"
         try:
             text = await self.client.generate(
                 config, json.dumps(prompt, ensure_ascii=False), "topic-plan", emit
             )
             with step("topic.validate_plan"):
                 points = validate_plan(text, query, local, evidence)
+            stage = "review"
             emit({"type": "progress", "message": "正在独立判断知识点资格、项目依赖与两级分类"})
-            review = await self.client.generate(
-                config,
-                json.dumps({**prompt, "points": points}, ensure_ascii=False),
-                "topic-review",
-                emit,
-            )
+            review = await request_review(self.client, config, prompt, points, emit)
             with step("topic.validate_review"):
                 points, rejected = review_points(review, points)
         except (ValueError, TypeError) as error:
-            record("topic.plan_fallback", error=error)
-            response["notice"] = (
-                "知识点拆解失败或审核未通过，未放行未审核知识点；本地结果保留，请重试。"
-            )
+            record("topic.plan_fallback", error=error, stage=stage)
+            response["notice"] = failure_notice(error, stage)
             return response
         session_id = str(uuid.uuid4())
         for point in points:

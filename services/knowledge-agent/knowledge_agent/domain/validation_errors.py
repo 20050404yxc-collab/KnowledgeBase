@@ -19,3 +19,25 @@ class FieldValidationError(ValueError):
             self.rule = "non_blank"
         else:
             self.rule = "max_length"
+
+
+class ReviewValidationError(ValueError):
+    # 仅保存类型、计数与固定规则；不保留模型正文、业务 ID 或审核理由。
+    def __init__(self, decisions: object, expected_ids: set[str], rule: str) -> None:
+        super().__init__("知识点审核不完整，未放行")
+        self.rule = rule
+        self.actual_type = type(decisions).__name__
+        self.expected_count = len(expected_ids)
+        self.actual_count = len(decisions) if isinstance(decisions, list) else None
+        ids = (
+            [
+                row["id"]
+                for row in decisions
+                if isinstance(row, dict) and isinstance(row.get("id"), str)
+            ]
+            if isinstance(decisions, list)
+            else []
+        )
+        self.missing_count = len(expected_ids - set(ids))
+        self.unknown_count = len(set(ids) - expected_ids)
+        self.duplicate_count = len(ids) - len(set(ids))

@@ -37,6 +37,16 @@ def build_request(
             "store": False,
             "max_output_tokens": 64 if test else 8192,
         }
+        if not test and config.get("_output_schema"):
+            # 审核请求使用原生结构化输出，其他用途及连接测试保持原请求格式。
+            payload["text"] = {
+                "format": {
+                    "type": "json_schema",
+                    "name": "topic_review",
+                    "strict": True,
+                    "schema": config["_output_schema"],
+                }
+            }
     elif protocol == "anthropic":
         endpoint = "/messages"
         headers = {"x-api-key": secret, "anthropic-version": "2023-06-01"}
