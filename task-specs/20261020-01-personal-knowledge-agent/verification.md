@@ -1,3 +1,16 @@
+## Revision 13 startup repair evidence (2026-10-21)
+
+- Scope: synthetic temporary databases only; production logs/schema inspected in the preceding diagnosis, no production mutation or data copy.
+- Diagnosis: worker exited during model_prices CREATE TABLE with SQLite error 1; schema-only in-memory reproduction confirmed provider_model_prices already exists. The affected real layout has version 4 with prices and no merge objects.
+- R13-01: synthetic legacy pricing v4 with populated/zero/partial/multi-currency or deliberately empty model prices opens at v5; selected full business-table rows remain identical. Consistent backup retains schema 4 and original rows without merge objects. Reopen creates no additional backup and does not refill prices.
+- R13-02: backup, second-table DDL and version-update failures preserve schema 4, rows and absence of merge objects; retry succeeds after fault removal. Partial merge objects, incompatible price columns and orphan prices are rejected before backup/writes. Existing normal migration/reopen/future-version tests pass.
+- R13-03: real Python worker entrypoint on the synthetic legacy database emits ready, completes a correlated bootstrap result, shuts down with exit code 0 and preserves rows. Migration completion and request correlation appear in logs; synthetic private titles/bodies/keys/exception paths do not. Failure injection verifies the failing migration step and existing request context.
+- `npm run check`: passed; 212 Python tests, 17 host tests, 113 TS/JS and 85 Python files checked by standards tooling, Prettier, Ruff, TypeScript and production build. Added regression file contributes 9 test cases. Early targeted run: 22 passed after correcting the orphan-row fixture to modify only one model (the initial fixture update collided on its composite key).
+- `npm run test:ui`: passed; existing real Electron handshake, restart/persistence, settings/pricing/usage, merge flows, navigation and owned-process shutdown remain covered. Report and 35 generated screenshots remain ignored in artifacts/test0.03; no visual change or new manual visual acceptance claimed.
+- Documentation: updated existing product section 3.12, technical design, acceptance page, overview and task records; affected local links and whitespace diff checked.
+- Limits: no production database migration/copy, actual production restart, real credentials, paid/provider requests, clean-machine verification or release/version/dependency/path changes.
+- Git follow-up: user explicitly requests "上传git". The existing main branch matches origin/main after fetch; commit/push includes only the reviewed repair, synthetic tests and related documentation. Prior successful code checks remain applicable; only publication-record wording changed afterward. See Git history for the resulting commit.
+
 ## Revision 12 settings implementation evidence (2026-10-21)
 
 - Authorization: continue the paused settings implementation after the separately committed navigation (`4a7447f`) and restructuring (`a398697`) tasks. Read the prior settings conversation to recover the human choices: per-model optional prices and read-only actual paths with open actions. No message was sent to that conversation. Existing implementation was preserved, reviewed and completed; missing planning/human documentation was reconciled in the same existing task.

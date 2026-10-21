@@ -1,3 +1,9 @@
+## Revision 13 startup compatibility requirements
+
+- R13-01: A known legacy-price v4 database SHALL open as schema 5 after an independent consistent backup and atomic creation of all missing merge objects. Existing knowledge, configuration, price rows (including empty/zero/partial prices), usage snapshots and credential references SHALL remain unchanged. Reopening SHALL not backfill deleted prices or create another migration backup.
+- R13-02: Partial merge layouts, incompatible price schemas or orphan prices SHALL be rejected without mutation. Backup or transaction failure SHALL preserve schema 4 and original rows; after fault removal, retry SHALL succeed. Normal schema 3→4→5, standard v4 and v5 startup SHALL retain compatibility; newer versions remain rejected.
+- R13-03: Migration diagnosis SHALL retain fixed rejection reasons, failing step, session and any existing request context without private data. Isolated legacy-layout startup and existing desktop handshake SHALL pass; no production migration or external paid request is authorized.
+
 # Spec Deltas
 
 ## Revision 11 planet appearance and continuous motion

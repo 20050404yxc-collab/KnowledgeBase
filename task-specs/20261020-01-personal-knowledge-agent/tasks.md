@@ -1,5 +1,14 @@
 # Execution Tasks
 
+## Revision 13 startup compatibility repair
+
+- [x] R13.1 Reuse existing task/docs; record diagnosed layout, bounded authorization, cause, repair and risks.
+- [x] R13.2 Implement known legacy-v4 recognition, atomic merge repair, unchanged prices and safe diagnostic context (R13-01/02/03).
+- [x] R13.3 Verify synthetic startup, backup, unchanged rows, repeat startup, rollback/retry and malformed layouts.
+- [x] R13.4 Run npm run check and npm run test:ui; reconcile docs and evidence with results.
+
+Current R13 handoff: completed; 212 Python tests, 17 host tests, required static/build checks and isolated desktop automation passed. Synthetic legacy-v4 worker startup/bootstrap passed. Production data and credentials remain untouched; production migration/restart is unverified. Follow-up "上传git" authorizes normal commit/push to origin/main; see Git history for the publication commit. No release requested.
+
 ## Revision 11 documentation refinement
 
 - [x] R11.1 Reuse current task and topic pages; record natural planet appearance, continuous recentering/return, staged expansion, asynchronous behavior and motion ownership.

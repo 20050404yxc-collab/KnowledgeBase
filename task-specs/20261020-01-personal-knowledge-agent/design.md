@@ -1,3 +1,7 @@
+## Revision 13 legacy-price-v4 startup repair
+
+`infrastructure/merge_schema.py` recognizes the price-v4 branch only after matching columns/composite key, cascade foreign keys, valid references and absence of every merge object. A unique existing merge-backup mechanism snapshots schema 4 before writes. One explicit transaction creates merge objects and updates to version 5; normal v3 still advances to v4 and standard v4 proceeds to price migration. Existing prices are untouched. Structured step tracing and fixed rejection reasons preserve diagnostic context. Add isolated regression tests for startup, unchanged rows, blank prices, reopen, backup/DDL/version failure rollback/retry and malformed layouts. Run npm run check and npm run test:ui. Do not access credentials or migrate production data.
+
 # Implementation Design
 
 ## Revision 11 planned planet rendering and motion

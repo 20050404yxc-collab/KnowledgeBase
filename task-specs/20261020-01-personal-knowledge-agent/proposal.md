@@ -1,11 +1,11 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: navigation committed as 4a7447f; restructuring committed as a398697; revision 12 settings implemented, required checks and isolated desktop/visual verification passed
+- Status: revision 13 startup compatibility fix completed; isolated regression, required checks and desktop automation passed; production restart/migration unverified
 - Workflow mode: execute
-- Plan revision: 12
-- Approval status: user explicitly requests sequential execution of navigation, restructuring and settings, committing each completed item before the next
-- Approved revision: 11 navigation and retained revision 9 restructuring; settings continues after both commits with its latest documents and preserved work
+- Plan revision: 13
+- Approval status: user requests modification after the diagnosed startup failure ("进行修i该"); authorizes this bounded compatibility fix
+- Approved revision: 13 startup compatibility; follow-up "上传git" authorizes normal commit/push to the existing origin/main; no production migration, paid calls or release
 - Revision 8 approval basis (historical): User requested navigation-independent work, a hierarchical all-library page, confirmed restructuring and automatic expansion classification. User explicitly selected classification/key-point organization with body diffs before confirmation, preserving hand edits and citations. The follow-up explicitly includes 常用/在学/归档 in hierarchical display and says continue; the subsequent instruction “开始改” explicitly authorizes this complete revision for implementation. No publication, production data access, paid tests or version change.
 - Updated: 2026-10-21 (Asia/Shanghai)
 - Docs language: Simplified Chinese
@@ -14,6 +14,10 @@
 - Related tasks: none found
 - Plan routing: revise-existing
 - Routing basis: The current request directly continues existing retrieval/capture/readability AC-01/02/08/14/16/19 and product section 3. Reuse this task and the same human pages; the other task concerns engineering standards. No parallel proposal or confirmation page is needed.
+
+## Revision 13 startup repair
+
+Reuse R12 migration scope in this task and the existing product section 3.12. The observed production layout has user_version 4, an existing provider_model_prices table and no merge tables. Current startup skips merge migration and attempts to recreate the price table. Repair only this known historical branch using structural/foreign-key validation, backup and atomic merge-object creation plus version 5; preserve all prices and business rows. Reject partial/unknown layouts. Product section 3.12 and technical design describe cause, approach, expected startup recovery and risks. Verification uses isolated synthetic data; the real data directory is not migrated or copied.
 
 ## Intent
 
