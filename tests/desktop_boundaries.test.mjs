@@ -21,6 +21,16 @@ async function loadModule(relativePath, replacements = {}) {
   return import('data:text/javascript;base64,' + Buffer.from(code).toString('base64'))
 }
 
+const treeSource = await readFile(
+  new URL('../apps/desktop/renderer/src/shared/knowledge_tree.ts', import.meta.url),
+  'utf8'
+)
+const treeCode = transformSync(treeSource, {
+  jsc: { target: 'es2022', parser: { syntax: 'typescript' } },
+  module: { type: 'es6' }
+}).code
+const treeUrl = 'data:text/javascript;base64,' + Buffer.from(treeCode).toString('base64')
+
 const librarySource = await readFile(
   new URL('../apps/desktop/shared/library_validation.ts', import.meta.url),
   'utf8'
@@ -134,7 +144,8 @@ async function batchFixture() {
   const batch = await loadModule(
     '../apps/desktop/renderer/src/features/exploration/directory_batch.ts',
     {
-      "'../../shared/api/client'": JSON.stringify(url)
+      "'../../shared/api/client'": JSON.stringify(url),
+      "'../../shared/knowledge_tree'": JSON.stringify(treeUrl)
     }
   )
   return { ...client, ...batch }
@@ -530,4 +541,82 @@ test('usage summary validates additive unknown values and rejects damaged respon
   ]) {
     assert.throws(() => validation.decodeResult('usage.summary', value))
   }
+})
+
+// 新树节点同时有正文和下级，完整路径必须受运行时检查，旧结果继续可用。
+test('deep paths and readable internal nodes cross the protocol boundary', () => {
+  const tree = {
+    nodes: [{ key: 'STL', label: 'STL', count: 2, id: 'overview', bucket: '在学', children: true }],
+    total: 2,
+    content_id: 'current',
+    revision: 'r',
+    next_cursor: ''
+  }
+  assert.equal(validation.decodeResult('knowledge.tree', tree), tree)
+  for (const broken of [
+    { ...tree, content_id: 3 },
+    { ...tree, nodes: [{ ...tree.nodes[0], children: 'yes' }] }
+  ]) {
+    assert.throws(() => validation.decodeResult('knowledge.tree', broken))
+  }
+  const point = {
+    id: 'p',
+    title: '扩容机制',
+    theme: '编程语言／C++／STL／容器／vector',
+    facet: '扩容条件',
+    target_id: '',
+    status: '待学习',
+    citation_ids: [],
+    candidates: [],
+    category_path: ['编程语言', 'C++', 'STL', '容器', 'vector']
+  }
+  const plan = {
+    plan_id: 'plan',
+    points: [point],
+    excluded: [],
+    search: { items: [], total: 0, page: 0, notice: '' },
+    notice: ''
+  }
+  assert.equal(validation.decodeResult('question.plan', plan), plan)
+  const unicode = { ...plan, points: [{ ...point, category_path: ['🧠'.repeat(80)] }] }
+  assert.equal(validation.decodeResult('question.plan', unicode), unicode)
+  for (const category_path of [[], [''], ['a', 3], Array(65).fill('a'), ['🧠'.repeat(81)]]) {
+    assert.throws(() =>
+      validation.decodeResult('question.plan', { ...plan, points: [{ ...point, category_path }] })
+    )
+  }
+})
+
+// 具有正文的分支仍绘制为球体，返回路径与后代材料分组均使用完整位置。
+test('planet layout and project grouping keep deep branch identities', async () => {
+  const { layoutPlanets } = await loadModule(
+    '../apps/desktop/renderer/src/features/knowledge/planet_layout.ts',
+    { "'../../shared/knowledge_tree'": JSON.stringify(treeUrl) }
+  )
+  const path = ['编程语言', 'C++', 'STL', '容器']
+  const branch = {
+    nodes: [
+      { key: 'vector', label: 'vector', id: 'body', children: true, count: 2, bucket: '在学' },
+      { key: 'leaf', label: '容器注意事项', id: 'leaf', children: false, count: 1, bucket: '在学' }
+    ]
+  }
+  const parent = {
+    nodes: [
+      { key: '容器', label: '容器', id: 'parent-body', children: true, count: 3, bucket: '在学' }
+    ]
+  }
+  const planets = layoutPlanets({
+    branches: { [JSON.stringify(path)]: branch, [JSON.stringify(path.slice(0, -1))]: parent },
+    path,
+    pages: {},
+    capacity: 4
+  })
+  assert.equal(planets.filter((p) => p.focused).length, 1)
+  assert.ok(planets.some((p) => p.node.id === 'body' && p.visible && p.path.length === 5))
+  assert.ok(!planets.some((p) => p.node.id === 'leaf'))
+  const { projectKey } = await batchFixture()
+  assert.notEqual(
+    projectKey({ category_path: [...path, '项目甲'] }),
+    projectKey({ category_path: [...path, '项目乙'] })
+  )
 })

@@ -2,6 +2,7 @@
 // 层：React 展示组件
 // 作用：展示重构目录、逐项内容差异与两阶段确认动作。
 // 说明：所有模型文本按普通文本显示，不执行 HTML 或来源指令。
+import { categoryPath } from '../../shared/knowledge_tree'
 import { useAppContext } from '../../app/AppContext'
 import { OutlineEdit, RestructureReview } from './RestructureReview'
 
@@ -13,14 +14,12 @@ function OutlinePreview() {
       <h3>第 1 步：确认重构后的目录</h3>
       {preview.outline.map((point) => (
         <div className="outline-change" key={point.id}>
-          <strong>
-            {point.category} → {point.subcategory} → {point.title}
-          </strong>
+          <strong>{[...categoryPath(point), point.title].join(' → ')}</strong>
           <p>
             原位置：{point.old_path.join(' → ')} · {point.reason}
           </p>
           <OutlineEdit
-            key={point.id + point.title + point.category + point.subcategory}
+            key={JSON.stringify([point.id, point.title, categoryPath(point)])}
             point={point}
           />
         </div>
@@ -232,7 +231,7 @@ function RestructureMemory() {
         </p>
       ))}
       <p>调整沿用当前目录和成功分析；记忆保留至关闭应用或丢弃草案。</p>
-      <p>先确定大类和小类，再比较同一知识、提出合并方案；确认后核验全文并融合正文。</p>
+      <p>先确定完整分类路径，再比较同一知识、提出合并方案；确认后核验全文并融合正文。</p>
     </details>
   )
 }

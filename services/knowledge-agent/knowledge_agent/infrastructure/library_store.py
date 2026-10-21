@@ -13,7 +13,12 @@ from contextlib import closing
 from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.knowledge_rules import BUCKETS, identity, now, relevance
 from knowledge_agent.domain.library_rules import display_path, inventory_version
-from knowledge_agent.domain.taxonomy import classification, encode_path
+from knowledge_agent.domain.taxonomy import (
+    MAX_PATH_SEGMENTS,
+    classification,
+    encode_path,
+    parent_path,
+)
 from knowledge_agent.domain.topic_rules import short_field
 
 # 所有分页共享相同边界，树与预览均不发送完整全库正文。
@@ -43,7 +48,7 @@ class LibraryStorage:
     @traced
     def library_tree(self, params: dict) -> dict:
         query, bucket, path = tree_params(params)
-        grouped, total = {}, 0
+        grouped, total, bodies = {}, 0, []
         rows = self.db.execute("""SELECT k.id,k.title,k.content,k.created_at,k.updated_at,
             k.manual_bucket,t.theme,group_concat(u.day) AS days FROM knowledge k
             LEFT JOIN topic_links t ON t.knowledge_id=k.id
@@ -51,31 +56,45 @@ class LibraryStorage:
         for row in rows:
             # 频率和正文查询均以完整集合为依据，补充同样可以成为命中来源。
             current_bucket = self.merged_bucket(dict(row))
-            route = display_path(classification(row["theme"] or "未分类"))
+            route = display_path(classification(row["theme"] or "未分类")) + [row["title"]]
             if bucket and current_bucket != bucket or route[: len(path)] != path:
                 continue
             if query and not self._library_matches(row, query, route):
                 continue
             total += 1
-            key = route[len(path)] if len(path) < 2 else row["id"]
+            # 本节点正文单独提供阅读入口，不重复列入它自己的下级。
+            if route == path:
+                bodies.append(tree_leaf(row, current_bucket))
+                continue
+            key = route[len(path)]
+            terminal = len(route) == len(path) + 1
             node = grouped.setdefault(
                 key,
                 {
                     "key": key,
-                    "label": route[len(path)] if len(path) < 2 else row["title"],
+                    "label": key,
                     "count": 0,
-                    "id": row["id"] if len(path) == 2 else "",
-                    "bucket": current_bucket if len(path) == 2 else "",
+                    "id": "",
+                    "bucket": "",
+                    "children": False,
+                    "bodies": [],
                 },
             )
             node["count"] += 1
-        values = sorted(grouped.values(), key=lambda node: (node["label"], node["key"]))
-        revision = hashlib.sha256(json.dumps(values, ensure_ascii=False).encode()).hexdigest()
+            if terminal:
+                node["bodies"].append(tree_leaf(row, current_bucket))
+            else:
+                node["children"] = True
+        content_id = bodies[0]["id"] if len(bodies) == 1 else ""
+        values = tree_nodes(grouped, bodies if len(bodies) > 1 else [])
+        version = [query, bucket, path, content_id, values]
+        revision = hashlib.sha256(json.dumps(version, ensure_ascii=False).encode()).hexdigest()
         offset = tree_offset(params.get("cursor", ""), revision)
         end = offset + TREE_PAGE_SIZE
         return {
             "nodes": values[offset:end],
             "total": total,
+            "content_id": content_id,
             "revision": revision,
             "next_cursor": f"{revision}:{end}" if end < len(values) else "",
         }
@@ -182,7 +201,7 @@ class LibraryStorage:
 
     # 关系不改变知识身份、创建时间、正文与手工分区。
     def _apply_library_point(self, point: dict) -> None:
-        theme = encode_path(point["category"], point["subcategory"])
+        theme = encode_path(parent_path(point))
         self.db.execute("UPDATE knowledge SET title=? WHERE id=?", (point["title"], point["id"]))
         self.db.execute(
             "INSERT INTO topic_links VALUES (?,?,?,?)",
@@ -231,6 +250,34 @@ class LibraryStorage:
         )
 
 
+# 旧主题可能映射到同一显示位置，正文以稳定 ID 独立保留，不能覆盖同名项。
+def tree_leaf(row: sqlite3.Row, bucket: str) -> dict:
+    return {
+        "key": row["id"],
+        "label": row["title"],
+        "count": 1,
+        "id": row["id"],
+        "bucket": bucket,
+        "children": False,
+    }
+
+
+# 只有唯一正文才附着分支；存在显示别名冲突时保留每个正文的独立阅读入口。
+def tree_nodes(grouped: dict, values: list[dict]) -> list[dict]:
+    for node in grouped.values():
+        bodies = node.pop("bodies")
+        if not node["children"]:
+            values.extend(bodies)
+            continue
+        if len(bodies) == 1:
+            node.update(id=bodies[0]["id"], bucket=bodies[0]["bucket"])
+        elif bodies:
+            values.extend(bodies)
+            node["count"] -= len(bodies)
+        values.append(node)
+    return sorted(values, key=lambda node: (node["label"], node["key"]))
+
+
 # 严格验证树请求，不从字符串强转分页或容忍未知分区。
 def tree_params(params: dict) -> tuple[str, str | None, list[str]]:
     query, bucket, path = params.get("query", ""), params.get("bucket"), params.get("path", [])
@@ -243,7 +290,7 @@ def tree_params(params: dict) -> tuple[str, str | None, list[str]]:
         raise ValueError("目录筛选无效")
     if (
         not isinstance(path, list)
-        or len(path) > 2
+        or len(path) > MAX_PATH_SEGMENTS + 1
         or any(not isinstance(p, str) or not p or len(p) > 2000 for p in path)
     ):
         raise ValueError("目录路径无效")

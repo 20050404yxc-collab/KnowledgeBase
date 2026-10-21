@@ -3,6 +3,7 @@
 // 作用：声明完整目录和确认式重构的分页数据。
 // 说明：不包含后台会话、数据库或模型实现。
 export interface TreeNode {
+  children?: boolean
   key: string
   label: string
   count: number
@@ -10,6 +11,7 @@ export interface TreeNode {
   bucket: string
 }
 export interface LibraryTree {
+  content_id?: string
   nodes: TreeNode[]
   total: number
   revision: string
@@ -38,6 +40,7 @@ export interface OutlinePoint {
   id: string
   title: string
   old_path: string[]
+  category_path?: string[]
   category: string
   subcategory: string
   reason: string
@@ -117,6 +120,7 @@ export interface DuplicateGroup {
   checked: number
   target_id: string
   title: string
+  category_path?: string[]
   category: string
   subcategory: string
   manual_bucket: string | null
@@ -126,7 +130,14 @@ export interface DuplicateGroup {
   evidence_page: number
 }
 export type StructureReview =
-  | { action: 'point'; id: string; title: string; category: string; subcategory: string }
+  | {
+      action: 'point'
+      id: string
+      title: string
+      category: string
+      subcategory: string
+      category_path?: string[]
+    }
   | { action: 'candidate'; sources: string[] }
   | { action: 'decision'; id: string; decision: 'keep' | 'undecided' }
   | {
@@ -135,6 +146,7 @@ export type StructureReview =
       decision: 'merge'
       target_id: string
       title: string
+      category_path?: string[]
       category: string
       subcategory: string
       manual_bucket: string | null

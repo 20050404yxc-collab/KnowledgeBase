@@ -9,13 +9,14 @@ import json
 
 from .knowledge_rules import identity
 from .restructure_evidence import source_version
+from .taxonomy import encode_path, parent_path, path_fields
 from .topic_rules import json_object, short_field
 
 
 # 没有规范分类的旧主题原样作为小类，不能猜测文本分隔符。
 def display_path(item: dict) -> list[str]:
-    if item.get("category") and item.get("subcategory"):
-        return [item["category"], item["subcategory"]]
+    if "category_path" in item or item.get("category") and item.get("subcategory"):
+        return parent_path(item)
     theme = item.get("theme", "未分类")
     return ["未分类／待整理", theme if theme != "未分类" else "未细分"]
 
@@ -43,8 +44,7 @@ def validate_assignments(text: str, items: list[dict]) -> list[dict]:
         result.append(
             {
                 "id": item_id,
-                "category": short_field(value.get("category"), "大类", 80),
-                "subcategory": short_field(value.get("subcategory"), "小类", 80),
+                **path_fields(value),
                 "reason": short_field(value.get("reason"), "归类理由", 500),
             }
         )
@@ -54,10 +54,7 @@ def validate_assignments(text: str, items: list[dict]) -> list[dict]:
 # 不能把同名不同知识自动合并，用户须调整目录解决目标路径碰撞。
 def validate_collisions(assignments: list[dict], items: list[dict]) -> None:
     titles = {item["id"]: item["title"] for item in items}
-    keys = [
-        (identity(a["category"]), identity(a["subcategory"]), identity(titles[a["id"]]))
-        for a in assignments
-    ]
+    keys = [(identity(encode_path(parent_path(a))), identity(titles[a["id"]])) for a in assignments]
     if len(keys) != len(set(keys)):
         raise ValueError("重构后同一小类存在同名知识，请填写调整意见重新规划；未合并内容")
 

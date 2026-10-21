@@ -36,6 +36,16 @@ function optional(value: unknown, check: (value: unknown) => boolean) {
 function stringList(value: unknown) {
   return Array.isArray(value) && value.every((item) => typeof item === 'string')
 }
+// 完整父级数组有界且每层非空；缺失时仍兼容旧两级结果。
+export function isCategoryPath(value: unknown): value is string[] {
+  return (
+    stringList(value) &&
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.length <= 64 &&
+    value.every((part: string) => part.trim().length > 0 && Array.from(part).length <= 80)
+  )
+}
 // 引文必须携带来源标识、定位和逐字摘录。
 function evidence(value: Record<string, unknown>) {
   return (
@@ -62,6 +72,7 @@ function duplicate(value: Record<string, unknown>) {
       String(value.kind)
     ) &&
     ['undecided', 'keep', 'merge'].includes(String(value.decision)) &&
+    optional(value.category_path, isCategoryPath) &&
     stringList(value.sources) &&
     typeof value.bucket_decided === 'boolean' &&
     (value.manual_bucket === null ||
@@ -76,9 +87,13 @@ export function isLibraryTree(value: unknown): value is LibraryTree {
     record(value) &&
     strings(value, ['revision', 'next_cursor']) &&
     counts(value, ['total']) &&
+    optional(value.content_id, (item) => typeof item === 'string') &&
     rows(
       value.nodes,
-      (item) => strings(item, ['key', 'label', 'id', 'bucket']) && counts(item, ['count'])
+      (item) =>
+        strings(item, ['key', 'label', 'id', 'bucket']) &&
+        counts(item, ['count']) &&
+        optional(item.children, (part) => typeof part === 'boolean')
     )
   )
 }
@@ -111,6 +126,7 @@ export function isRestructurePreview(value: unknown): value is RestructurePrevie
       value.outline,
       (item) =>
         strings(item, ['id', 'title', 'category', 'subcategory', 'reason']) &&
+        optional(item.category_path, isCategoryPath) &&
         Array.isArray(item.old_path) &&
         item.old_path.every((part) => typeof part === 'string')
     ) &&

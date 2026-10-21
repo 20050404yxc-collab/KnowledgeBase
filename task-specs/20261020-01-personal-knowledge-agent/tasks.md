@@ -1,3 +1,14 @@
+## Revision 16 execution
+
+- [x] R16.1 Reuse existing task/pages; record explicit authorization, scope, compatibility and wireframe/sequence.
+- [x] R16.2 Implement full-path taxonomy and capture/review/search compatibility (R16-01).
+- [x] R16.3 Implement full-path restructure planning/edit/grouping/atomic persistence (R16-03).
+- [x] R16.4 Implement recursive trees and distinct read/expand controls with mixed layout (R16-02).
+- [x] R16.5 Add isolated regression and protocol/desktop evidence; run required check and UI commands.
+- [x] R16.6 Reconcile Chinese docs and actual limitations/evidence.
+
+R16 handoff: implemented and verified; final npm run check passed (255 Python / 23 host plus standards, formatting, types and build), final npm run test:ui passed with 40 screenshots. Deep-tree wide/narrow and three-level merge path editor screenshots visually reviewed. Existing task and Chinese docs reconciled; prior revisions retain historical evidence. No production data, paid calls, schema/version/data-path changes, commit/push or release. Real-provider semantics and large-library performance remain unverified.
+
 # Execution Tasks
 
 ## Revision 15 continuation

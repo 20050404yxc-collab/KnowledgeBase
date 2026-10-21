@@ -1,6 +1,6 @@
 # 文件：library_grouping.py
 # 层：Python application
-# 作用：在已归类的小类内逐对比较知识语义并提出合并结构。
+# 作用：在已归类的完整父级路径内逐对比较知识语义并提出合并结构。
 # 说明：概览仅提出方案，全文核验与正式保存仍在用户确认之后。
 from __future__ import annotations
 
@@ -9,11 +9,12 @@ import json
 
 from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.duplicate_rules import duplicate_candidates, new_group
+from knowledge_agent.domain.taxonomy import parent_path, path_fields
 from knowledge_agent.domain.topic_rules import json_object, short_field
 
 
 class LibraryGrouping:
-    # 比较当前小类的全部知识对，不依赖标题或关键词相同才进入语义判断。
+    # 比较当前完整父级路径内的全部知识对，不依赖标题或关键词相同才进入语义判断。
     @traced
     async def group_one(self, draft: dict, emit) -> None:
         state = draft.get("grouping")
@@ -48,8 +49,7 @@ def grouping_payload(draft: dict, state: dict, points: dict) -> dict:
             {
                 "id": key,
                 "title": points[key]["title"],
-                "category": points[key]["category"],
-                "subcategory": points[key]["subcategory"],
+                **path_fields(points[key]),
                 "summary": draft["summaries"][key],
             }
             for key in pair
@@ -95,7 +95,7 @@ def category_pairs(draft: dict) -> list[tuple[str, str]]:
     return [
         (a["id"], b["id"])
         for a, b in itertools.combinations(draft["outline"], 2)
-        if (a["category"], a["subcategory"]) == (b["category"], b["subcategory"])
+        if parent_path(a) == parent_path(b)
     ]
 
 
@@ -129,11 +129,10 @@ def finish_groups(draft: dict, state: dict) -> None:
                 proposed=True,
                 target_id=key,
                 title=point["title"],
-                category=point["category"],
-                subcategory=point["subcategory"],
+                **path_fields(point),
                 bucket_decided=True,
                 manual_bucket=next(iter(buckets)) if len(buckets) == 1 else None,
-                reason="小类内语义比较建议合并同一知识；确认结构后仍须核验全文",
+                reason="同一父级路径内语义比较建议合并同一知识；确认结构后仍须核验全文",
             )
             groups.append(group)
             used.update(members)

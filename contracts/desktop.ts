@@ -35,6 +35,7 @@ export interface Citation {
   retained?: boolean
 }
 export interface Knowledge {
+  category_path?: string[]
   category?: string
   subcategory?: string
   id: string
@@ -74,6 +75,7 @@ export interface Supplement {
   edited: boolean
 }
 export interface SearchHit {
+  category_path?: string[]
   category?: string
   subcategory?: string
   id: string
@@ -91,6 +93,7 @@ export interface SearchResult {
   notice: string
 }
 export interface DirectoryPoint {
+  category_path?: string[]
   category?: string
   subcategory?: string
   reason?: string

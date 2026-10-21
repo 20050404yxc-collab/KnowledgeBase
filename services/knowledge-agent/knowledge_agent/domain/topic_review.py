@@ -1,9 +1,9 @@
 # 文件：topic_review.py
 # 层：Python domain
-# 作用：验证独立审核的完整判定和明确的两级分类。
+# 作用：验证独立审核的完整判定和完整分类路径。
 # 说明：缺项、重复或越权引用均使整轮审核失效，不能降级放行。
 from .knowledge_rules import identity
-from .taxonomy import encode_path
+from .taxonomy import encode_path, parent_path, path_fields
 from .topic_rules import json_object, short_field
 
 
@@ -30,18 +30,16 @@ def review_points(text: str, points: list[dict]) -> tuple[list[dict], list[dict]
                 {"title": allowed[item_id]["title"], "decision": decision, "reason": reason}
             )
             continue
-        category = short_field(raw.get("category"), "大类", 80)
-        subcategory = short_field(raw.get("subcategory"), "小类", 80)
+        fields = path_fields(raw)
         if type(raw.get("project_required")) is not bool:
             raise ValueError("项目依赖审核缺失")
         project = raw["project_required"]
         point = {
             **allowed[item_id],
-            "category": category,
-            "subcategory": subcategory,
-            "theme": category + "／" + subcategory,
+            **fields,
+            "theme": "／".join(fields["category_path"]),
             "reason": reason,
-            "storage_theme": encode_path(category, subcategory),
+            "storage_theme": encode_path(fields["category_path"]),
             "project_required": project,
         }
         if project:
@@ -55,10 +53,7 @@ def review_points(text: str, points: list[dict]) -> tuple[list[dict], list[dict]
                 }
             )
         accepted.append(point)
-    keys = [
-        (identity(p["category"]), identity(p["subcategory"]), identity(p["title"]))
-        for p in accepted
-    ]
+    keys = [(identity(encode_path(parent_path(p))), identity(p["title"])) for p in accepted]
     if len(keys) != len(set(keys)):
         raise ValueError("审核分类后出现重复知识点，请重新拆解")
     return accepted, rejected

@@ -74,7 +74,13 @@ class TopicStorage:
 
     # 原正文和补充的内容版本用于乐观并发校验，不依赖时间戳精度。
     def topic_version(self, item: dict) -> str:
-        data = [item["title"], item["content"], item.get("theme"), item.get("supplements", [])]
+        data = [
+            item["title"],
+            item["content"],
+            item.get("theme"),
+            item.get("category_path"),
+            item.get("supplements", []),
+        ]
         return hashlib.sha256(
             json.dumps(data, sort_keys=True, ensure_ascii=False).encode()
         ).hexdigest()

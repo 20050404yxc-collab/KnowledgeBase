@@ -8,6 +8,7 @@ import type {
   LearnInput,
   DesktopAPI
 } from '../../../../../../contracts/desktop'
+import { categoryPath } from '../../shared/knowledge_tree'
 import { errorText } from '../../shared/api/client'
 
 export interface BatchOutcome {
@@ -83,7 +84,8 @@ export async function generateBatch(options: BatchOptions) {
   }
 }
 
-// 项目按当前目录明确展示的小类分组，旧目录沿用完整主题，不猜测名称拆分。
+// 项目按当前目录明确展示的完整路径分组，旧目录沿用完整主题，不猜测名称拆分。
 export function projectKey(point: DirectoryPoint): string {
-  return JSON.stringify([point.category ?? point.theme, point.subcategory ?? '未细分'])
+  const path = categoryPath(point)
+  return JSON.stringify(path.length ? path : [point.theme, '未细分'])
 }

@@ -160,7 +160,7 @@ def test_tree_complete_filter_paging_and_legacy(library):
     "params",
     [
         {"path": "a"},
-        {"path": ["a", "b", "c"]},
+        {"path": ["a"] * 66},
         {"path": [3]},
         {"bucket": "other"},
         {"query": 3},

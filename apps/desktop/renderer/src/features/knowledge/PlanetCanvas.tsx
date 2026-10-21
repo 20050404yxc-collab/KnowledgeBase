@@ -3,6 +3,7 @@
 // 作用：用连续位置过渡展示星球与水平连接的知识标题。
 // 说明：浏览器拥有可打断过渡；组件只拥有尺寸监听并在卸载时释放。
 import { useEffect, useRef, useState, type CSSProperties } from 'react'
+import { hasChildren } from '../../shared/knowledge_tree'
 import { useAppContext } from '../../app/AppContext'
 import { layoutPlanets, type Planet } from './planet_layout'
 import type { TreeNode } from '../../../../../../contracts/desktop'
@@ -103,7 +104,10 @@ export function PlanetCanvas() {
     previousPath.current = treePath
   }, [context, key, center, treePath, planets])
   const leaves =
-    branch?.nodes.slice(page * capacity, (page + 1) * capacity).filter((node) => node.id) ?? []
+    branch?.nodes
+      .slice(page * capacity, (page + 1) * capacity)
+      .filter((node) => !hasChildren(node)) ?? []
+  const mixed = !!leaves.length && !!branch?.nodes.some(hasChildren)
   return (
     <>
       <div
@@ -116,8 +120,13 @@ export function PlanetCanvas() {
         {planets.map((planet) => (
           <PlanetButton key={planet.key} planet={planet} />
         ))}
-        {!!leaves.length && <PlanetLeaves key={key + page} nodes={leaves} />}
+        {!!leaves.length && !mixed && <PlanetLeaves key={key + page} nodes={leaves} />}
       </div>
+      {mixed && (
+        <div className="planet-mixed-leaves">
+          <PlanetLeaves key={key + page} nodes={leaves} />
+        </div>
+      )}
       <div className="planet-pagination">
         <button disabled={page === 0} onClick={() => paginateTree(page - 1)}>
           上一页节点

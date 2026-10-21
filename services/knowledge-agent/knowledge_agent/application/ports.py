@@ -56,7 +56,7 @@ class KnowledgeRepository(Protocol):
         model: str = "",
         provider_name: str = "",
         capture_key: str | None = None,
-        classification_path: tuple[str, str] | None = None,
+        classification_path: tuple[str, ...] | list[str] | None = None,
     ) -> dict: ...
     # 固定有效分区或恢复自动计算，拒绝其他分区值。
     def set_bucket(self, item_id: str, bucket: str | None) -> dict: ...

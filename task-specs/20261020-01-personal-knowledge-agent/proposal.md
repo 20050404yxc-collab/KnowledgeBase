@@ -1,3 +1,21 @@
+## Revision 16: hierarchical knowledge tree
+
+- Workflow mode: execute
+- Plan revision: 16
+- Implementation status: complete; final project check and complete isolated desktop validation passed. See verification.md for evidence and limits.
+- Approval status: approved
+- Approved revision: 16
+- Approval basis: User selected the displayed recursive tree design and instructed “按照这样来，开始修改吧”. This authorizes implementation, documentation and isolated verification in this turn.
+- Updated: 2026-10-21
+- Docs language: Chinese
+- Task-specs language: English
+- Plan routing: revise-existing; extends existing taxonomy/navigation/restructure lifecycle.
+- Human documentation: docs/确认页/个人知识库/产品方案.md section 3.13 and 技术设计.md.
+- Standards: user-selected project coding/layering standard revision 2 and AGENTS.md remain active; reused reading and skill standards index. No new stack, migration, production data, credential or paid-provider access.
+- Scope: full parent paths across classification, capture, search DTOs, restructure assignment/review/grouping/persistence, recursive exploration and saved-tree navigation; readable internal nodes; legacy compatibility.
+- Risks: accidentally truncating paths, mixing same-name nodes, stale filtered responses and mixed branch/leaf layout. Preserve stable knowledge IDs, legacy encodings, atomic writes and existing confirmation gates.
+- Open limitations: at most 64 parent segments for resource safety; ordinary title edits do not rename descendant paths; branch renames use explicit restructure review. No empty-folder or drag/drop manager.
+
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent

@@ -1,8 +1,9 @@
 // 文件：DirectoryTree.tsx
 // 层：React 页面／组件
-// 作用：展示两级分类与知识点复选框，支持按大类或小类批量选择。
+// 作用：递归展示完整知识树，支持按任意节点批量选择。
 // 说明：勾选只记录意图，右侧明确提交后才生成内容。
 import type { DirectoryPoint } from '../../../../../../contracts/desktop'
+import { categoryPath } from '../../shared/knowledge_tree'
 import { useAppContext } from '../../app/AppContext'
 
 // 分类全选只作用于未保存项，已保存内容不会再次收费生成。
@@ -67,34 +68,71 @@ function PointRow({ point }: { point: DirectoryPoint }) {
   )
 }
 
-// 大类和小类使用现有分类字段，不重新分类或改写旧主题。
+interface DirectoryNode {
+  path: string[]
+  points: DirectoryPoint[]
+  own: DirectoryPoint[]
+  children: Map<string, DirectoryNode>
+}
+
+// 父级路径加知识标题构成完整位置，同一节点可同时有可读项与子节点。
+function directoryNodes(points: DirectoryPoint[]) {
+  const root: DirectoryNode = { path: [], points, own: [], children: new Map() }
+  for (const point of points) {
+    const parents = categoryPath(point)
+    const route = [...(parents.length ? parents : [point.theme, '未细分']), point.title]
+    let node = root
+    for (const label of route) {
+      let child = node.children.get(label)
+      // 第一次遇到该路径时建立容器，后续知识复用同一节点。
+      if (!child) {
+        child = { path: [...node.path, label], points: [], own: [], children: new Map() }
+        node.children.set(label, child)
+      }
+      node = child
+      node.points.push(point)
+    }
+    node.own.push(point)
+  }
+  return [...root.children.values()]
+}
+
+// 每层分别提供阅读和后代选择，展开结构不生成正文或改变选择意图。
+function DirectoryBranch({ node }: { node: DirectoryNode }) {
+  if (!node.children.size) {
+    return (
+      <>
+        {node.own.map((point) => (
+          <PointRow key={point.id} point={point} />
+        ))}
+      </>
+    )
+  }
+  return (
+    <section
+      className={node.path.length === 1 ? 'directory-group' : 'directory-subgroup'}
+      data-depth={node.path.length}
+    >
+      {node.path.length === 1 ? <h3>{node.path.at(-1)}</h3> : <h4>{node.path.at(-1)}</h4>}
+      <GroupSelection title={node.path.join('／')} points={node.points} />
+      {node.own.map((point) => (
+        <PointRow key={point.id} point={point} />
+      ))}
+      {[...node.children.values()].map((child) => (
+        <DirectoryBranch key={JSON.stringify(child.path)} node={child} />
+      ))}
+    </section>
+  )
+}
+
+// 分类深度由已校验路径决定，不把第三级强行当作叶子。
 export function DirectoryTree() {
   const { directory } = useAppContext()
-  const points = directory?.points ?? []
-  const categories = [...new Set(points.map((p) => p.category ?? p.theme))]
   return (
     <>
-      {categories.map((category) => {
-        const group = points.filter((p) => (p.category ?? p.theme) === category)
-        return (
-          <section key={category} className="directory-group">
-            <h3>{category}</h3>
-            <GroupSelection title={category} points={group} />
-            {[...new Set(group.map((p) => p.subcategory ?? '未细分'))].map((sub) => {
-              const children = group.filter((p) => (p.subcategory ?? '未细分') === sub)
-              return (
-                <section key={sub} className="directory-subgroup">
-                  <h4>{sub}</h4>
-                  <GroupSelection title={`${category}／${sub}`} points={children} />
-                  {children.map((point) => (
-                    <PointRow key={point.id} point={point} />
-                  ))}
-                </section>
-              )
-            })}
-          </section>
-        )
-      })}
+      {directoryNodes(directory?.points ?? []).map((node) => (
+        <DirectoryBranch key={JSON.stringify(node.path)} node={node} />
+      ))}
     </>
   )
 }

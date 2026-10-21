@@ -27,6 +27,7 @@ from knowledge_agent.domain.models import (
     ProviderDraft,
     SourceSummary,
 )
+from knowledge_agent.domain.taxonomy import encode_path, validate_path
 
 from .library_store import LibraryStorage
 from .merge_schema import migrate_merges
@@ -201,11 +202,14 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         model: str = "",
         provider_name: str = "",
         capture_key: str | None = None,
-        classification_path: tuple[str, str] | None = None,
+        classification_path: tuple[str, ...] | list[str] | None = None,
     ) -> dict:
         if item_id:
             item_id = self.canonical_id(item_id)
         title, content, concept = validate_note(title, content)
+        # 新路径在复用前校验，非法路径不能因已有同名正文而被忽略。
+        if classification_path is not None:
+            classification_path = validate_path(list(classification_path))
         # 主题知识使用独立身份键，编辑标题不退回全库标题唯一规则。
         if (
             item_id
@@ -230,9 +234,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
                 )
             record("knowledge.committed", mode="edit")
             return self.get(item_id)
-        existing = self.db.execute(
-            "SELECT id FROM knowledge WHERE concept=? OR digest=?", (concept, digest)
-        ).fetchone()
+        existing = self._saved_identity(title, concept, digest, classification_path)
         # 新建或生成命中标题／正文时只复用，可补问题映射但不覆盖旧正文。
         if existing:
             if capture_key:
@@ -241,6 +243,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
             record("knowledge.reused", capture_key_added=bool(capture_key))
             return self.get(existing[0])
         item_id, stamp = str(uuid.uuid4()), now()
+        concept = "topic:" + item_id if classification_path else concept
         # 新知识和问题复用键在同一 SQLite 事务内提交，失败不会写半套关联。
         with self.db:
             self.db.execute(
@@ -266,14 +269,27 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
                     {
                         "id": item_id,
                         "title": title,
-                        "category": classification_path[0],
-                        "subcategory": classification_path[1],
+                        "category_path": list(classification_path),
                     }
                 )
             if capture_key:
                 self._insert_generation_key(capture_key, item_id)
         record("knowledge.committed", mode="create", generated=generated)
         return self.get(item_id)
+
+    # 已分类知识只在完整父级与标题身份内复用，不串到其他领域的同名项。
+    def _saved_identity(
+        self, title: str, concept: str, digest: str, path: list[str] | None
+    ) -> sqlite3.Row | None:
+        if path is not None:
+            return self.db.execute(
+                """SELECT k.id FROM knowledge k LEFT JOIN topic_links t ON t.knowledge_id=k.id
+                WHERE (t.theme_key=? AND t.title_key=?) OR (t.knowledge_id IS NULL AND k.concept=?)""",
+                (identity(encode_path(path)), identity(title), concept),
+            ).fetchone()
+        return self.db.execute(
+            "SELECT id FROM knowledge WHERE concept=? OR digest=?", (concept, digest)
+        ).fetchone()
 
     # 仅写入复用关联；事务归调用方所有，不提前提交知识收录。
     def _insert_generation_key(self, capture_key: str, item_id: str) -> None:

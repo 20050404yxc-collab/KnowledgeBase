@@ -44,7 +44,7 @@ function TreeStatus() {
           <button onClick={() => void loadTree(statusPath, !!branch.next_cursor)}>重试</button>
         </p>
       )}
-      {branch && !branch.loading && !branch.error && !branch.nodes.length && (
+      {branch && !branch.loading && !branch.error && !branch.nodes.length && !branch.content_id && (
         <p>此范围暂无知识。</p>
       )}
       {branch?.next_cursor && (
@@ -58,7 +58,8 @@ function TreeStatus() {
 
 // 四个页面共用结构；切页后从页面快照恢复，不额外播放入场。
 export function SavedKnowledgeTree() {
-  const { section, filter, setFilter, branches } = useAppContext()
+  const { section, filter, setFilter, branches, treePath, openItem } = useAppContext()
+  const contentId = branches[JSON.stringify(treePath)]?.content_id
   return (
     <section className="saved-tree" aria-label={`${section}已有知识目录`}>
       <div className="section-title">
@@ -73,6 +74,11 @@ export function SavedKnowledgeTree() {
         />
       </div>
       <TreeBreadcrumbs />
+      {contentId && (
+        <button className="tree-node-reading" onClick={() => void openItem(contentId)}>
+          阅读本节点：{treePath.at(-1)}
+        </button>
+      )}
       <PlanetCanvas />
       <TreeStatus />
     </section>

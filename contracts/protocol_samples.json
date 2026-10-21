@@ -111,8 +111,9 @@
         "result": {
           "nodes": [],
           "total": 0,
-          "revision": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-          "next_cursor": ""
+          "revision": "e86371ef3049005ee5ebb3ab6056a62f0bc4c56c3308cdcbfa6bb9be89ca8d38",
+          "next_cursor": "",
+          "content_id": ""
         }
       }
     }
@@ -134,7 +135,12 @@
   "dto_samples": [
     {
       "operation": "knowledge.text",
-      "result": { "content": "shared-body-😀", "version": "shared-version", "page": 0, "pages": 1 }
+      "result": {
+        "content": "shared-body-😀",
+        "version": "shared-version",
+        "page": 0,
+        "pages": 1
+      }
     },
     {
       "operation": "question.plan",

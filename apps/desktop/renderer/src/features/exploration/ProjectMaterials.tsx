@@ -1,7 +1,8 @@
 // 文件：ProjectMaterials.tsx
 // 层：React 页面／组件
-// 作用：在目录右侧按项目小类集中接收文件并统一生成项目知识。
+// 作用：在目录右侧按项目完整路径集中接收文件并统一生成项目知识。
 // 说明：文件通过既有附件入口解析，勾选范围只用于当前项目的一次提交。
+import { categoryPath } from '../../shared/knowledge_tree'
 import { useState } from 'react'
 import type { DirectoryPoint } from '../../../../../../contracts/desktop'
 import { useAppContext } from '../../app/AppContext'
@@ -80,7 +81,7 @@ function ProjectMaterialGroup({ points }: { points: DirectoryPoint[] }) {
   return (
     <section className="project-material-group">
       <h4>
-        {points[0].subcategory ?? points[0].theme} · {pending.length} 项待生成
+        {categoryPath(points[0]).join(' → ') || points[0].theme} · {pending.length} 项待生成
       </h4>
       <ul>
         {[...new Set(points.map((p) => p.material_request).filter(Boolean))].map((request) => (
@@ -130,7 +131,7 @@ function ProjectMaterialGroup({ points }: { points: DirectoryPoint[] }) {
   )
 }
 
-// 同一目录中的项目按已审核的小类集中显示，名称和包含项均可见。
+// 同一目录中的项目按已审核的完整路径集中显示，名称和包含项均可见。
 export function ProjectMaterials() {
   const { directory } = useAppContext()
   const projects = directory?.points.filter((p) => p.project_required) ?? []

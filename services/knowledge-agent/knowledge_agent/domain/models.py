@@ -54,6 +54,7 @@ class Knowledge(TypedDict):
     model: str | None
     provider_name: str | None
     theme: NotRequired[str]
+    category_path: NotRequired[list[str]]
     category: NotRequired[str]
     subcategory: NotRequired[str]
     version: NotRequired[str]

@@ -14,6 +14,7 @@ from knowledge_agent.domain.duplicate_rules import (
     verification_work,
 )
 from knowledge_agent.domain.library_rules import display_path, validate_assignments
+from knowledge_agent.domain.taxonomy import parent_path, path_fields
 from knowledge_agent.domain.topic_rules import short_field
 
 from .library_grouping import LibraryGrouping
@@ -131,10 +132,7 @@ class LibraryPlanning(LibraryGrouping):
             point = next((p for p in draft["outline"] if p["id"] == value.get("id")), None)
             if not point:
                 raise ValueError("目录知识不存在")
-            changes = {
-                key: short_field(value.get(key), key, limit)
-                for key, limit in (("title", 200), ("category", 80), ("subcategory", 80))
-            }
+            changes = {"title": short_field(value.get("title"), "标题", 200), **path_fields(value)}
             point.update(changes)
         elif action == "candidate":
             self.add_candidate(draft, value)
@@ -197,10 +195,7 @@ class LibraryPlanning(LibraryGrouping):
                 bucket_decided=True,
             )
             changes.update(
-                {
-                    key: short_field(value.get(key), key, limit)
-                    for key, limit in (("title", 200), ("category", 80), ("subcategory", 80))
-                }
+                {"title": short_field(value.get("title"), "标题", 200), **path_fields(value)}
             )
         group.update(changes)
         group["proposed"] = False
@@ -259,8 +254,7 @@ def assignment_payload(draft: dict, item: dict, state: dict) -> tuple[str, int, 
 
 
 # 已有和修订中的路径共同作为词表，避免每次从空目录重新猜测。
-def assignment_paths(draft: dict) -> set[tuple[str, str]]:
+def assignment_paths(draft: dict) -> set[tuple[str, ...]]:
     return {
-        (point["category"], point["subcategory"])
-        for point in draft["outline"] + draft.get("revised_outline", [])
+        tuple(parent_path(point)) for point in draft["outline"] + draft.get("revised_outline", [])
     }

@@ -9,6 +9,7 @@ import json
 from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.library_rules import validate_suggestion
 from knowledge_agent.domain.restructure_evidence import validate_rewrite_references
+from knowledge_agent.domain.taxonomy import parent_path
 
 # 原文分片整理后的正文按此预算融合；不是最终正文总长度上限。
 FUSION_INPUT_CHARS = 18000
@@ -59,7 +60,7 @@ class LibraryFusion:
             "mode": "fuse",
             "id": point["id"],
             "title": point["title"],
-            "path": [point["category"], point["subcategory"]],
+            "path": parent_path(point),
             "sections": batch,
             "feedback_history": draft["feedback_history"],
             "previous_headings": [

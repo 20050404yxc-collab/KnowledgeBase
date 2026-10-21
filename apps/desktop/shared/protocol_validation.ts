@@ -3,6 +3,7 @@
 // 作用：校验 IPC、后台消息及操作结果的未知数据。
 // 说明：每个 DTO 字段均由对应校验器覆盖，不信任 JSON 类型断言。
 import {
+  isCategoryPath,
   isLibraryTree,
   isRestructureSummary,
   isRestructurePreview,
@@ -100,6 +101,7 @@ const supplement = object<Supplement>({
 const kind: Check<SearchHit['kind']> = (value): value is SearchHit['kind'] =>
   value === 'knowledge' || value === 'supplement' || value === 'source'
 const searchHit = object<SearchHit>({
+  category_path: optional(isCategoryPath),
   category: optional(string),
   subcategory: optional(string),
   id: string,
@@ -117,6 +119,7 @@ const searchResult = object<SearchResult>({
   notice: string
 })
 const directoryPoint = object<DirectoryPoint>({
+  category_path: optional(isCategoryPath),
   category: optional(string),
   subcategory: optional(string),
   reason: optional(string),
@@ -141,6 +144,7 @@ const questionPlan = object<QuestionPlan>({
   notice: string
 })
 const knowledge = object<Knowledge>({
+  category_path: optional(isCategoryPath),
   category: optional(string),
   subcategory: optional(string),
   id: string,

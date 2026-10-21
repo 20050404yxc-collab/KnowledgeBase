@@ -4,6 +4,7 @@
 // 说明：完整验证祖先后再加载后代，不根据不完整分页判定分类不存在。
 import { useEffect } from 'react'
 import { usePageState } from '../../shared/use_page_state'
+import { hasChildren } from '../../shared/knowledge_tree'
 import type { Branch } from './use_saved_tree'
 
 const EMPTY_NAVIGATION = { query: '', path: [] as string[], pages: {} as Record<string, number> }
@@ -41,7 +42,7 @@ export function useTreeNavigation({ page, query, branches, load }: Options) {
         return
       }
       // 祖先可能还在下一页；读完后才允许回退。
-      if (!branch.nodes.some((node) => !node.id && node.label === treePath[depth])) {
+      if (!branch.nodes.some((node) => hasChildren(node) && node.label === treePath[depth])) {
         if (branch.next_cursor) {
           void load(parent, true)
         } else {

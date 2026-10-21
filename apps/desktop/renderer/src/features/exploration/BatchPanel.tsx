@@ -26,7 +26,7 @@ export function BatchPanel() {
   return (
     <section className="batch-panel" aria-label="批量生成知识点">
       <h3>批量生成</h3>
-      <p>在左侧勾选知识点，或全选一个大类／小类。已选 {pending.length} 项待生成。</p>
+      <p>在左侧勾选知识点，或全选任意一层的待生成项。已选 {pending.length} 项待生成。</p>
       <div className="batch-buttons">
         <button
           className="primary"

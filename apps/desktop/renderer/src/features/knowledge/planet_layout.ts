@@ -3,6 +3,7 @@
 // 作用：确定稳定星球身份、可见分页和不碰撞的节点位置。
 // 说明：只计算展示，不读取接口或改变分类。
 import type { TreeNode } from '../../../../../../contracts/desktop'
+import { hasChildren } from '../../shared/knowledge_tree'
 import type { Branch } from './use_saved_tree'
 
 export interface Planet {
@@ -57,7 +58,7 @@ export function layoutPlanets(options: {
     const start = page * capacity
     for (const [index, node] of branch.nodes.entries()) {
       // 知识标题由水平连线区域展示，不能冒充分类球体。
-      if (node.id) {
+      if (!hasChildren(node)) {
         continue
       }
       const nodePath = [...parent, node.label]

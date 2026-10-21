@@ -2,6 +2,8 @@
 // 层：React 展示组件
 // 作用：展示代理覆盖、来源映射和逐组重复决定。
 // 说明：模型可预填拟合并结构；全文核验与正式应用仍须确认。
+import { categoryPath } from '../../shared/knowledge_tree'
+import { CategoryPathEditor } from './CategoryPathEditor'
 import { useState } from 'react'
 import type {
   AnalysisRecord,
@@ -80,7 +82,7 @@ export function RestructureReview() {
       )}
       {draft?.status === 'outline' && <CandidateInput />}
       <p>
-        同小类知识会按内容比较并提出拟合并方案；仅相关知识保持独立。调用分别计费，未知用量不估算；仍需核对语义遗漏。
+        同一完整路径下的知识会按内容比较并提出拟合并方案；仅相关知识保持独立。调用分别计费，未知用量不估算；仍需核对语义遗漏。
       </p>
     </section>
   )
@@ -176,8 +178,7 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
   const { reviewRestructure, busy } = useAppContext()
   const [target, setTarget] = useState(group.target_id)
   const [title, setTitle] = useState(group.title)
-  const [category, setCategory] = useState(group.category)
-  const [subcategory, setSubcategory] = useState(group.subcategory)
+  const [path, setPath] = useState(categoryPath(group))
   const [bucket, setBucket] = useState(group.bucket_decided ? (group.manual_bucket ?? 'auto') : '')
   return (
     <section aria-label="重复组决定">
@@ -196,10 +197,8 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
           ))}
         </select>
       </label>
-      <MergeFields
-        value={{ title, category, subcategory, bucket }}
-        setters={{ setTitle, setCategory, setSubcategory, setBucket }}
-      />
+      <MergeFields value={{ title, bucket }} setters={{ setTitle, setBucket }} />
+      <CategoryPathEditor value={path} onChange={setPath} />
       <button
         disabled={!!busy}
         onClick={() =>
@@ -214,8 +213,8 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
           !['pending', 'equivalent', 'partial-overlap'].includes(group.kind) ||
           !target ||
           !title ||
-          !category ||
-          !subcategory ||
+          !path.length ||
+          path.some((part) => !part.trim()) ||
           !bucket
         }
         onClick={() =>
@@ -225,8 +224,9 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
             decision: 'merge',
             target_id: target,
             title,
-            category,
-            subcategory,
+            category_path: path,
+            category: path[0] ?? '',
+            subcategory: path[1] ?? '',
             manual_bucket: bucket === 'auto' ? null : bucket
           })
         }
@@ -299,8 +299,7 @@ function ReviewPages({ kind }: { kind: PreviewKind }) {
 export function OutlineEdit({ point }: { point: OutlinePoint }) {
   const { reviewRestructure, busy } = useAppContext()
   const [title, setTitle] = useState(point.title)
-  const [category, setCategory] = useState(point.category)
-  const [subcategory, setSubcategory] = useState(point.subcategory)
+  const [path, setPath] = useState(categoryPath(point))
   return (
     <details>
       <summary>调整标题与位置</summary>
@@ -308,18 +307,18 @@ export function OutlineEdit({ point }: { point: OutlinePoint }) {
         标题
         <input value={title} onChange={(e) => setTitle(e.target.value)} />
       </label>
-      <label>
-        大类
-        <input value={category} onChange={(e) => setCategory(e.target.value)} />
-      </label>
-      <label>
-        小类
-        <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} />
-      </label>
+      <CategoryPathEditor value={path} onChange={setPath} />
       <button
         disabled={!!busy}
         onClick={() =>
-          void reviewRestructure({ action: 'point', id: point.id, title, category, subcategory })
+          void reviewRestructure({
+            action: 'point',
+            id: point.id,
+            title,
+            category_path: path,
+            category: path[0] ?? '',
+            subcategory: path[1] ?? ''
+          })
         }
       >
         保存本项结构
@@ -333,30 +332,20 @@ function MergeFields({
   value,
   setters
 }: {
-  value: { title: string; category: string; subcategory: string; bucket: string }
+  value: { title: string; bucket: string }
   setters: {
     setTitle: (value: string) => void
-    setCategory: (value: string) => void
-    setSubcategory: (value: string) => void
     setBucket: (value: string) => void
   }
 }) {
-  const { title, category, subcategory, bucket } = value
-  const { setTitle, setCategory, setSubcategory, setBucket } = setters
+  const { title, bucket } = value
+  const { setTitle, setBucket } = setters
   return (
     <div>
       {' '}
       <label>
         合并后标题
         <input value={title} onChange={(e) => setTitle(e.target.value)} />
-      </label>
-      <label>
-        大类
-        <input value={category} onChange={(e) => setCategory(e.target.value)} />
-      </label>
-      <label>
-        小类
-        <input value={subcategory} onChange={(e) => setSubcategory(e.target.value)} />
       </label>
       <label>
         手工分区

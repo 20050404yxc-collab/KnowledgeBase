@@ -1,3 +1,22 @@
+## Revision 16 requirements
+
+R16 supersedes fixed-two-level wording in earlier taxonomy and navigation requirements. Other capture, review, scope, lifecycle and preservation requirements remain in force.
+
+### Requirement: R16-01 Recursive classification and compatibility
+The system SHALL preserve complete parent paths (1..64 nonempty segments, each at most 80 characters) across new generation, review, storage, search and restart, while preserving old two-level encodings and opaque legacy themes without automatic migration.
+- GIVEN an existing two-level item and a new five-level item, WHEN saved and reopened, THEN both retain IDs, bodies, paths and supplements.
+- GIVEN malformed explicit category_path, WHEN classified, THEN reject it without falling back to two-level fields or committing knowledge.
+
+### Requirement: R16-02 Readable internal nodes
+The system SHALL allow a knowledge node to have both its own body and descendants and SHALL offer separate read and expand actions. Traversal SHALL preserve query/bucket isolation, pagination, back navigation and zero-use directory reads.
+- GIVEN STL overview and descendants under STL, WHEN navigating into STL, THEN the overview can be read and descendants remain reachable.
+- GIVEN branches and leaves at the same depth, WHEN browsing on narrow and wide displays, THEN both kinds remain reachable without overlap.
+
+### Requirement: R16-03 Full-path restructuring
+The system SHALL plan, edit, compare and commit complete paths while retaining current structure/content confirmations, original protection, snapshots and rollback.
+- GIVEN equal titles in different deep paths, WHEN restructuring, THEN paths stay distinct and no implicit merge occurs.
+- GIVEN an edited deep path, WHEN preparing and applying the current revision, THEN the full path is persisted; failed validation leaves the previous draft/data intact.
+
 ## Revision 15 requirements (supersede affected R14 clauses)
 
 - R15-01 Feedback continuity: adjustment SHALL retain the draft identity, snapshot, successful overview records, visible previous outline and explicit decisions; rotate revision and invalidate prior approval. Every classification request SHALL contain the current point assignment and ordered feedback history, with latest explicit conflict resolution. Invalid feedback, changed inventory and memory overflow SHALL preserve the inspectable draft. Scenario: two feedback rounds produce one overview per unchanged source and send both opinions; a classification failure still previews the original outline.

@@ -15,6 +15,7 @@ from knowledge_agent.domain.restructure_evidence import (
     source_version,
     validate_rewrite_references,
 )
+from knowledge_agent.domain.taxonomy import parent_path, path_fields
 
 from .library_fusion import LibraryFusion
 from .restructure_memory import preparation_key
@@ -28,7 +29,7 @@ class LibraryPreparation(LibraryFusion):
         points = [dict(point) for point in draft["outline"] if point["id"] in targets]
         for group in merges:
             next(p for p in points if p["id"] == group["target_id"]).update(
-                {key: group[key] for key in ("title", "category", "subcategory")}
+                {"title": group["title"], **path_fields(group)}
             )
         if set(p["id"] for p in points) != targets:
             raise ValueError("结构未完整覆盖所有来源")
@@ -118,7 +119,7 @@ class LibraryPreparation(LibraryFusion):
                 {
                     "id": point["id"],
                     "title": point["title"],
-                    "path": [point["category"], point["subcategory"]],
+                    "path": parent_path(point),
                     "original": chunk["text"],
                     "source_id": chunk["source_id"],
                     "locator": chunk["locator"],

@@ -370,6 +370,43 @@ def test_controlled_plan_fallback_retains_actionable_reason(diagnostic_session):
     )
 
 
+# 深层路径错误保留固定原因和请求标识，模型路径和正文不能泄漏或收录。
+def test_invalid_deep_path_logs_safe_reason_without_capture(diagnostic_session):
+    from knowledge_agent.bootstrap import create_service
+    from test_knowledge import Vault, config
+    from test_library_questions import ClassifiedClient
+
+    service = create_service(diagnostic_session.parent / "data", vault=Vault())
+    config(service)
+    client = ClassifiedClient()
+    service.client = client
+    generate = client.generate
+
+    # 资格审核正常，仅正文返回非法路径，不发起真实模型请求。
+    async def invalid_path(configuration, prompt, purpose, emit):
+        raw = json.loads(await generate(configuration, prompt, purpose, emit))
+        if purpose != "question-review":
+            raw.update(category_path=["private-path", None], content="private-model-content")
+        return json.dumps(raw)
+
+    client.generate = invalid_path
+    try:
+        with logs.request_context("deep-path-failure", "question"):
+            with pytest.raises(ValueError):
+                asyncio.run(service.question({"query": "新的独立概念"}, lambda _: None))
+        assert not service.store.library_inventory()
+    finally:
+        service.close()
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
+    assert "private-" not in text
+    assert any(
+        row["event"] == "step.failed"
+        and row["request_id"] == "deep-path-failure"
+        and row["errors"][0].get("reason") == "分类路径无效：需要 1 至 64 层，每层 1 至 80 字"
+        for row in map(json.loads, text.splitlines())
+    )
+
+
 # 同类比较失败可按请求和固定阶段检索，意见、概览及模型正文不能进入日志。
 def test_grouping_failure_preserves_private_draft_and_request_context(diagnostic_session):
     from knowledge_agent.bootstrap import create_service

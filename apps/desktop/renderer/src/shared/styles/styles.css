@@ -1534,6 +1534,11 @@ td small {
   border-left: 2px solid #d9dfd4;
   padding-left: 12px;
 }
+.directory-subgroup[data-depth='6'] .directory-subgroup {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+}
 .project-context {
   margin-top: 16px;
   padding: 14px;
@@ -1781,8 +1786,7 @@ td small {
   }
 }
 @starting-style {
-  .planet-canvas[data-depth='1'] .planet-node:not(.planet-center),
-  .planet-canvas[data-depth='2'] .planet-node:not(.planet-center) {
+  .planet-canvas:not([data-depth='0']) .planet-node:not(.planet-center) {
     left: 50%;
     top: 50%;
     transform: translate(-50%, -50%) scale(0.1);
@@ -1946,4 +1950,29 @@ td small {
 }
 .usage-summary {
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+/* 混合层的正文放在球体画布之后，避免与任意深度的下级球重叠。 */
+.planet-mixed-leaves .planet-leaves {
+  position: static;
+  gap: 12px;
+  margin: 12px 0;
+  grid-auto-rows: auto;
+}
+.planet-mixed-leaves .planet-leaf::before {
+  display: none;
+}
+.tree-node-reading {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.category-path-editor {
+  display: grid;
+  gap: 6px;
+}
+.category-path-editor textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
 }

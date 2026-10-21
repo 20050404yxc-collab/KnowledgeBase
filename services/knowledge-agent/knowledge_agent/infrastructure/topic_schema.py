@@ -8,7 +8,7 @@ from contextlib import closing
 from pathlib import Path
 
 from knowledge_agent.domain.knowledge_rules import tokens
-from knowledge_agent.domain.taxonomy import PREFIX, classification
+from knowledge_agent.domain.taxonomy import PREFIX, TREE_PREFIX, classification
 
 
 # 分词函数由连接拥有，触发器与检索使用相同的中文双字及英文词规则。
@@ -16,7 +16,9 @@ def register_tokens(db: sqlite3.Connection) -> None:
     # 只解码自身分类编码，让现有触发器仍索引人可读分类；旧数据无需迁移。
     def tokenize(value: str | None) -> str:
         text = re.sub(
-            re.escape(PREFIX) + r"[0-9a-f]+", lambda m: classification(m[0])["theme"], value or ""
+            "(?:" + re.escape(PREFIX) + "|" + re.escape(TREE_PREFIX) + r")[0-9a-f]+",
+            lambda m: classification(m[0])["theme"],
+            value or "",
         )
         return " ".join(sorted(tokens(text)))
 

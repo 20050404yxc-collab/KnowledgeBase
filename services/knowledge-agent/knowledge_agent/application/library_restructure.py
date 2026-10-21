@@ -11,6 +11,7 @@ from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.library_rules import inventory_version
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.domain.restructure_evidence import source_chunks
+from knowledge_agent.domain.taxonomy import parent_path
 from knowledge_agent.domain.topic_rules import short_field
 
 from .library_analysis import analysis_records, analysis_round
@@ -268,7 +269,7 @@ def preview_values(draft: dict, kind: str) -> list[dict]:
                 "candidates": record["candidates"],
                 "path": next(
                     (
-                        [p["category"], p["subcategory"]]
+                        parent_path(p)
                         for p in draft["outline"]
                         if p["id"]
                         == next(

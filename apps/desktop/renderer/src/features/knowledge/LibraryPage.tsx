@@ -28,7 +28,7 @@ export function LibraryPage() {
       <div className="page-heading">
         <div>
           <h1>知识库</h1>
-          <p>所有知识，按大类、小类和知识点整理。</p>
+          <p>所有知识，按多层知识树逐级整理与阅读。</p>
         </div>
         <div>
           <button

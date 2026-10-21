@@ -178,6 +178,9 @@ class MergeStorage:
                 result.append((score, hit))
                 continue
             current = self.get(target)
+            hit.pop("category_path", None)
+            if "category_path" in current:
+                hit["category_path"] = current["category_path"]
             hit.update(
                 knowledge_id=target,
                 title=current["title"],

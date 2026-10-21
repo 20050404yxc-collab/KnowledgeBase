@@ -10,7 +10,7 @@ from collections import OrderedDict
 from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.answer_validation import validate_answer
 from knowledge_agent.domain.provider_rules import resolve_generation
-from knowledge_agent.domain.taxonomy import encode_path
+from knowledge_agent.domain.taxonomy import encode_path, parent_path
 from knowledge_agent.domain.topic_review import review_points
 from knowledge_agent.domain.topic_rules import (
     MAX_SESSIONS,
@@ -354,9 +354,9 @@ class TopicWorkflow:
         draft = dict(draft)
         if action == "separate":
             draft["target_id"] = ""
-            # 编码分类保持完整；独立保存通过标题区分，不破坏两级路径。
+            # 编码完整分类；独立保存通过标题区分，不丢失父级路径。
             if point.get("category"):
-                draft["theme"] = encode_path(point["category"], point["subcategory"])
+                draft["theme"] = encode_path(parent_path(point))
                 draft["title"] += "（独立补充）"
             else:
                 draft["theme"] += "／独立补充"

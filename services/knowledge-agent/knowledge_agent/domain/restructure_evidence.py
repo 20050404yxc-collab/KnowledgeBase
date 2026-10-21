@@ -87,6 +87,7 @@ def source_version(item: dict) -> str:
             "title",
             "content",
             "theme",
+            "category_path",
             "manual_bucket",
             "generated",
             "edited",

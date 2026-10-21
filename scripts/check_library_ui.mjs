@@ -7,6 +7,7 @@ import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 import { checkMergeUi } from './check_merge_ui.mjs'
 import { verifyPlanetPages } from './check_planet_ui.mjs'
 import { checkLongTextUi } from './check_long_text_ui.mjs'
+import { checkKnowledgeTreeUi } from './check_knowledge_tree_ui.mjs'
 
 // 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
 async function assertSummaryFailure(logDir, requestId) {
@@ -227,6 +228,7 @@ export async function checkLibraryUi(context) {
   await checkMergeUi(context, reply)
   await checkLongTextUi(context)
   await verifyCompleteTree(context)
+  await checkKnowledgeTreeUi(context)
   report.checks.push(
     'library overview continues across pages; final directory confirmation precedes content preparation; diffs default unselected; selected manual suggestion appended; other bodies preserved; all four complete trees'
   )

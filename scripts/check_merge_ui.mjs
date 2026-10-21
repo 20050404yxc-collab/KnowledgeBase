@@ -79,9 +79,14 @@ async function decideGroups(context, ids) {
       found = true
       await choose(ui, '[aria-label="重复组决定"] select', ids[0])
       await fill('[aria-label="重复组决定"] label:nth-of-type(1) input', '合并界面保留点')
-      await fill('[aria-label="重复组决定"] label:nth-of-type(2) input', '合并验收')
-      await fill('[aria-label="重复组决定"] label:nth-of-type(3) input', '完整来源')
+      await fill(
+        '[aria-label="重复组决定"] [aria-label="所属路径（每行一级）"]',
+        '合并验收\n完整来源\n更深层'
+      )
       await choose(ui, '[aria-label="重复组决定"] div select', 'auto')
+      await ui.evaluate(
+        `document.querySelector('[aria-label="重复组决定"] .category-path-editor').scrollIntoView({block:'center'})`
+      )
       await screenshot('desktop-merge-decision.png')
       await click('确认本组合并结构')
       await waitFor(
@@ -167,7 +172,7 @@ async function selectMergeContent({ ui, click, waitFor, screenshot }) {
 async function checkOriginalUi({ ui, click, fill, waitFor, screenshot }, sourceId) {
   await fill('[aria-label="筛选已有知识"]', '合并界面保留点')
   await click('全部分类')
-  for (const label of ['合并验收', '完整来源']) {
+  for (const label of ['合并验收', '完整来源', '更深层']) {
     const selector = `.planet-node:not(.planet-hidden):not(.planet-center)`
     await waitFor(
       () =>
@@ -246,6 +251,7 @@ export async function checkMergeUi(context, fallback) {
     `window.knowledgeBase.request('knowledge.get',{id:${JSON.stringify(ids[1])}})`
   )
   assert.equal(current.id, ids[0])
+  assert.deepEqual(current.category_path, ['合并验收', '完整来源', '更深层'])
   assert.equal(current.content.includes('UNIQUE_ALPHA'), true)
   assert.equal(
     current.supplements.some((part) => part.content.includes('UNIQUE_BETA')),

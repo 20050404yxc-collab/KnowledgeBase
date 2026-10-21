@@ -47,11 +47,11 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 简单说：不配置接口也能找本地内容；“本地检索”按钮查全库，问题目录的文件范围和分页则沿用该次选择。
 
-`question.plan` 接受原 `question` 参数，返回 `{plan_id, points, excluded, search, notice}`；规划先结合授权范围内的全库分类摘要（`files` 范围跳过库内读取），再输出大类、小类和具体知识点。每个候选必须经过独立审核：可复用知识保留，职责／项目名／日期等非知识点排除，疑义项给出理由；允许零个合格点，审核失败返回空目录且不产生可学习计划。目录最多 16 点，会话最多保留 24 份，重启或淘汰后需重新拆解。
+`question.plan` 接受原 `question` 参数，返回 `{plan_id, points, excluded, search, notice}`；规划先结合授权范围内的全库分类摘要（`files` 范围跳过库内读取），再输出完整父级路径和具体知识点。每个候选必须经过独立审核：可复用知识保留，职责／项目名／日期等非知识点排除，疑义项给出理由；允许零个合格点，审核失败返回空目录且不产生可学习计划。目录最多 16 点，会话最多保留 24 份，重启或淘汰后需重新拆解。
 
 `knowledge.learn` 输入 `{plan_id, point_id, action, target_id?, attachment_ids?, consent?, public_scope?, public_only?, search_terms?, revision?, candidate_id?, provider_id?, model?, reasoning_effort?}`。动作包括 `learn/supplement/confirm/separate/materials/public-search/public-select/revoke`。项目点在资料或公开示例证据满足前只返回项目门禁；`materials` 只接受当前会话中 1–20 个且与该点相关的附件，`public-search` 必须携带当前点的一次性 `revision`、明确同意和“本点公开示例”范围，检索词可编辑，服务端最多一次搜索和三个 README 请求；`public-select` 绑定实际候选后才允许解释。切换知识点撤销公开许可；范围、附件或明确取消撤销受影响项目依据，切页保留正在执行任务的依据。`revoke` 可带 `public_only: true`，仅保留仍有效的已核对材料及其补充预览，默认完整撤销；公开候选和已选公开示例不能因该标志继续获得许可。补充候选必须来自该目录，不接受任意目标。学习只生成选中项；补充先返回 `review: true` 预览，`confirm` 不再调用模型并在复核目标版本后原子追加；`separate` 保存独立知识。已提交结果可幂等复用，取消不会撤销既有提交。
 
-`Knowledge`、`SearchHit`、`DirectoryPoint` 的 `category`／`subcategory` 为可选兼容字段；旧主题不猜测拆分，不做 R6 批量迁移。项目状态 DTO 使用 `materials`、`material-ready`、`candidates`、`public-ready`，公开候选包含仓库 URL、README 路径、摘录和 UTC 读取时间；解释引用进一步标注实际使用的字符范围；仅模型声称而无读取证据不得进入引用。
+`Knowledge`、`SearchHit`、`DirectoryPoint` 的 `category_path:string[]` 为可选完整父级路径，存在时必须为 1–64 段非空文本，每段最多 80 字；缺少时才适配旧 `category`／`subcategory` 可选兼容字段；旧主题不猜测拆分，不做 R6 批量迁移。项目状态 DTO 使用 `materials`、`material-ready`、`candidates`、`public-ready`，公开候选包含仓库 URL、README 路径、摘录和 UTC 读取时间；解释引用进一步标注实际使用的字符范围；仅模型声称而无读取证据不得进入引用。
 
 简单说：先选目录项再学习；补充要核对后保存，原笔记不会被生成结果覆盖。取消前已经提交的知识仍然保留。
 
@@ -69,9 +69,9 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 契约位于 [library.ts](library.ts)。导航只切换显示，根会话持有任务和实际阶段请求 ID；一个生成流程可包含多个请求，显式取消、请求超时或后台中断阻止后续阶段。详情阅读版本按页隔离，不用来判定批量是否继续。
 
-修订 15：已有 draft_id/revision 的 plan 携带 feedback 时，在同一草案增量修订，不重新生成成功概览；当前目录保留至新目录完成，旧确认失效。summary 新增可选 `feedback_history:string[]`，按顺序保存意见，每条最多 2000 字符，累计 6000 字符；超限或快照变化拒绝且保留旧草案。语义比较 `library-group` 是内部模型目的，不新增桌面操作：同小类全部对按最多 12 对／26000 序列化字符分批，输出决策精确覆盖。模型提出的同知识组预填 merge 方案，最多 8 来源且两两同义，用户仍可保持独立；确认结构后才全文核验。多来源完整分片重写后通过 `library-content` 的 `mode=fuse` 融合，正文输入批次最多 18000 字符，来源映射可多对一。失败保留成功分片，显式 retry 才继续；不把拼接中间态发布为完成稿。记忆只在本次后台会话，不跨重启。
+修订 15：已有 draft_id/revision 的 plan 携带 feedback 时，在同一草案增量修订，不重新生成成功概览；当前目录保留至新目录完成，旧确认失效。summary 新增可选 `feedback_history:string[]`，按顺序保存意见，每条最多 2000 字符，累计 6000 字符；超限或快照变化拒绝且保留旧草案。语义比较 `library-group` 是内部模型目的，不新增桌面操作：同一完整父级路径的全部对按最多 12 对／26000 序列化字符分批，输出决策精确覆盖。模型提出的同知识组预填 merge 方案，最多 8 来源且两两同义，用户仍可保持独立；确认结构后才全文核验。多来源完整分片重写后通过 `library-content` 的 `mode=fuse` 融合，正文输入批次最多 18000 字符，来源映射可多对一。失败保留成功分片，显式 retry 才继续；不把拼接中间态发布为完成稿。记忆只在本次后台会话，不跨重启。
 
-`knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径长度 0/1/2 分别返回大类、小类、知识点，最多 50 节点，结果为 `{nodes,total,revision,next_cursor}`。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定当前层结果摘要，目录变化拒绝旧游标。叶子只有 ID、标题与分区，详情仍走 `knowledge.get`；展开不增加使用日。
+`knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径递归查询下一层，最多 65 段（含知识标题），每页最多 50 节点，结果为 `{nodes,total,revision,next_cursor,content_id?}`；可选 `content_id` 为当前节点正文 ID，空字符串表示没有唯一正文。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定搜索、分区、完整路径及当前层结果摘要，目录变化拒绝旧游标。节点的可选 `children:boolean` 指示是否有下级，正文 ID 可与下级同时存在；缺少标记时适配旧无 ID 即分支规则。旧显示别名碰撞时，正文以各自稳定 ID 独立列出，详情仍走 `knowledge.get`；展开不增加使用日。
 
 | 操作                          | 参数和状态                                                                                                                                                                             |
 | ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -81,7 +81,7 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 | `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交；每个合并保留点 ID 必须选中其完整重组稿；本轮不另生成模型解释建议；无合并时空数组仅改目录                                     |
 | `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                                |
 
-`review` 为 `point`（id/title/category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、category、subcategory 和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组及同路径同名阻止结构准备；未决定组默认保持独立；related/conflict 不可合并。
+`review` 为 `point`（id/title/category_path，缺少新路径时兼容 category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、完整 category_path（或旧 category/subcategory）和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组及同路径同名阻止结构准备；未决定组默认保持独立；related/conflict 不可合并。
 
 状态为 `planning → outline → preparing → ready → applied`，分析或准备失败进入 `paused`，保留成功片段。summary 区分来源 total/covered、target_count、groups/undecided、workers 和错误。所有来源按 created_at/id 固定排序，两路独占领取；每来源只做一次轻量概览，最多取样 7000 字符，输出硬上限 2400（含空白标点）。标题优先及首中尾取样，保留完整已读/未读定位；模型范围元数据最多前 50 条且明确总数，记录预览通过 text_page 每页 50 条查看全部范围。classification 每轮一个目标，分轮消费全部相关来源概览和已有路径，携带前轮建议，序列化输入最多 26000 字符。记录包含草案／修订／source version／agent／generation／locator／call_id／attempt_ids；取消父请求同时取消并等待两路。
 
@@ -93,7 +93,7 @@ schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来�
 
 `knowledge.get` 默认沿旧 ID 解析保留点，并返回可选 original_sources（source_id/version/title/chunks）。以 `{id,original:true,source_id,version,page?}` 逐个 7000 字符片段只读打开原版本，返回 read_only/original_locator/original_page/original_total，不记录使用日。常规 get／编辑／分区／补充均作用于 canonical；树、列表、搜索和复用排除独立隐藏来源，但原内容可检索为保留点。使用日按组内自然日集合计算。合并组普通删除拒绝；未合并知识正常删除其关联快照。恢复方法见 [使用说明](../README.md#重构知识库)。
 
-普通 `question`／推荐拓展新增收录要求模型返回合法 `category/subcategory`，与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。
+普通 `question`／推荐拓展新增收录要求模型返回合法 `category_path`（兼容旧 `category/subcategory`），与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。
 
 ## Settings and full-history usage
 
