@@ -20,6 +20,8 @@ Emit = Callable[[dict], None]
 
 
 class KnowledgeRepository(Protocol):
+    # 现有正文或补充的分段编辑最终原子写入，版本不符不得覆盖。
+    def save_long_text(self, params: dict) -> None: ...
     # 全量重构读取不改变使用日，树查询按分区先过滤再分页。
     def library_inventory(self) -> list[dict]: ...
     # 按两级路径分页聚合，筛选先于计数且不改变使用日。

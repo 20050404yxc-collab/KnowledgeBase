@@ -47,6 +47,9 @@ const string: Check<string> = (value): value is string => typeof value === 'stri
 const boolean: Check<boolean> = (value): value is boolean => typeof value === 'boolean'
 const number: Check<number> = (value): value is number =>
   typeof value === 'number' && Number.isFinite(value)
+// 字符数和页码禁止负数、小数及不安全整数。
+const count: Check<number> = (value): value is number =>
+  number(value) && Number.isSafeInteger(value) && value >= 0
 
 // 集合逐项校验，空集合保持合法。
 function array<T>(check: Check<T>): Check<T[]> {
@@ -86,6 +89,7 @@ const supplement = object<Supplement>({
   knowledge_id: string,
   title: string,
   content: string,
+  content_chars: optional(count),
   created_at: string,
   updated_at: string,
   citations: array(citation),
@@ -142,6 +146,7 @@ const knowledge = object<Knowledge>({
   id: string,
   title: string,
   content: string,
+  content_chars: optional(count),
   created_at: string,
   updated_at: string,
   generated: boolean,
@@ -278,6 +283,30 @@ const bootstrap = object<Bootstrap>({
   providers: array(provider),
   notice: string
 })
+// 长文结果必须属于读取、暂存或提交终态，不能接受空对象冒充成功。
+const textFields = object<ResultMap['knowledge.text']>({
+  content: optional(string),
+  version: optional(string),
+  page: optional(count),
+  pages: optional(count),
+  edit_id: optional(string),
+  offset: optional(count),
+  saved: optional(boolean),
+  discarded: optional(boolean),
+  id: optional(string)
+})
+const textResult: Check<ResultMap['knowledge.text']> = (
+  value
+): value is ResultMap['knowledge.text'] =>
+  textFields(value) &&
+  ((value.content !== undefined &&
+    value.version !== undefined &&
+    value.page !== undefined &&
+    value.pages !== undefined &&
+    value.pages > value.page) ||
+    (value.edit_id !== undefined && value.offset !== undefined) ||
+    (value.saved === true && value.id !== undefined) ||
+    value.discarded === true)
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
   'knowledge.tree': isLibraryTree,
   'library.restructure.plan': isRestructureSummary,
@@ -292,6 +321,7 @@ const results: { [K in Operation]: Check<ResultMap[K]> } = {
   'supplements.save': knowledge,
   'supplements.delete': knowledge,
   'knowledge.list': array(knowledge),
+  'knowledge.text': textResult,
   'knowledge.get': knowledge,
   'knowledge.save': knowledge,
   'knowledge.delete': object({ deleted: boolean }),

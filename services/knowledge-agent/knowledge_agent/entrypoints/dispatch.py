@@ -3,6 +3,7 @@
 # 作用：将白名单协议操作路由到应用用例。
 # 说明：不执行 SQL，也不管理具体文件或模型协议。
 from knowledge_agent.application.knowledge_service import KnowledgeService
+from knowledge_agent.application.long_text import compact_knowledge
 from knowledge_agent.application.ports import Emit
 from knowledge_agent.application.provider_settings import save_provider
 
@@ -55,10 +56,28 @@ def validate_params(operation: str, params: dict) -> None:
 async def dispatch(
     service: KnowledgeService, operation: str, params: dict, emit: Emit
 ) -> dict | list[dict]:
+    result = await dispatch_operation(service, operation, params, emit)
+    if isinstance(result, dict) and "content" in result and "created_at" in result:
+        return compact_knowledge(result)
+    if isinstance(result, dict) and isinstance(result.get("knowledge"), dict):
+        # 精确复用的回答正文与知识一致，沿用同一分页入口，避免重复塞入完整长文。
+        reused = result.get("content") == result["knowledge"]["content"]
+        result["knowledge"] = compact_knowledge(result["knowledge"])
+        if reused and result["knowledge"].get("content_chars"):
+            result["content"] = result["knowledge"]["content"]
+    return result
+
+
+# 业务路由不改变应用内部的完整数据，只在返回边界分页正文。
+async def dispatch_operation(
+    service: KnowledgeService, operation: str, params: dict, emit: Emit
+) -> dict | list[dict]:
     validate_params(operation, params)
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation == "knowledge.text":
+        return service.text.execute(params)
     if operation == "knowledge.tree":
         return store.library_tree(params)
     if operation.startswith("library.restructure."):

@@ -31,6 +31,20 @@ class LibraryClient:
             await self.gate.wait()
         if purpose == "library-summary":
             return json.dumps({"summary": "概念与限定条件"})
+        if purpose == "library-group":
+            return json.dumps(
+                {
+                    "decisions": [
+                        {
+                            "left": a,
+                            "right": b,
+                            "same_knowledge": False,
+                            "reason": "不同主题，保持独立",
+                        }
+                        for a, b in value["pairs"]
+                    ]
+                }
+            )
         if purpose == "library-outline":
             return json.dumps(
                 {
@@ -57,7 +71,10 @@ class LibraryClient:
                     "conflict": [],
                 }
             )
-        return json.dumps({"content": "整理后的知识 " + value["id"], "reason": "整理结构"})
+        original = value.get(
+            "original", "\n\n".join(p["content"] for p in value.get("sections", []))
+        )
+        return json.dumps({"content": "## 重新组织\n\n" + original, "reason": "整理结构"})
 
 
 # 每个流程只持有自己的模型、目录草案和数据库连接。
@@ -85,7 +102,8 @@ def outline(service):
 
 # 模拟用户确认目录，全部建议仍是草案，没有正式保存。
 def ready(service, value):
-    while value["status"] in ("outline", "preparing"):
+    value = call(service, "library.restructure.prepare", value)
+    while value["status"] == "preparing":
         value = call(service, "library.restructure.prepare", value)
     return value
 
@@ -169,7 +187,8 @@ def test_overview_all_chunks_supplements_and_confirmation(library):
     assert any("最后限定条件" in chunk for chunk in chunks)
     assert any("补充尾部约束" in chunk for chunk in chunks)
     assert all(len(chunk) <= 7000 for chunk in chunks)
-    assert not any(p == "library-content" for p, _ in library.client.calls)
+    assert len(chunks) == 11
+    assert not any(p in ("library-content", "library-duplicates") for p, _ in library.client.calls)
     preview = call(library, "library.restructure.preview", {**value, "kind": "outline"})
     assert {p["id"] for p in preview["outline"]} == {i["id"] for i in store.library_inventory()}
     assert inventory_version(store.library_inventory()) == before
@@ -209,14 +228,14 @@ def test_apply_selected_manual_protection_backup_and_idempotency(library, tmp_pa
     assert store.get(untouched["id"])["content"] == "保持原样"
     updated = store.get(generated["id"])
     assert generated["content"] in updated["content"]
-    assert "整理后的知识" not in updated["content"]
+    assert "## 重新组织" in updated["content"]
     assert updated["citations"][0]["text"] == "引用摘录"
     current = store.get(manual["id"])
     assert current["bucket"] == "归档" and len(current["supplements"]) == 1
     assert current["supplements"][0]["citations"][0]["text"] == "引用摘录"
     assert len(store.library_inventory()) == receipt["count"] == 4
     assert store.db.execute("SELECT count(*) FROM uses").fetchone()[0] == 1
-    assert all("整理后的知识" not in part["content"] for part in current["supplements"])
+    assert all("## 重新组织" in part["content"] for part in current["supplements"])
     restored_dir = tmp_path / "restored"
     restored_dir.mkdir()
     shutil.copyfile(store.root / receipt["backup"], restored_dir / "knowledge.sqlite3")

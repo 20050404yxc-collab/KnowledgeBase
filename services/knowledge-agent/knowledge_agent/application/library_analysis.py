@@ -11,7 +11,7 @@ import uuid
 from knowledge_agent.diagnostics import record, step
 from knowledge_agent.domain.restructure_evidence import (
     analysis_result,
-    source_chunks,
+    overview_sample,
     source_version,
 )
 from knowledge_agent.domain.validation_errors import FieldValidationError
@@ -42,7 +42,7 @@ def analysis_records(items: list[dict]) -> list[dict]:
                     "generation": 0,
                     "error": "",
                 }
-                for chunk in source_chunks(item)
+                for chunk in [overview_sample(item)]
             ],
         }
         for item in items
@@ -86,6 +86,14 @@ async def analyze_chunk(owner, draft: dict, item: dict, client: Generator, emit:
                     "title": item["title"],
                     "previous": item["summary"],
                     "chunk": chunk["text"],
+                    "sampled_ranges": chunk["sampled"][:50],
+                    "omitted_ranges": chunk["omitted"][:50],
+                    "range_counts": {
+                        "sampled": len(chunk["sampled"]),
+                        "omitted": len(chunk["omitted"]),
+                    },
+                    "range_notice": "范围元数据仅列前50条，完整范围在分析记录分页查看；未展示正文不视为已读",
+                    "full_coverage": not chunk["omitted"],
                     "locator": chunk["locator"],
                     "part": item["chunks"].index(chunk) + 1,
                     "parts": len(item["chunks"]),

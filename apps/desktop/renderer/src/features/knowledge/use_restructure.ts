@@ -31,7 +31,7 @@ export function useRestructure(options: Options) {
     setRestructureFeedback
   } = state
   const { advance, showPreview } = useRestructureProgress(options, state)
-  // 重新规划明确废弃旧目录及更新选择，不能沿用原确认。
+  // 意见调整复用同一草案的分析与当前目录，只撤销过期确认和最终选择。
   const plan = () =>
     options.runTask(async () => {
       const value = await options.taskRequest('library.restructure.plan', {
@@ -41,14 +41,13 @@ export function useRestructure(options: Options) {
       })
       state.activeDraft.current = value
       setDraft(value)
-      setPreview(EMPTY_PREVIEW)
       setSelectedUpdates([])
       await advance(value)
     })
   const resume = () =>
     options.runTask(async () => {
       if (draft) {
-        await advance(draft, draft.phase === 'preparing', true)
+        await advance(draft, draft.phase === 'preparing' || draft.phase === 'duplicates', true)
       }
     })
   const prepare = () =>
@@ -97,8 +96,8 @@ export function useRestructure(options: Options) {
     prepareRestructure: prepare,
     applyRestructure: apply,
     discardRestructure: discard,
-    previewRestructure: (kind: PreviewKind, page: number, evidencePage = 0) =>
-      options.guarded(() => showPreview(draft, kind, page, evidencePage))
+    previewRestructure: (kind: PreviewKind, page: number, evidencePage = 0, textPage = 0) =>
+      options.guarded(() => showPreview(draft, kind, page, evidencePage, textPage))
   }
 }
 
@@ -130,7 +129,8 @@ function useRestructureProgress(options: Options, state: ReturnType<typeof useRe
     value = state.draft,
     kind: PreviewKind = 'outline',
     page = 0,
-    evidencePage = 0
+    evidencePage = 0,
+    textPage = 0
   ) {
     if (!value) {
       return
@@ -140,6 +140,7 @@ function useRestructureProgress(options: Options, state: ReturnType<typeof useRe
       ...value,
       kind,
       page,
+      text_page: textPage,
       evidence_page: evidencePage
     })
     if (
@@ -153,10 +154,13 @@ function useRestructureProgress(options: Options, state: ReturnType<typeof useRe
   // 模型每次请求独立超时；同一会话任务约束全部阶段。
   async function advance(current: RestructureSummary, prepare = false, retry = false) {
     let value = current
+    let initial = true
     try {
       while (
         (retry && value.status === 'paused') ||
-        (prepare ? ['outline', 'preparing'].includes(value.status) : value.status === 'planning')
+        (prepare
+          ? value.status === 'preparing' || (initial && value.status === 'outline')
+          : value.status === 'planning')
       ) {
         value = prepare
           ? await options.taskRequest('library.restructure.prepare', { ...value, retry })
@@ -165,6 +169,7 @@ function useRestructureProgress(options: Options, state: ReturnType<typeof useRe
               advance: true,
               retry
             })
+        initial = false
         retry = false
         state.activeDraft.current = value
         state.setDraft(value)
@@ -186,7 +191,13 @@ function useRestructureProgress(options: Options, state: ReturnType<typeof useRe
     }
     await showPreview(
       value,
-      value.status === 'paused' ? 'records' : prepare ? 'suggestions' : 'outline',
+      value.status === 'paused'
+        ? 'records'
+        : value.status === 'outline'
+          ? 'outline'
+          : prepare
+            ? 'suggestions'
+            : 'outline',
       0
     )
   }

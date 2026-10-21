@@ -7,11 +7,12 @@ import type { Supplement } from '../../../../../../contracts/desktop'
 import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
 import { MarkdownContent } from './MarkdownContent'
+import { LongContent } from './LongContent'
 
 // 每个补充单独管理编辑状态，不替换原笔记。
 function SupplementItem({ item }: { item: Supplement }) {
   const { draft, setDraft, saving, maintain } = useSupplementEdit(item)
-  const { setCitation } = useAppContext()
+  const { setCitation, selected } = useAppContext()
   return (
     <section className="supplement-item">
       <h3>新增补充 · {item.title}</h3>
@@ -19,7 +20,18 @@ function SupplementItem({ item }: { item: Supplement }) {
         {new Date(item.created_at).toLocaleString('zh-CN')} · {item.provider_name} · {item.model}
         {item.edited ? ' · 已编辑' : ''}
       </small>
-      {draft === null ? (
+      {item.content_chars && selected?.version ? (
+        <LongContent
+          key={`${item.id}:${selected.version}`}
+          id={selected.id}
+          version={selected.version}
+          supplement_id={item.id}
+          title={item.title}
+          first={item.content}
+          chars={item.content_chars}
+          citations={item.citations}
+        />
+      ) : draft === null ? (
         <MarkdownContent
           content={item.content}
           citations={item.citations}
@@ -35,7 +47,7 @@ function SupplementItem({ item }: { item: Supplement }) {
       )}
       <SupplementCitations item={item} />
       <div className="supplement-actions">
-        {draft === null ? (
+        {item.content_chars ? null : draft === null ? (
           <button onClick={() => setDraft(item.content)}>编辑补充</button>
         ) : (
           <>

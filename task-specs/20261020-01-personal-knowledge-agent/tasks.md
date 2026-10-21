@@ -1,5 +1,30 @@
 # Execution Tasks
 
+## Revision 15 continuation
+
+- [x] R15.1 Diagnose begin replacement, feedback prompt gap, weak/default-independent recall and rewrite concatenation; follow existing standards and preserve dirty worktree.
+- [x] R15.2 Implement same-session feedback/current-outline memory, stale snapshot/budget rejection and completed-body cache (R15-01/04).
+- [x] R15.3 Add bounded exact-coverage semantic pair batches and explicit-decision-preserving provisional groups (R15-02).
+- [x] R15.4 Fuse full rewritten multi-source sections before publication with cancellation/failure resume and provenance (R15-03).
+- [x] R15.5 Expose feedback memory and incremental UI action; add validated optional DTO and synthetic behavioral tests.
+- [x] R15.6 Complete final project checks, desktop feedback/semantic merge regression, diagnostic/privacy failure and document review; record actual evidence.
+
+R15 handoff: requested repair implemented; final npm run check (238 Python / 21 host plus build) and npm run test:ui passed; memory and fusion screenshots visually reviewed. Prior R14 evidence remains historical; first R15 desktop run exposed one-request-per-pair overhead, replaced by bounded batches before rerun. No paid calls, production data access, commit/push or release in this turn.
+
+## Revision 14 overview/structure/full-body restructuring
+
+- [x] R14.1 Diagnose correlated logs and inspect affected analysis, source verification, preparation, storage, contracts and UI boundaries; reuse current task/docs.
+- [x] R14.2 Record user-selected 2400 overview, lightweight planning, post-approval model rewriting, original/manual preservation, unbounded aggregate output and required long-text scope.
+- [x] R14.3 User's “开始改” approves and authorizes implementation of the current reviewable plan.
+- [x] R14.4 Implement bounded overview sampling and consistent structure review; delay full duplicate verification until approval (R14-01/02).
+- [x] R14.5 Implement full-source model restructuring, conflict return, segment provenance and unrestricted aggregate bodies (R14-03/04).
+- [x] R14.6 Complete long-text paginated preview/detail/edit and complete versioned atomic persistence (R14-05).
+- [x] R14.7 Verify cancellation, partial/truncated output, missing segments, manual content, source references, rollback and diagnostics using isolated fixtures (R14-06).
+- [x] R14.8 Run npm run check, npm run test:ui and wide/narrow QA; reconcile docs/evidence. No paid calls, production changes or release.
+
+Current R14 handoff: implementation authorized by “开始改” and completed; required checks, isolated regressions and desktop/visual verification passed. Real-provider semantic quality, cost and scale remain unverified. R13 and earlier completed evidence retains its original scope.
+
+
 ## Revision 13 startup compatibility repair
 
 - [x] R13.1 Reuse existing task/docs; record diagnosed layout, bounded authorization, cause, repair and risks.

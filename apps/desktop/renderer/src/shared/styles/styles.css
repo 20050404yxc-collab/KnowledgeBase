@@ -1517,6 +1517,14 @@ td small {
   min-height: 180px;
   padding: 12px;
 }
+
+/* 长正文只编辑当前段，输入框适应详情宽度并允许纵向调整。 */
+.long-content textarea {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+}
 .supplement-actions {
   display: flex;
   gap: 12px;

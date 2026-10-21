@@ -32,6 +32,7 @@ export interface RestructureSummary extends DraftReference {
   groups?: number
   undecided?: number
   workers?: { agent: string; covered: number }[]
+  feedback_history?: string[]
 }
 export interface OutlinePoint {
   id: string
@@ -51,6 +52,8 @@ export interface ContentSuggestion {
   diff: string
   target_id?: string
   kind?: 'original-extraction' | 'model-explanation'
+  text_page?: number
+  text_pages?: number
   provenance?: { source_id: string; version: string; locator: string; section: number }[]
 }
 export type PreviewKind =
@@ -75,6 +78,12 @@ export interface AnalysisRecord {
   summary: string
   error: string
   attempt_ids: string[]
+  sampled_chars?: number
+  ranges_page?: number
+  ranges_pages?: number
+  total_chars?: number
+  sampled?: string[]
+  omitted?: string[]
   call_id: string
 }
 export interface SourcePreview {

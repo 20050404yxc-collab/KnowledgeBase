@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 import { checkMergeUi } from './check_merge_ui.mjs'
 import { verifyPlanetPages } from './check_planet_ui.mjs'
+import { checkLongTextUi } from './check_long_text_ui.mjs'
 
 // 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
 async function assertSummaryFailure(logDir, requestId) {
@@ -20,7 +21,7 @@ async function assertSummaryFailure(logDir, requestId) {
   assert.equal(failure.errors[0].validation.field, '知识要点')
   assert.equal(failure.errors[0].validation.rule, 'required_text')
   assert.equal(failure.errors[0].validation.actual_type, 'list')
-  assert.equal(failure.errors[0].validation.limit, 1600)
+  assert.equal(failure.errors[0].validation.limit, 2400)
   assert.ok(
     rows.some((row) => row.event === 'library.summary_context' && row.request_id === requestId)
   )
@@ -67,6 +68,16 @@ function reply(body) {
   if ('left' in input && 'right' in input) {
     return { kind: 'related', reason: '不同来源保持独立', overlap: [], unique: [], conflict: [] }
   }
+  if (input.mode === 'same-knowledge') {
+    return {
+      decisions: input.pairs.map(([left, right]) => ({
+        left,
+        right,
+        same_knowledge: false,
+        reason: '不同知识保持独立'
+      }))
+    }
+  }
   if ('items' in input) {
     return {
       assignments: input.items.map((item) => ({
@@ -79,7 +90,8 @@ function reply(body) {
   }
   return {
     content:
-      input.mode === 'replace' ? input.original + '\n\n结构整理说明。' : '手工正文另附整理建议。',
+      '## 按确认结构重新组织\n\n' +
+      (input.original ?? input.sections.map((part) => part.content).join('\n\n')),
     reason: '改善知识结构'
   }
 }
@@ -114,10 +126,14 @@ async function runRestructureFlow(context, manual, original, count) {
   assert.equal(!!unmodified.category, false)
   assert.equal(unmodified.content, manual.content)
   assert.equal(
-    fixture.state.posts.slice(count).some((b) => 'mode' in JSON.parse(b.input)),
+    fixture.state.posts.slice(count).some((b) => {
+      const value = JSON.parse(b.input)
+      return ['rewrite', 'fuse'].includes(value.mode) || 'left' in value
+    }),
     false
   )
   await screenshot('desktop-restructure-outline.png')
+  await checkFeedbackMemory(context)
   await decideExistingGroups(context)
   await click('确认目录，准备内容调整')
   await waitFor(
@@ -157,6 +173,42 @@ async function runRestructureFlow(context, manual, original, count) {
   fixture.state.reply = null
 }
 
+// 两次意见沿用同一草案与概览，真实模型请求包含上一轮目录和累积偏好。
+async function checkFeedbackMemory({ ui, fill, click, waitFor, fixture, screenshot }) {
+  const count = fixture.state.posts.filter((post) => 'chunk' in JSON.parse(post.input)).length
+  let firstId = ''
+  for (const opinion of ['大类请使用明确主题', '同一知识需要融合重复定义']) {
+    await fill('.restructure-panel > label input', opinion)
+    await click('根据意见调整当前方案')
+    await waitFor(
+      () =>
+        ui.evaluate(
+          `!!document.querySelector('[aria-label="重构目录预览"] .outline-change') && !document.querySelector('.session-task')`
+        ),
+      'feedback revision ready',
+      30000
+    )
+    const payload = fixture.state.posts
+      .map((post) => JSON.parse(post.input))
+      .findLast((input) => input.feedback === opinion)
+    assert.ok(payload.previous_assignment && payload.feedback_history.includes(opinion))
+    firstId ||= payload.items[0].id
+    assert.equal(payload.items[0].id, firstId)
+  }
+  assert.equal(
+    fixture.state.posts.filter((post) => 'chunk' in JSON.parse(post.input)).length,
+    count
+  )
+  await ui.evaluate(`document.querySelector('.restructure-panel > details').open = true`)
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.restructure-panel > details').innerText.includes('大类请使用明确主题')`
+    ),
+    true
+  )
+  await screenshot('desktop-restructure-memory.png')
+}
+
 // 先确认目录，再核对差异；未选更新保持原样，手工知识只追加。
 export async function checkLibraryUi(context) {
   const { ui, waitFor, fixture, report } = context
@@ -173,6 +225,7 @@ export async function checkLibraryUi(context) {
   const count = fixture.state.posts.length
   await runRestructureFlow(context, manual, original, count)
   await checkMergeUi(context, reply)
+  await checkLongTextUi(context)
   await verifyCompleteTree(context)
   report.checks.push(
     'library overview continues across pages; final directory confirmation precedes content preparation; diffs default unselected; selected manual suggestion appended; other bodies preserved; all four complete trees'

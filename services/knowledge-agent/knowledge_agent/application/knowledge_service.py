@@ -9,6 +9,7 @@ from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .attachments import Attachments
 from .library_restructure import LibraryRestructure
+from .long_text import LongText
 from .model_catalog import discover_models
 from .ports import (
     CatalogReader,
@@ -47,6 +48,7 @@ class KnowledgeService:
         self.questions = Questions(store, client, self.attachments, self.cards)
         self.topics = TopicWorkflow(store, client, self.questions, projects)
         self.library = LibraryRestructure(store, client)
+        self.text = LongText(store)
         self.closed = False
         self.catalog = catalog
 
@@ -57,6 +59,7 @@ class KnowledgeService:
             return
         self.closed = True
         self.library.draft = None
+        self.text.edits.clear()
         try:
             self.store.close()
         finally:

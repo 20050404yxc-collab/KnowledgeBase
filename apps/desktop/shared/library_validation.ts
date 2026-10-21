@@ -93,6 +93,7 @@ export function isRestructureSummary(value: unknown): value is RestructureSummar
     counts(value, ['total', 'covered', 'classified', 'prepared', 'suggestions']) &&
     optional(value.phase, (item) => typeof item === 'string') &&
     optional(value.errors, stringList) &&
+    optional(value.feedback_history, stringList) &&
     ['target_count', 'groups', 'undecided'].every(
       (key) => value[key] === undefined || counts(value, [key])
     ) &&
@@ -118,6 +119,9 @@ export function isRestructurePreview(value: unknown): value is RestructurePrevie
       (item) =>
         strings(item, ['id', 'title', 'mode', 'original', 'content', 'reason', 'diff']) &&
         ['replace', 'append'].includes(String(item.mode)) &&
+        ['text_page', 'text_pages'].every(
+          (key) => item[key] === undefined || counts(item, [key])
+        ) &&
         optional(item.target_id, (part) => typeof part === 'string') &&
         optional(
           item.kind,
@@ -154,6 +158,11 @@ export function isRestructurePreview(value: unknown): value is RestructurePrevie
             'error',
             'call_id'
           ]) &&
+          optional(item.sampled, stringList) &&
+          optional(item.omitted, stringList) &&
+          ['sampled_chars', 'total_chars', 'ranges_page', 'ranges_pages'].every(
+            (key) => item[key] === undefined || counts(item, [key])
+          ) &&
           counts(item, ['generation']) &&
           stringList(item.attempt_ids) &&
           stringList(item.candidates) &&

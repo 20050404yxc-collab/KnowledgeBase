@@ -40,7 +40,7 @@ class AnalysisClient(LibraryClient):
             if self.gate:
                 await self.gate.wait()
             if value["agent"] == self.fail_agent:
-                return json.dumps({"summary": "x" * 1601})
+                return json.dumps({"summary": "x" * 2401})
             return json.dumps({"summary": f"片段{value['part']}的限定条件"})
         finally:
             self.running -= 1
@@ -85,7 +85,7 @@ def test_failure_preserves_other_worker_and_retry_only_incomplete(analysis):
     analysis.client.fail_agent = "A"
     paused = call(analysis, "library.restructure.plan", {**value, "advance": True})
     assert paused["status"] == "paused" and paused["covered"] == 1
-    assert "1600" in paused["errors"][0]
+    assert "2400" in paused["errors"][0]
     successful = next(
         record for record in analysis.library.draft["records"] if record["status"] == "complete"
     )
@@ -128,13 +128,39 @@ def test_discard_joins_both_workers(analysis):
     assert inventory_version(analysis.store.library_inventory()) == before
 
 
-# 完整来源稿超过边界必须保持未完成，不可静默裁剪尾部后显示 ready。
-def test_oversize_extraction_remains_incomplete(analysis):
-    analysis.store.save("长文", "x" * 21000)
-    value = call(analysis, "library.restructure.plan")
-    while value["status"] == "planning":
-        value = call(analysis, "library.restructure.plan", {**value, "advance": True})
-    value = call(analysis, "library.restructure.prepare", value)
-    assert value["status"] == "paused" and value["prepared"] == 0
-    assert "未截断" in value["errors"][0]
-    assert not analysis.library.draft["suggestions"]
+# 长正文与多个补充不受旧聚合上限限制，分段预览和正式应用均保留最后限定条件。
+def test_long_rewrite_complete_and_paged(analysis):
+    from test_library import outline, ready
+    from test_topics_store import draft as supplement_draft
+
+    item = analysis.store.save("长文", "x" * 110000, generated=True)
+    analysis.store.capture_topic(supplement_draft(target=item, content="y" * 110000 + "尾部约束"))
+    value = outline(analysis)
+    summaries = [v for p, v in analysis.client.calls if p == "library-summary"]
+    assert len(summaries) == 1 and len(summaries[0]["chunk"]) <= 7000
+    assert summaries[0]["omitted_ranges"] and not summaries[0]["full_coverage"]
+    value = ready(analysis, value)
+    assert value["status"] == "ready"
+    suggestion = analysis.library.draft["suggestions"][0]
+    assert len(suggestion["content"]) > 220000 and "尾部约束" in suggestion["content"]
+    calls = [v for p, v in analysis.client.calls if p == "library-content"]
+    assert len(calls) == len(suggestion["provenance"]) and all(
+        v["mode"] == "rewrite" for v in calls
+    )
+    first = call(analysis, "library.restructure.preview", {**value, "kind": "suggestions"})[
+        "suggestions"
+    ][0]
+    assert first["text_pages"] > 1 and len(first["content"]) <= 12000
+    last = call(
+        analysis,
+        "library.restructure.preview",
+        {**value, "kind": "suggestions", "text_page": first["text_pages"] - 1},
+    )
+    assert len(json.dumps(last, ensure_ascii=False).encode()) < 1000000
+    call(analysis, "library.restructure.apply", {**value, "selected": [item["id"]]})
+    current = analysis.store.get(item["id"])
+    assert current["content"] == suggestion["content"] and "尾部约束" in current["content"]
+    assert any(
+        hit["knowledge_id"] == item["id"]
+        for hit in analysis.store.search({"query": "尾部约束"})["items"]
+    )

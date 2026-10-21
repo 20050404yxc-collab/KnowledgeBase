@@ -57,6 +57,7 @@ class ProviderClient:
                 "library-outline",
                 "library-duplicates",
                 "library-content",
+                "library-group",
                 "connection-test",
             }
             else "other",

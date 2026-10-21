@@ -11,6 +11,7 @@ import { OriginalSources } from './OriginalSources'
 import { NoteFooter } from './NoteFooter'
 import { MarkdownContent } from './MarkdownContent'
 import { SupplementList } from './SupplementList'
+import { LongContent } from './LongContent'
 
 // 安全显示当前回答正文与引用入口。
 export function AnswerPanel() {
@@ -18,11 +19,25 @@ export function AnswerPanel() {
   return (
     <article className="answer-panel">
       <AnswerHeading />
-      <MarkdownContent
-        content={visibleContent ?? ''}
-        citations={visibleCitations}
-        onCitation={setCitation}
-      />
+      {(!answer || answer.content === selected?.content) &&
+      selected?.content_chars &&
+      selected.version ? (
+        <LongContent
+          key={`${selected.id}:${selected.version}`}
+          id={selected.id}
+          version={selected.version}
+          title={selected.title}
+          first={selected.content}
+          chars={selected.content_chars}
+          citations={selected.citations}
+        />
+      ) : (
+        <MarkdownContent
+          content={visibleContent ?? ''}
+          citations={visibleCitations}
+          onCitation={setCitation}
+        />
+      )}
       {selected && <SupplementList />}
       {visibleCitations.length > 0 && <CitationList />}
       {answer?.notice && <p className="result-notice">{answer.notice}</p>}

@@ -1,11 +1,11 @@
 # Task: Personal Knowledge Agent v1
 
 - ID: 20261020-01-personal-knowledge-agent
-- Status: revision 13 startup compatibility fix completed; isolated regression, required checks and desktop automation passed; production restart/migration unverified
+- Status: revision 15 implemented and verified in isolation; real-provider semantics remain unverified
 - Workflow mode: execute
-- Plan revision: 13
-- Approval status: user requests modification after the diagnosed startup failure ("进行修i该"); authorizes this bounded compatibility fix
-- Approved revision: 13 startup compatibility; follow-up "上传git" authorizes normal commit/push to the existing origin/main; no production migration, paid calls or release
+- Plan revision: 15
+- Approval status: R15 implements the current user-requested repair of feedback-result loss and missing same-knowledge consolidation. R14 retains its explicit prior approval; no separate historical R15 signoff is claimed.
+- Approved revision: R14 explicitly approved; R15 proceeds within the current requested repair scope. No paid calls, production changes, version bump or publication is included.
 - Revision 8 approval basis (historical): User requested navigation-independent work, a hierarchical all-library page, confirmed restructuring and automatic expansion classification. User explicitly selected classification/key-point organization with body diffs before confirmation, preserving hand edits and citations. The follow-up explicitly includes 常用/在学/归档 in hierarchical display and says continue; the subsequent instruction “开始改” explicitly authorizes this complete revision for implementation. No publication, production data access, paid tests or version change.
 - Updated: 2026-10-21 (Asia/Shanghai)
 - Docs language: Simplified Chinese
@@ -14,6 +14,20 @@
 - Related tasks: none found
 - Plan routing: revise-existing
 - Routing basis: The current request directly continues existing retrieval/capture/readability AC-01/02/08/14/16/19 and product section 3. Reuse this task and the same human pages; the other task concerns engineering standards. No parallel proposal or confirmation page is needed.
+
+## Revision 14: overview before structure approval; full model restructuring afterward
+
+Current continuation R15 (2026-10-21): User reports feedback has no effect, adjustment restarts the task and loses results, and restructuring should classify category/subcategory then consolidate the same knowledge by content. Diagnose `begin` replacing the draft, prompts not specifying accumulated feedback, lexical/default-independent duplicate recall, and per-source rewrite concatenation. Reuse this task and product section 3.10. Scope: bounded session feedback memory, same-draft revision with retained overview/current outline/manual decisions, dependency-keyed completed-body reuse, category-local semantic comparison (up to 12 pairs / 26000 serialized characters per request) and clique-only provisional merge plans, then full verification and bounded cross-source fusion before final review. Add optional summary feedback_history with runtime validation; no schema, data location or credential identity changes. Risks: semantic false positives/omissions, quadratic per-category comparisons, cross-batch residual repetition and increased cost; no live quality/performance claim. Standards remain root AGENTS.md and project coding/layering standard revision 2, read 2026-10-21; no new exception or delegation.
+
+User requirement (source quotation): “字符数设置在2400字”; “大致扫一遍……给出合理的结构，用户确认结构后才真正重构，真正重构应该不设置字符上限”. The user selected model-based body reorganization preserving complete information, sources and manual originals. This directly revises R9 in the existing task. Human review: product section 3.10, technical design R14 and acceptance plan R14. No separate task is created.
+
+Diagnosis: worker.log records successful model calls followed by summary max_length failures at 2026-10-21 10:54:01 and 10:55:18 Asia/Shanghai, lengths 1621/1627 versus 1600, source index 7 of 13. Pre-change code additionally read all source chunks and verified candidate chunk pairs before outline review, then concatenated originals and limited extraction/explanation to 20000. This is the observed pre-change baseline; R14 replaces the affected behavior.
+
+Scope: overview sampling/prompt/validation, globally consistent outline, explicit revision approval, post-approval full-source verification and model rewriting, unbounded aggregate restructuring bodies, bounded generation/transfer/preview/detail/edit staging, safe original retention, tests and docs. Retain manual protections, source identity/citations, transactional apply/backup, accounting, cancellation and current data/version identities. No arbitrary one-to-many knowledge splitting, new provider feature, paid call, production migration or publication is included.
+
+Expected outcome: a useful outline is available before expensive full-text analysis; overview accepts up to 2400 characters; confirmed restructuring uses all source text and can produce bodies exceeding prior 20000/120000 boundaries through segments. Technical per-call limits remain. Regressions include sampled-overview misclassification, semantic omission or citation error, increased full-rewrite cost and broken long-text reading/editing. Source coverage is mechanically checked but semantic preservation still requires review. No performance or model-quality result is claimed.
+
+Authorization: the user explicitly said “开始改” for the current documented revision. R14 implementation and isolated validation are complete: npm run check (228 Python and 21 host tests plus checks/build) and npm run test:ui passed. R13 remains completed with its historical evidence. Applicable standards: AGENTS.md and docs/确认页/工程规范/项目编码与分层规范.md; no new standard or exception. Real-provider quality, cost and large-library performance remain unverified.
 
 ## Revision 13 startup repair
 

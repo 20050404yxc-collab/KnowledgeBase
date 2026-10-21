@@ -19,13 +19,12 @@ def duplicate_candidates(draft: dict) -> list[dict]:
     result = []
     for left, right in itertools.combinations(active, 2):
         a, b = left["id"], right["id"]
-        first, second = tokens(left["content"]), tokens(right["content"])
+        first, second = tokens(records[a]["summary"]), tokens(records[b]["summary"])
         common = len(first & second) / max(1, len(first | second))
         suggested = b in records[a]["candidates"] or a in records[b]["candidates"]
         if (
             suggested
             or identity(left["title"]) == identity(right["title"])
-            or left["content"] == right["content"]
             or common >= 0.65
             and len(first & second) >= 6
         ):
@@ -40,7 +39,7 @@ def new_group(sources: list[str]) -> dict:
         "sources": sources,
         "decision": "undecided",
         "kind": "pending",
-        "reason": "等待完整原文核验",
+        "reason": "概览候选；默认独立保留，拟合并时在结构确认后核验全文",
         "evidence": [],
         "checked": 0,
         "target_id": "",
@@ -54,12 +53,24 @@ def new_group(sources: list[str]) -> dict:
 
 # 每个来源的每个块和另一来源的每个块均进入核验，不用摘要替代证据。
 def verification_work(group: dict, items: list[dict]) -> list[tuple[dict, dict]]:
-    selected = [item for item in items if item["id"] in group["sources"]]
+    # 已合并来源仍属于当前保留点，完整核验必须覆盖这些历史成员，不能只看当前正文。
+    selected = [
+        {
+            "id": key,
+            "chunks": [
+                dict(chunk, source_id=key, locator=f"source:{item['id']}:{chunk['locator']}")
+                for item in items
+                if item["canonical_id"] == key
+                for chunk in source_chunks(item)
+            ],
+        }
+        for key in group["sources"]
+    ]
     return [
-        (dict(a, source_id=left["id"]), dict(b, source_id=right["id"]))
+        (a, b)
         for left, right in itertools.combinations(selected, 2)
-        for a in source_chunks(left)
-        for b in source_chunks(right)
+        for a in left["chunks"]
+        for b in right["chunks"]
     ]
 
 
@@ -107,18 +118,21 @@ def validate_duplicate(text: str, pair: tuple[dict, dict]) -> dict:
 
 
 # 所有来源恰好映射一次；已合并来源先沿现有映射，新增组不得交叉或形成循环。
-def confirmed_map(draft: dict) -> tuple[dict[str, str], list[dict]]:
+def confirmed_map(draft: dict, provisional: bool = False) -> tuple[dict[str, str], list[dict]]:
     mapping = {item["id"]: item["canonical_id"] for item in draft["items"]}
     active = set(mapping.values())
     used, merges = set(), []
     for group in draft["duplicates"]:
-        if group["kind"] == "pending" or group["decision"] == "undecided":
-            raise ValueError("请完成每个重复组的核验并逐组决定合并或保留")
-        if group["decision"] == "keep":
+        if group["decision"] in ("keep", "undecided"):
             continue
         sources = set(group["sources"])
         if (
-            group["kind"] not in ("equivalent", "partial-overlap")
+            group["kind"]
+            not in (
+                ("pending", "equivalent", "partial-overlap")
+                if provisional
+                else ("equivalent", "partial-overlap")
+            )
             or sources & used
             or not sources <= active
             or group["target_id"] not in sources

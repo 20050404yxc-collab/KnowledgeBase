@@ -40,6 +40,7 @@ export interface Knowledge {
   id: string
   title: string
   content: string
+  content_chars?: number
   created_at: string
   updated_at: string
   generated: boolean
@@ -64,6 +65,7 @@ export interface Supplement {
   knowledge_id: string
   title: string
   content: string
+  content_chars?: number
   created_at: string
   updated_at: string
   citations: Citation[]
@@ -328,6 +330,18 @@ export interface ModelCatalog {
   partial: boolean
 }
 export interface RequestMap {
+  'knowledge.text': {
+    action: 'read' | 'begin' | 'append' | 'commit' | 'discard'
+    id?: string
+    version?: string
+    supplement_id?: string
+    title?: string
+    page?: number
+    edit_id?: string
+    content?: string
+    offset?: number
+    chars?: number
+  }
   'knowledge.tree': { query?: string; bucket?: Bucket | null; path?: string[]; cursor?: string }
   'library.restructure.plan': GenerationOptions & {
     draft_id?: string
@@ -341,6 +355,7 @@ export interface RequestMap {
   'library.restructure.preview': DraftReference & {
     kind: PreviewKind
     page?: number
+    text_page?: number
     evidence_page?: number
   }
   'library.restructure.apply': DraftReference & { selected: string[] }
@@ -389,6 +404,17 @@ export interface RequestMap {
   recommendations: { id: string }
 }
 export interface ResultMap {
+  'knowledge.text': {
+    content?: string
+    version?: string
+    page?: number
+    pages?: number
+    edit_id?: string
+    offset?: number
+    saved?: boolean
+    discarded?: boolean
+    id?: string
+  }
   'knowledge.tree': LibraryTree
   'library.restructure.plan': RestructureSummary
   'library.restructure.prepare': RestructureSummary

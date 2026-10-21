@@ -62,10 +62,10 @@ def validate_collisions(assignments: list[dict], items: list[dict]) -> None:
         raise ValueError("重构后同一小类存在同名知识，请填写调整意见重新规划；未合并内容")
 
 
-# 允许明确无修改，正文建议仅有非空理由和有界内容时才能进入确认页。
+# 这里只校验字段类型和理由；完整正文不设总长度门槛，分段完整性由应用流程检查。
 def validate_suggestion(text: str) -> dict:
     raw = json_object(text)
     content = raw.get("content")
-    if not isinstance(content, str) or len(content) > 20000:
+    if not isinstance(content, str):
         raise ValueError("整理建议格式无效，未修改知识库")
     return {"content": content.strip(), "reason": short_field(raw.get("reason"), "整理理由", 500)}

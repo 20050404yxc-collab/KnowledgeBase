@@ -43,7 +43,8 @@ export function LibraryPage() {
         </div>
       </div>
       <p className="result-notice">
-        重构会分段读取全部知识正文与补充，调用当前所选模型概括要点并整理分类，产生调用记录。先确认目录，再查看内容差异；最终确认前原库不变。
+        先粗略浏览知识并提出目标结构，概览最多 2400
+        字符；确认结构后再根据完整原文重组正文，正文不设总字符上限。会调用当前模型并记录用量，最后核对内容并保存。
       </p>
       {activeProvider && (
         <ModelPicker

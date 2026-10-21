@@ -115,15 +115,12 @@ def test_merge_preserves_sources_restart_old_ids_search_and_uses(merge_case):
     assert value["status"] == "ready" and value["target_count"] == 1
     proposals = service.library.draft["suggestions"]
     extraction = next(p for p in proposals if p["id"] == first["id"])
-    explanation = next(p for p in proposals if p["kind"] == "model-explanation")
     assert all(
         text in extraction["content"] for text in ("仅限甲条件", "仅限乙条件", "编辑过的补充限制")
     )
-    assert extraction["provenance"] and not explanation["citations"]
+    assert extraction["provenance"] and "## 重新组织" in extraction["content"]
     with pytest.raises(ValueError, match="完整原文整理稿"):
         call(service, "library.restructure.apply", {**value, "selected": []})
-    with pytest.raises(ValueError, match="完整原文整理稿"):
-        call(service, "library.restructure.apply", {**value, "selected": [explanation["id"]]})
     receipt = call(service, "library.restructure.apply", {**value, "selected": [first["id"]]})
     assert receipt["source_count"] == 2 and receipt["target_count"] == receipt["groups"] == 1
     assert (
@@ -175,13 +172,17 @@ def test_merge_transaction_fault_rolls_back_all_state(merge_case, monkeypatch):
     assert service.store.get(second["id"])["id"] == second["id"]
 
 
-# 未决定或冲突不可准备；结构纠正使旧内容确认与旧修订失效。
+# 确认前不核验全文；确认后的冲突退回结构审核，不能自动重确认或写库。
 def test_decisions_conflict_and_revision_invalidation(merge_case):
     service, first, second = merge_case
     service.client.kind = "conflict"
-    value = outline(service)
-    with pytest.raises(ValueError, match="逐组决定"):
-        call(service, "library.restructure.prepare", value)
+    value = approve_merge(service, first, second)
+    assert not any(p == "library-duplicates" for p, _ in service.client.calls)
+    value = ready(service, value)
+    assert value["status"] == "outline" and value["prepared"] == 0
+    assert service.library.draft["approved"] is None
+    assert not any(p == "library-content" for p, _ in service.client.calls)
+    assert service.store.get(second["id"])["id"] == second["id"]
     group = service.library.draft["duplicates"][0]
     assert group["kind"] == "conflict"
     with pytest.raises(ValueError, match="不能合并"):

@@ -69,21 +69,25 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 契约位于 [library.ts](library.ts)。导航只切换显示，根会话持有任务和实际阶段请求 ID；一个生成流程可包含多个请求，显式取消、请求超时或后台中断阻止后续阶段。详情阅读版本按页隔离，不用来判定批量是否继续。
 
+修订 15：已有 draft_id/revision 的 plan 携带 feedback 时，在同一草案增量修订，不重新生成成功概览；当前目录保留至新目录完成，旧确认失效。summary 新增可选 `feedback_history:string[]`，按顺序保存意见，每条最多 2000 字符，累计 6000 字符；超限或快照变化拒绝且保留旧草案。语义比较 `library-group` 是内部模型目的，不新增桌面操作：同小类全部对按最多 12 对／26000 序列化字符分批，输出决策精确覆盖。模型提出的同知识组预填 merge 方案，最多 8 来源且两两同义，用户仍可保持独立；确认结构后才全文核验。多来源完整分片重写后通过 `library-content` 的 `mode=fuse` 融合，正文输入批次最多 18000 字符，来源映射可多对一。失败保留成功分片，显式 retry 才继续；不把拼接中间态发布为完成稿。记忆只在本次后台会话，不跨重启。
+
 `knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径长度 0/1/2 分别返回大类、小类、知识点，最多 50 节点，结果为 `{nodes,total,revision,next_cursor}`。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定当前层结果摘要，目录变化拒绝旧游标。叶子只有 ID、标题与分区，详情仍走 `knowledge.get`；展开不增加使用日。
 
-| 操作                          | 参数和状态                                                                                                                                                                  |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance,retry,review`；初始化／重规划；advance 一轮最多两分析块或一个分类／核验阶段；paused 必须显式 retry                       |
-| `library.restructure.prepare` | `{draft_id,revision,retry?}`；明确确认当前结构和逐组决定后，逐个原文块准备独立模型补充                                                                                      |
-| `library.restructure.preview` | `{draft_id,revision,kind,page?,evidence_page?}`；outline 每页 30，suggestions／records／sources／duplicates 每页 1；summary 只同步状态；重复组证据另按 evidence_page 每页 1 |
-| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交；每个合并保留点 ID 必须选中其完整提取稿，`:explanation` 是独立模型补充选择；无合并时空数组仅改目录                 |
-| `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                     |
+| 操作                          | 参数和状态                                                                                                                                                                             |
+| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance,retry,review`；初始化／重规划；advance 一轮最多两分析块或一个分类／核验阶段；paused 必须显式 retry                                  |
+| `library.restructure.prepare` | `{draft_id,revision,retry?}`；明确确认当前结构后，核验拟合并组并逐个完整原文块生成重组正文                                                                                             |
+| `library.restructure.preview` | `{draft_id,revision,kind,page?,evidence_page?,text_page?}`；outline 每页 30，suggestions／records／sources／duplicates 每页 1；summary 只同步状态；重复组证据另按 evidence_page 每页 1 |
+| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交；每个合并保留点 ID 必须选中其完整重组稿；本轮不另生成模型解释建议；无合并时空数组仅改目录                                     |
+| `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                                |
 
-`review` 为 `point`（id/title/category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、category、subcategory 和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组、未决定组及同路径同名阻止结构准备；related/conflict 不可合并。
+`review` 为 `point`（id/title/category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、category、subcategory 和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组及同路径同名阻止结构准备；未决定组默认保持独立；related/conflict 不可合并。
 
-状态为 `planning → outline → preparing → ready → applied`，分析或准备失败进入 `paused`，保留成功片段。summary 区分来源 total/covered、target_count、groups/undecided、workers 和错误。所有来源按 created_at/id 固定排序，两路独占领取；每块最多 7000 字符、累计摘要最多 1600 字符，分类每批最多 8 条和 26000 字符。记录包含草案／修订／source version／agent／generation／locator／call_id／attempt_ids，分页可重新同步，取消父请求同时取消并等待两路。
+状态为 `planning → outline → preparing → ready → applied`，分析或准备失败进入 `paused`，保留成功片段。summary 区分来源 total/covered、target_count、groups/undecided、workers 和错误。所有来源按 created_at/id 固定排序，两路独占领取；每来源只做一次轻量概览，最多取样 7000 字符，输出硬上限 2400（含空白标点）。标题优先及首中尾取样，保留完整已读/未读定位；模型范围元数据最多前 50 条且明确总数，记录预览通过 text_page 每页 50 条查看全部范围。classification 每轮一个目标，分轮消费全部相关来源概览和已有路径，携带前轮建议，序列化输入最多 26000 字符。记录包含草案／修订／source version／agent／generation／locator／call_id／attempt_ids；取消父请求同时取消并等待两路。
 
-原文提取稿从完整正文、补充及历史来源确定性拼接，按来源及定位标注，仅移除跨来源完全相同片段；不让摘要重建正文或由模型删减限定条件。模型补充逐原文块独立生成，无借用引用，默认不选。未编辑生成正文且原长度不超过 8000 可选择替换，其他仅追加，原版本先保存；单条完整建议超过 20000 明确未完成、不截尾。
+确认前只有概览与结构规划；prepare 确认当前 revision，随后只核验拟合并组的完整来源（包括隐藏历史成员），失败返回 outline/review，清除批准，不自动再确认。完整正文以 7000 字符原文块送入模型重组，带确认路径和最近 12 段标题，按输入顺序组装；每块对应输出章节与 source/version/locator。原引用和已有有效引用标记保留；覆盖清单不能证明语义无遗漏。重组正文无总字符业务上限；每调用的上下文／输出／超时及机器资源边界保持。suggestions 每项正文/原文/diff 分别按 text_page 每页 12000 字符，provenance 每页 20 条；apply 始终使用后台完整正文，不接收预览切片。
+
+`Knowledge` 和 `Supplement` 新增可选 `content_chars`，存在即表示当前正文非完整，需要分页。主正文首屏最多 12000 字符，所有补充共享另一个 12000 字符首屏预算；超预算补充正文留空并携带完整字符数。既有短结果保持，`knowledge.get` 复用回答同步处理长正文。新增白名单操作 `knowledge.text`：read `{id,version,supplement_id?,page?}` 返回 `{content,version,page,pages}`，每页 12000 Python 字符；begin `{id,version,supplement_id?,title}` 返回 `{edit_id,offset:0}`；append `{edit_id,offset,content}` 每块最多 12000 字符且偏移严格连续，返回新 offset；commit `{edit_id,chars}` 必须匹配暂存总字符数，再核验版本并一次事务保存及更新索引；discard `{edit_id}` 只释放暂存。前端逐页读取原版本并仅替换编辑段，全部上传完成才 commit。偏移以后台 Unicode 字符数为准，不用 JS UTF-16 长度。草稿由服务内存拥有，退出释放；无磁盘溢写、跨重启恢复或全文编辑总字符门槛。普通新建及生成长度契约保持。
 
 schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来源行，新增 canonical 映射、原始版本与整理 provenance；高于 4 拒绝。全库正文／补充／引用／手工分区／分类／来源映射版本变化使 apply 失效，使用日不影响快照。最终提交前唯一恢复点，事务检查和映射／分类／内容／索引原子写入，收据含 source_count/target_count/groups，重复成功提交幂等。版本号、数据目录、凭据服务名不变；仅隔离库验证迁移。
 

@@ -10,12 +10,14 @@ import uuid
 from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.library_rules import inventory_version
 from knowledge_agent.domain.provider_rules import resolve_generation
+from knowledge_agent.domain.restructure_evidence import source_chunks
 from knowledge_agent.domain.topic_rules import short_field
 
 from .library_analysis import analysis_records, analysis_round
 from .library_planning import LibraryPlanning
 from .library_preparation import LibraryPreparation
 from .ports import Emit, Generator, Repository
+from .restructure_memory import revise_draft
 
 
 class LibraryRestructure(LibraryPlanning, LibraryPreparation):
@@ -35,6 +37,9 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
             or previous["busy"]
         ):
             raise ValueError("已有重构草案，请先查看或取消")
+        if previous:
+            revise_draft(previous, params, self.store.library_inventory())
+            return self.summary()
         config = self.store.provider(params.get("provider_id"))
         if not config:
             raise ValueError("请先配置并选择生成接口")
@@ -68,7 +73,10 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
             "feedback": short_field(
                 params.get("feedback") or "按知识要点细分，优先沿用合适分类", "调整意见", 2000
             ),
+            "feedback_history": [],
+            "prepared_cache": {},
         }
+        self.draft["feedback_history"] = [self.draft["feedback"]]
         return self.summary()
 
     # 每轮最多两块；失败保留当前轮成功结果并暂停，只有显式继续会重试。
@@ -80,9 +88,7 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         if draft["status"] == "paused":
             if params.get("retry") is not True:
                 return self.summary()
-            draft.update(
-                errors=[], status="preparing" if draft["phase"] == "preparing" else "planning"
-            )
+            draft.update(errors=[], status="preparing" if draft["approved"] else "planning")
         if prepare and draft["status"] == "outline":
             self.approve_structure(draft)
         if draft["status"] not in ("planning", "preparing"):
@@ -90,11 +96,14 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         draft["busy"] = True
         try:
             if draft["status"] == "preparing":
-                await self.prepare_one(draft, emit)
+                if draft["phase"] == "duplicates":
+                    await self.verify_one(draft, emit)
+                else:
+                    await self.prepare_one(draft, emit)
             elif any(r["status"] != "complete" for r in draft["records"]):
                 await analysis_round(self, draft, emit)
-            elif draft["phase"] == "duplicates":
-                await self.verify_one(draft, emit)
+            elif draft["phase"] == "grouping":
+                await self.group_one(draft, emit)
             else:
                 draft["phase"] = "classification"
                 await self.assign_batch(draft, emit)
@@ -151,6 +160,18 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         if not isinstance(kind, str) or kind not in sizes or type(page) is not int or page < 0:
             raise ValueError("重构预览分页无效")
         values = preview_values(draft, kind)
+        total = len(values)
+        values = values[page * sizes[kind] : (page + 1) * sizes[kind]]
+        if kind == "suggestions":
+            text_page = params.get("text_page", 0)
+            if type(text_page) is not int or text_page < 0:
+                raise ValueError("正文分页无效")
+            values = [suggestion_page(value, text_page) for value in values]
+        if kind == "records":
+            text_page = params.get("text_page", 0)
+            if type(text_page) is not int or text_page < 0:
+                raise ValueError("范围分页无效")
+            values = [range_page(value, text_page) for value in values]
         if kind == "duplicates":
             evidence_page = params.get("evidence_page", 0)
             if type(evidence_page) is not int or evidence_page < 0:
@@ -168,12 +189,12 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
             "duplicates": [],
             "sources": [],
             "kind": kind,
-            "total": len(values),
+            "total": total,
             "page": page,
             "summary": self.summary(),
         }
         if kind != "summary":
-            result[kind] = values[page * sizes[kind] : (page + 1) * sizes[kind]]
+            result[kind] = values
         return result
 
     # 每次读写绑定草案及修订，防止旧界面提交过期决定。
@@ -233,6 +254,7 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
                 }
                 for agent in ("A", "B")
             ],
+            "feedback_history": list(draft["feedback_history"]),
         }
 
 
@@ -261,6 +283,10 @@ def preview_values(draft: dict, kind: str) -> list[dict]:
                     key: record[key]
                     for key in ("source_id", "title", "version", "agent", "generation", "status")
                 },
+                "sampled_chars": chunk["sampled_chars"],
+                "total_chars": chunk["total_chars"],
+                "sampled": chunk["sampled"],
+                "omitted": chunk["omitted"],
                 **{
                     key: chunk[key]
                     for key in (
@@ -291,7 +317,7 @@ def preview_values(draft: dict, kind: str) -> list[dict]:
                 "content": c["text"],
             }
             for r in draft["records"]
-            for c in r["chunks"]
+            for c in source_chunks(next(i for i in draft["items"] if i["id"] == r["source_id"]))
         ]
     if kind == "duplicates":
         return [
@@ -303,3 +329,39 @@ def preview_values(draft: dict, kind: str) -> list[dict]:
             for g in draft["duplicates"]
         ]
     return draft.get(kind, [])
+
+
+# 建议正文、原文、差异和来源均分页；正式应用始终使用完整会话数据。
+def suggestion_page(value: dict, page: int) -> dict:
+    size = 12000
+    pages = max(
+        1,
+        *[(len(value[key]) + size - 1) // size for key in ("content", "original", "diff")],
+        (len(value["provenance"]) + 19) // 20,
+    )
+    if page >= pages:
+        page = pages - 1
+    return {
+        **value,
+        **{
+            key: value[key][page * size : (page + 1) * size]
+            for key in ("content", "original", "diff")
+        },
+        "provenance": value["provenance"][page * 20 : (page + 1) * 20],
+        "citations": [],
+        "source_ids": [],
+        "text_page": page,
+        "text_pages": pages,
+    }
+
+
+# 范围清单随长来源增长，分页只影响预览，不丢弃会话里的完整记录。
+def range_page(value: dict, page: int) -> dict:
+    pages = max(1, *[(len(value[key]) + 49) // 50 for key in ("sampled", "omitted")])
+    page = min(page, pages - 1)
+    return {
+        **value,
+        **{key: value[key][page * 50 : (page + 1) * 50] for key in ("sampled", "omitted")},
+        "ranges_page": page,
+        "ranges_pages": pages,
+    }

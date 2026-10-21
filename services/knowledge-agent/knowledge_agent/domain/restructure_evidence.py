@@ -1,13 +1,56 @@
 # 文件：restructure_evidence.py
 # 层：Python domain
-# 作用：定义有界来源分片、覆盖证据和无损原文提取。
+# 作用：定义来源抽样、全文分片、引用保留及覆盖证据。
 # 说明：只处理快照数据；不调用模型或外部存储。
 from __future__ import annotations
 
 import hashlib
 import json
+import re
 
 from .topic_rules import json_object, short_field
+
+SUMMARY_MAX_CHARS = 2400
+OVERVIEW_SAMPLE_CHARS = 7000
+
+
+# 短文完整展示，长文按正文及补充的首中尾取样，并明确未覆盖的位置。
+def overview_sample(item: dict) -> dict:
+    chunks = source_chunks(item)
+    total = sum(len(c["text"]) for c in chunks)
+    budget = OVERVIEW_SAMPLE_CHARS
+    sampled, omitted, texts = [], [], []
+    for index, chunk in enumerate(chunks):
+        size = (
+            len(chunk["text"])
+            if total <= OVERVIEW_SAMPLE_CHARS
+            else min(len(chunk["text"]), budget // (len(chunks) - index))
+        )
+        spans = sample_spans(chunk["text"], size)
+        cursor = 0
+        for start, end in spans:
+            if start > cursor:
+                omitted.append(
+                    f"{chunk['part']}:{chunk['start'] + cursor}:{chunk['start'] + start}"
+                )
+            if end > start:
+                sampled.append(f"{chunk['part']}:{chunk['start'] + start}:{chunk['start'] + end}")
+                texts.append(chunk["text"][start:end])
+            cursor = end
+        if cursor < len(chunk["text"]):
+            omitted.append(f"{chunk['part']}:{chunk['start'] + cursor}:{chunk['end']}")
+        budget -= size
+    return {
+        "part": "overview",
+        "start": 0,
+        "end": total,
+        "locator": "overview",
+        "text": "".join(texts),
+        "sampled": sampled,
+        "omitted": omitted,
+        "total_chars": total,
+        "sampled_chars": OVERVIEW_SAMPLE_CHARS - budget,
+    }
 
 
 # 所有正文及补充均按字符偏移定位，空正文仍有一个明确覆盖片段。
@@ -74,7 +117,7 @@ def analysis_result(text: str, allowed: set[str]) -> dict:
     value = json_object(text)
     if "summary" not in value:
         raise ValueError("缺少 summary 字段")
-    summary = short_field(value["summary"], "知识要点", 1600)
+    summary = short_field(value["summary"], "知识要点", SUMMARY_MAX_CHARS)
     candidates = value.get("candidates", [])
     if (
         not isinstance(candidates, list)
@@ -85,40 +128,56 @@ def analysis_result(text: str, allowed: set[str]) -> dict:
     return {"summary": summary.strip(), "candidates": list(dict.fromkeys(candidates))}
 
 
-# 整理使用完整原文而非压缩摘要；只合并完全相同的片段，独有和矛盾均保留。
-def extract_sources(items: list[dict]) -> tuple[str, list[dict], list[dict]]:
-    sections, provenance, citations, seen = [], [], [], {}
+# 原文与补充及历史快照的引用全部保留，按完整引用字段去重。
+def source_citations(items: list[dict]) -> list[dict]:
+    citations = []
     for item in items:
-        version = source_version(item)
-        for chunk in source_chunks(item):
-            text = chunk["text"]
-            key = hashlib.sha256(text.encode()).hexdigest()
-            # 同一来源内重复片段可能承载顺序含义，不能直接当重复来源删除。
-            if key in seen and seen[key][0] == item["id"]:
-                key += ":" + chunk["locator"]
-            provenance.append(
-                {
-                    "source_id": item["id"],
-                    "version": version,
-                    "locator": chunk["locator"],
-                    "section": seen[key][1] if key in seen else len(sections),
-                }
-            )
-            if key not in seen:
-                seen[key] = (item["id"], len(sections))
-                sections.append(f"### {item['title']} · {chunk['locator']}\n\n{text}")
-        citations.extend(clean_citations(item.get("citations", [])))
-        for part in item.get("supplements", []):
-            citations.extend(clean_citations(part.get("citations", [])))
-        for archived in item.get("archived_evidence", []):
-            original = archived["item"]
+        originals = [item] + [archived["item"] for archived in item.get("archived_evidence", [])]
+        for original in originals:
             citations.extend(clean_citations(original.get("citations", [])))
             for part in original.get("supplements", []):
                 citations.extend(clean_citations(part.get("citations", [])))
-    content = "\n\n".join(sections)
-    if len(content) > 20000:
-        raise ValueError(
-            f"完整原文整理稿 {len(content)} 字符超过单条 20000 上限；未截断，尚未准备完成"
-        )
     unique = {json.dumps(value, sort_keys=True, ensure_ascii=False): value for value in citations}
-    return content, provenance, list(unique.values())
+    return list(unique.values())
+
+
+# 输入中已经存在且可解析的来源标记必须延续到对应重组段，禁止静默丢掉引文链接。
+def validate_rewrite_references(original: str, content: str, citations: list[dict]) -> None:
+    for citation in citations:
+        marker = "[" + citation["id"] + "]"
+        if marker in original and marker not in content:
+            raise ValueError("重组段遗漏原引用标记，未发布不完整建议")
+
+
+# 标题优先使用少量预算，其余覆盖首中尾；范围合并后仍不超过本块预算。
+def sample_spans(text: str, size: int) -> list[tuple[int, int]]:
+    if size == len(text):
+        return [(0, size)]
+    selected = set()
+    quota = size // 4
+    for match in re.finditer(r"(?m)^#{1,6}[ \t]+[^\r\n]+", text):
+        if len(selected) >= quota:
+            break
+        selected.update(
+            range(match.start(), min(match.end(), match.start() + quota - len(selected)))
+        )
+    remaining = size - len(selected)
+    third = remaining // 3
+    for start, end in [
+        (0, third),
+        ((len(text) - third) // 2, (len(text) - third) // 2 + third),
+        (len(text) - (remaining - 2 * third), len(text)),
+    ]:
+        selected.update(range(start, end))
+    # 标题与首中尾有重合时，按原顺序补足预算，不重复计算字符。
+    index = 0
+    while len(selected) < size:
+        selected.add(index)
+        index += 1
+    spans = []
+    for position in sorted(selected):
+        if spans and spans[-1][1] == position:
+            spans[-1] = (spans[-1][0], position + 1)
+        else:
+            spans.append((position, position + 1))
+    return spans

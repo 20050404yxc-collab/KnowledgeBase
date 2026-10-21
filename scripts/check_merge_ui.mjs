@@ -14,6 +14,26 @@ async function choose(ui, selector, value) {
 // 对候选使用真实输入引用，其他内容返回相关但保持独立。
 function mergeReply(body, fallback) {
   const input = JSON.parse(body.input)
+  if (input.mode === 'same-knowledge') {
+    const titles = new Map(input.items.map((item) => [item.id, item.title]))
+    return {
+      decisions: input.pairs.map(([left, right]) => ({
+        left,
+        right,
+        same_knowledge: [left, right].every((id) => titles.get(id).startsWith('合并界面')),
+        reason: '相同知识的两个表达；其他同小类知识保持独立'
+      }))
+    }
+  }
+  if (input.mode === 'fuse') {
+    const text = input.sections.map((part) => part.content).join('\n\n')
+    return {
+      content:
+        '## 融合后的同一知识\nMERGE_SHARED\n' +
+        ['UNIQUE_ALPHA', 'UNIQUE_BETA'].filter((fact) => text.includes(fact)).join('\n'),
+      reason: '重复定义合为一次，独有内容保留'
+    }
+  }
   if (
     input.left &&
     input.right &&
@@ -54,8 +74,8 @@ async function decideGroups(context, ids) {
   let found = false
   for (let page = 0; page < total; page++) {
     const text = await ui.evaluate(`document.querySelector('[aria-label="重复组决定"]').innerText`)
-    assert.ok(text.includes('undecided'))
     if (ids.every((id) => text.includes(id))) {
+      assert.ok(text.includes('merge'))
       found = true
       await choose(ui, '[aria-label="重复组决定"] select', ids[0])
       await fill('[aria-label="重复组决定"] label:nth-of-type(1) input', '合并界面保留点')
@@ -67,7 +87,7 @@ async function decideGroups(context, ids) {
       await waitFor(
         () =>
           ui.evaluate(
-            `document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('merge')`
+            `!document.querySelector('.session-task') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('merge')`
           ),
         'explicit merge choice'
       )
@@ -76,7 +96,7 @@ async function decideGroups(context, ids) {
       await waitFor(
         () =>
           ui.evaluate(
-            `document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('keep')`
+            `!document.querySelector('.session-task') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('keep')`
           ),
         'explicit keep choice'
       )
@@ -88,7 +108,7 @@ async function decideGroups(context, ids) {
       await waitFor(
         () =>
           ui.evaluate(
-            `document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('undecided')`
+            `document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination span')?.innerText.includes('第 ${page + 2} 页')`
           ),
         'next unreviewed group'
       )
@@ -123,7 +143,7 @@ async function selectMergeContent({ ui, click, waitFor, screenshot }) {
   )
   for (let page = 0; page < total; page++) {
     const text = await ui.evaluate(`document.querySelector('.content-change').innerText`)
-    if (text.includes('合并界面保留点') && text.includes('原文提取')) {
+    if (text.includes('合并界面保留点') && text.includes('全文重组')) {
       assert.ok(text.includes('UNIQUE_ALPHA') && text.includes('UNIQUE_BETA'))
       await ui.evaluate(`document.querySelector('.content-change input').click()`)
       await screenshot('desktop-merge-content.png')

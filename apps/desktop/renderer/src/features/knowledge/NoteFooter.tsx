@@ -29,13 +29,15 @@ export function NoteFooter() {
         {new Date(selected.updated_at).toLocaleDateString('zh-CN')}
       </span>
       <div>
-        <button
-          onClick={() =>
-            setEditor({ id: selected.id, title: selected.title, content: selected.content })
-          }
-        >
-          编辑
-        </button>
+        {!selected.content_chars && (
+          <button
+            onClick={() =>
+              setEditor({ id: selected.id, title: selected.title, content: selected.content })
+            }
+          >
+            编辑
+          </button>
+        )}
         <button
           className="danger-text"
           onClick={() => {

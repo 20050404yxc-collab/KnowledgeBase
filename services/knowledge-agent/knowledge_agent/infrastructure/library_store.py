@@ -14,6 +14,7 @@ from knowledge_agent.diagnostics import traced
 from knowledge_agent.domain.knowledge_rules import BUCKETS, identity, now, relevance
 from knowledge_agent.domain.library_rules import display_path, inventory_version
 from knowledge_agent.domain.taxonomy import classification, encode_path
+from knowledge_agent.domain.topic_rules import short_field
 
 # 所有分页共享相同边界，树与预览均不发送完整全库正文。
 TREE_PAGE_SIZE = 50
@@ -106,6 +107,45 @@ class LibraryStorage:
             temporary.unlink(missing_ok=True)
             raise
         return target.name
+
+    # 分段上传后一次提交现有知识；版本、原件与索引受同一事务保护。
+    @traced
+    def save_long_text(self, params: dict) -> None:
+        title = short_field(params.get("title"), "标题", 200)
+        content = params["content"]
+        if not content.strip():
+            raise ValueError("正文不能为空")
+        with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            current = self.get(params["id"])
+            if current["version"] != params["version"]:
+                raise ValueError("知识已变化，请重新打开后编辑")
+            self.retain_original(current)
+            stamp, digest = now(), hashlib.sha256(content.encode()).hexdigest()
+            if params["supplement_id"]:
+                if not any(p["id"] == params["supplement_id"] for p in current["supplements"]):
+                    raise ValueError("补充不存在")
+                self.db.execute(
+                    "UPDATE supplements SET title=?,content=?,digest=?,updated_at=?,edited=1 WHERE id=? AND knowledge_id=?",
+                    (title, content, digest, stamp, params["supplement_id"], current["id"]),
+                )
+            else:
+                concept = (
+                    "topic:" + current["id"]
+                    if self.db.execute(
+                        "SELECT 1 FROM topic_links WHERE knowledge_id=?", (current["id"],)
+                    ).fetchone()
+                    else identity(title)
+                )
+                self.db.execute(
+                    "UPDATE knowledge SET title=?,concept=?,content=?,digest=?,updated_at=?,edited=1 WHERE id=?",
+                    (title, concept, content, digest, stamp, current["id"]),
+                )
+            # 历史原件也参与搜索，保证编辑不能抹掉重构前的信息。
+            if self.db.execute("SELECT 1 FROM sqlite_master WHERE name='search_fts'").fetchone():
+                self.db.execute("DELETE FROM search_fts")
+            self.db.execute("DELETE FROM search_documents")
+            self.populate_library_index()
 
     # 统一提交分类、所选更新和索引，任一步失败都回滚；恢复点保留供排查。
     @traced

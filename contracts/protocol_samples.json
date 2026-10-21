@@ -133,6 +133,10 @@
   ],
   "dto_samples": [
     {
+      "operation": "knowledge.text",
+      "result": { "content": "shared-body-😀", "version": "shared-version", "page": 0, "pages": 1 }
+    },
+    {
       "operation": "question.plan",
       "result": {
         "plan_id": "plan-review",

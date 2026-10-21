@@ -38,6 +38,92 @@ const { markdownForDisplay } = await loadModule(
   '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
 )
 
+// 实际上传编排只替换受限 API，Unicode 分段、取消和提交规则照常执行。
+test('long text preserves untouched pages and cancels incomplete staged saves', async () => {
+  const stub = `let respond; export const configure = (value) => { respond = value };
+    export const api = { request: (...args) => respond(...args) };
+    export const errorText = (error) => error.message; export const reportFeedback = () => {};`
+  const url = 'data:text/javascript;base64,' + Buffer.from(stub).toString('base64')
+  const { configure } = await import(url)
+  const { saveTextPage } = await loadModule(
+    '../apps/desktop/renderer/src/features/knowledge/long_text_edit.ts',
+    {
+      "'../../shared/api/client'": JSON.stringify(url)
+    }
+  )
+  let parts = [],
+    offset = 0,
+    committed = false,
+    discarded = false,
+    active = true
+  const original = ['原文第一段', '待编辑', '尾段独有约束']
+  configure(async (operation, params) => {
+    assert.equal(operation, 'knowledge.text')
+    if (params.action === 'begin') {
+      return { edit_id: 'edit', offset: 0 }
+    }
+    if (params.action === 'read') {
+      return { content: original[params.page] }
+    }
+    if (params.action === 'append') {
+      assert.equal(params.offset, offset)
+      const length = Array.from(params.content).length
+      assert.ok(length <= 12000)
+      offset += length
+      parts.push(params.content)
+      return { offset }
+    }
+    if (params.action === 'discard') {
+      discarded = true
+      return { discarded: true }
+    }
+    assert.equal(params.chars, offset)
+    committed = true
+    return { saved: true, id: 'note' }
+  })
+  const target = { id: 'note', version: 'version', title: '合成知识' }
+  const replacement = '😀'.repeat(25000)
+  await saveTextPage(target, 1, 3, replacement, () => active)
+  assert.equal(parts.join(''), original[0] + replacement + original[2])
+  assert.equal(committed, true)
+  parts = []
+  offset = 0
+  committed = false
+  await assert.rejects(
+    saveTextPage(target, 1, 3, replacement, () => {
+      if (parts.length) {
+        active = false
+      }
+      return active
+    }),
+    /未提交/
+  )
+  assert.equal(committed, false)
+  assert.equal(discarded, true)
+})
+
+// 分页和暂存结果不得用负数、缺失字段或空对象伪装成功。
+test('long text result validation rejects incomplete and invalid counts', () => {
+  for (const value of [
+    {},
+    { content: 'x' },
+    { edit_id: 'e', offset: -1 },
+    { content: 'x', version: 'v', page: 1, pages: 1 },
+    { saved: true }
+  ]) {
+    assert.throws(() => validation.decodeResult('knowledge.text', value))
+  }
+  assert.equal(
+    validation.decodeResult('knowledge.text', { content: 'x', version: 'v', page: 0, pages: 1 })
+      .content,
+    'x'
+  )
+  assert.equal(
+    validation.decodeResult('knowledge.text', { edit_id: 'e', offset: 12000 }).offset,
+    12000
+  )
+})
+
 // 模拟受限 API 只替换网络边界，批量状态和逐项控制使用实际实现。
 async function batchFixture() {
   const stub = `let respond; export const configure = (value) => { respond = value };

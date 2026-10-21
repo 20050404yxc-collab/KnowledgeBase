@@ -272,7 +272,7 @@ def test_model_http_failure_is_diagnosable_without_private_content(diagnostic_se
         (None, "required_text", "NoneType", None),
         (["private-model-body"], "required_text", "list", None),
         ("   ", "non_blank", "str", 3),
-        ("x" * 1601, "max_length", "str", 1601),
+        ("x" * 2401, "max_length", "str", 2401),
     ],
 )
 def test_red_summary_error_preserves_state_and_records_rule(
@@ -305,7 +305,7 @@ def test_red_summary_error_preserves_state_and_records_rule(
     finally:
         service.close()
     text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
-    assert "private-" not in text and "x" * 1601 not in text
+    assert "private-" not in text and "x" * 2401 not in text
     rows = [json.loads(line) for line in text.splitlines()]
     failure = next(
         row
@@ -319,7 +319,7 @@ def test_red_summary_error_preserves_state_and_records_rule(
         "rule": rule,
         "actual_type": actual_type,
         "actual_length": length,
-        "limit": 1600,
+        "limit": 2400,
     }
     assert any(
         row["event"] == "library.summary_context"
@@ -367,4 +367,45 @@ def test_controlled_plan_fallback_retains_actionable_reason(diagnostic_session):
     assert fallback["errors"][0]["validation"]["rule"] == "required_text"
     assert any(
         row["event"] == "step.failed" and row["step"] == "topic.validate_plan" for row in rows
+    )
+
+
+# 同类比较失败可按请求和固定阶段检索，意见、概览及模型正文不能进入日志。
+def test_grouping_failure_preserves_private_draft_and_request_context(diagnostic_session):
+    from knowledge_agent.bootstrap import create_service
+    from test_knowledge import Vault, config
+    from test_library import LibraryClient, call
+
+    service = create_service(diagnostic_session.parent / "data", vault=Vault())
+    config(service)
+    client = LibraryClient()
+    service.client = client
+    generate = client.generate
+
+    # 只在语义比较返回缺失决策，其他阶段使用正常合成结果。
+    async def invalid_group(configuration, prompt, purpose, emit):
+        if purpose == "library-group":
+            return json.dumps({"private-model-body": "private-feedback"})
+        return await generate(configuration, prompt, purpose, emit)
+
+    client.generate = invalid_group
+    try:
+        service.store.save("private-title-a", "private-source-a")
+        service.store.save("private-title-b", "private-source-b")
+        value = call(service, "library.restructure.plan", {"feedback": "private-feedback"})
+        with logs.request_context("same-knowledge-failure", "library.restructure.plan"):
+            while value["status"] == "planning":
+                value = call(service, "library.restructure.plan", {**value, "advance": True})
+        assert value["status"] == "paused" and value["classified"] == value["covered"] == 2
+        assert not service.library.draft["suggestions"]
+    finally:
+        service.close()
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
+    assert "private-" not in text
+    failures = [row for row in map(json.loads, text.splitlines()) if row["event"] == "step.failed"]
+    assert any(
+        row["request_id"] == "same-knowledge-failure"
+        and row["step"].endswith("LibraryGrouping.group_one")
+        and row["errors"][0]["reason"] == "同类知识判断格式无效，已有目录与分析保留"
+        for row in failures
     )

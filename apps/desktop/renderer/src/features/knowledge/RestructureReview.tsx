@@ -1,9 +1,14 @@
 // 文件：RestructureReview.tsx
 // 层：React 展示组件
 // 作用：展示代理覆盖、来源映射和逐组重复决定。
-// 说明：所有决定绑定后台修订，默认不接受合并。
+// 说明：模型可预填拟合并结构；全文核验与正式应用仍须确认。
 import { useState } from 'react'
-import type { DuplicateGroup, OutlinePoint, PreviewKind } from '../../../../../../contracts/library'
+import type {
+  AnalysisRecord,
+  DuplicateGroup,
+  OutlinePoint,
+  PreviewKind
+} from '../../../../../../contracts/library'
 import { useAppContext } from '../../app/AppContext'
 
 // 记录、来源及重复组分别分页，原文不会挤在一个大协议帧中。
@@ -16,7 +21,7 @@ export function RestructureReview() {
         {draft?.workers
           ?.map((worker) => `代理 ${worker.agent}：完成 ${worker.covered}`)
           .join(' · ')}{' '}
-        · 目标 {draft?.target_count} · 待决定 {draft?.undecided}
+        · 目标 {draft?.target_count} · 未选择的候选 {draft?.undecided}（默认保持独立）
       </p>
       {draft?.errors?.map((error) => (
         <p role="alert" key={error}>
@@ -48,6 +53,7 @@ export function RestructureReview() {
             分类 {record.path.join(' → ')} · 候选 {record.candidates.join('、')}
           </p>
           <pre>{record.summary}</pre>
+          <OverviewRanges record={record} />
           <p role={record.error ? 'alert' : undefined}>{record.error}</p>
           <p>
             调用 {record.call_id} · 实际尝试 {record.attempt_ids.join('、') || '无实际调用记录'}
@@ -73,8 +79,51 @@ export function RestructureReview() {
         <ReviewPages kind={preview.kind} />
       )}
       {draft?.status === 'outline' && <CandidateInput />}
-      <p>关键词和模型候选可能漏检；调用分别计费，未知用量不估算。不保证去重完整或处理速度。</p>
+      <p>
+        同小类知识会按内容比较并提出拟合并方案；仅相关知识保持独立。调用分别计费，未知用量不估算；仍需核对语义遗漏。
+      </p>
     </section>
+  )
+}
+
+// 概览完成只说明抽样完成，具体未读范围仍可核对。
+function OverviewRanges({ record }: { record: AnalysisRecord }) {
+  const { restructurePreview: preview, previewRestructure } = useAppContext()
+  const page = record.ranges_page ?? 0
+  const pages = record.ranges_pages ?? 1
+  return (
+    <>
+      <p>
+        概览取样 {record.sampled_chars} / {record.total_chars} 字符；
+        {record.sampled_chars !== record.total_chars
+          ? '存在未读范围，确认结构后才逐段处理全文。'
+          : '本条已完整展示。'}
+      </p>
+      <details>
+        <summary>取样与未读范围</summary>
+        <p>已取样：{record.sampled?.join('；')}</p>
+        <p>未读取：{record.omitted?.join('；') || '无'}</p>
+        {pages > 1 && (
+          <div>
+            <button
+              disabled={page === 0}
+              onClick={() => void previewRestructure('records', preview.page, 0, page - 1)}
+            >
+              上一页范围
+            </button>
+            <span>
+              范围 {page + 1}/{pages}
+            </span>
+            <button
+              disabled={page + 1 >= pages}
+              onClick={() => void previewRestructure('records', preview.page, 0, page + 1)}
+            >
+              下一页范围
+            </button>
+          </div>
+        )}
+      </details>
+    </>
   )
 }
 
@@ -162,7 +211,7 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
       <button
         disabled={
           !!busy ||
-          !['equivalent', 'partial-overlap'].includes(group.kind) ||
+          !['pending', 'equivalent', 'partial-overlap'].includes(group.kind) ||
           !target ||
           !title ||
           !category ||
@@ -216,7 +265,7 @@ function CandidateInput() {
           })
         }
       >
-        核验完整原文
+        添加拟合并候选（确认后核验全文）
       </button>
     </label>
   )

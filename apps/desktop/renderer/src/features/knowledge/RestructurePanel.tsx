@@ -81,8 +81,8 @@ function SuggestionPreview() {
             {item.kind === 'model-explanation'
               ? '模型补充解释（未独立核实）'
               : item.mode === 'replace'
-                ? '原文提取，替换未编辑的生成正文'
-                : '原文提取，原文保留并追加整理'}
+                ? '全文重组，替换未编辑的生成正文'
+                : '全文重组，原文保留并追加整理'}
           </label>
           <p>{item.reason}</p>
           {item.provenance?.map((source, index) => (
@@ -100,6 +100,7 @@ function SuggestionPreview() {
               <pre>{item.content}</pre>
             </div>
           </div>
+          <SuggestionTextPages page={item.text_page ?? 0} pages={item.text_pages ?? 1} />
           <details>
             <summary>查看逐行差异</summary>
             <pre>{item.diff}</pre>
@@ -109,6 +110,33 @@ function SuggestionPreview() {
       {!preview.total && <p>本次无需更新正文，可以仅应用目录。</p>}
       <PreviewPages kind="suggestions" size={1} />
     </section>
+  )
+}
+
+// 同一建议的长正文与差异独立分页，不改变当前勾选身份。
+function SuggestionTextPages({ page, pages }: { page: number; pages: number }) {
+  const { restructurePreview: preview, previewRestructure } = useAppContext()
+  if (pages <= 1) {
+    return null
+  }
+  return (
+    <div className="pagination">
+      <button
+        disabled={!page}
+        onClick={() => void previewRestructure('suggestions', preview.page, 0, page - 1)}
+      >
+        上一段
+      </button>
+      <span>
+        正文第 {page + 1}/{pages} 段
+      </span>
+      <button
+        disabled={page + 1 >= pages}
+        onClick={() => void previewRestructure('suggestions', preview.page, 0, page + 1)}
+      >
+        下一段
+      </button>
+    </div>
   )
 }
 
@@ -122,6 +150,7 @@ export function RestructurePanel() {
   return (
     <section className="restructure-panel" aria-label="知识库重构">
       <h2>重构知识库</h2>
+      <RestructureMemory />
       <p>
         概览 {draft.covered}/{draft.total} · 已归类 {draft.classified}/{draft.total} · 已准备更新{' '}
         {draft.prepared}/{draft.target_count ?? draft.total}
@@ -146,7 +175,7 @@ export function RestructurePanel() {
             />
           </label>
           <button disabled={!!busy} onClick={() => void model.planRestructure()}>
-            按意见重新规划
+            根据意见调整当前方案
           </button>
           <button
             className="primary"
@@ -188,5 +217,22 @@ export function RestructurePanel() {
         {draft.status === 'applied' ? '关闭重构结果' : '取消并丢弃草案'}
       </button>
     </section>
+  )
+}
+
+// 本次整理偏好可逐条核对，不把会话记忆描述为跨重启持久化。
+function RestructureMemory() {
+  const { restructureDraft: draft } = useAppContext()
+  return (
+    <details>
+      <summary>本次已记住的整理意见（{draft?.feedback_history?.length ?? 0}）</summary>
+      {draft?.feedback_history?.map((item, index) => (
+        <p key={index}>
+          {index + 1}. {item}
+        </p>
+      ))}
+      <p>调整沿用当前目录和成功分析；记忆保留至关闭应用或丢弃草案。</p>
+      <p>先确定大类和小类，再比较同一知识、提出合并方案；确认后核验全文并融合正文。</p>
+    </details>
   )
 }
