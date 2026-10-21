@@ -10,6 +10,7 @@ import inspect
 import json
 import logging
 import os
+import re
 import sys
 import time
 import traceback
@@ -31,7 +32,9 @@ LOGGER = logging.getLogger("knowledgebase")
 LOGGER.addHandler(logging.NullHandler())
 LOGGER.propagate = False
 MAX_LOG_BYTES = 5 * 1024 * 1024
-LOG_BACKUPS = 5
+LOG_RETENTION_SECONDS = 14 * 24 * 60 * 60
+CLEANUP_INTERVAL_SECONDS = 24 * 60 * 60
+WORKER_LOG = re.compile(r"(?:\d{4}-\d{2}-\d{2}-[1-9]\d*-worker\.log|worker\.log(?:\.[1-9]\d*)?)")
 # 仅允许项目定义的固定提示进入异常原因，动态异常文字一律不保存。
 SAFE_REASONS = frozenset(
     {
@@ -349,24 +352,97 @@ class JsonFormatter(logging.Formatter):
 
 
 class SafeFileHandler(RotatingFileHandler):
+    # 每次初始化独占新文件；标准 handler 的锁串行化线程写入和容量分段。
+    def __init__(self, directory: Path) -> None:
+        self.directory = directory.resolve()
+        self.last_cleanup: float | None = None
+        super().__init__(self.new_path(), maxBytes=MAX_LOG_BYTES, backupCount=0, encoding="utf-8")
+        self.cleanup_expired()
+
+    # 排他创建防止重启或并发启动接续旧文件，当天序号延续最大值。
+    def new_path(self) -> Path:
+        date = datetime.now().strftime("%Y-%m-%d")
+        pattern = re.compile(rf"{date}-([1-9]\d*)-worker\.log")
+        indices = [
+            int(match[1])
+            for path in self.directory.iterdir()
+            if (match := pattern.fullmatch(path.name))
+        ]
+        index = max(indices, default=0)
+        while True:
+            index += 1
+            path = self.directory / f"{date}-{index}-worker.log"
+            try:
+                with path.open("x", encoding="utf-8"):
+                    return path
+            except FileExistsError:
+                # 候选名称已占用，继续尝试；其他 I/O 错误由初始化／写入兜底。
+                continue
+
+    # 容量分段仅关闭自己的文件，不重命名或按备份数量删除近期日志。
+    def doRollover(self) -> None:
+        if self.stream:
+            self.stream.close()
+            self.stream = None
+        self.baseFilename = str(self.new_path().resolve())
+        self.stream = self._open()
+
+    # 以实际 UTF-8 字节衡量容量，避免中文日志按字符数估算导致越界。
+    def shouldRollover(self, record: logging.LogRecord) -> bool:
+        if self.maxBytes <= 0:
+            return False
+        if self.stream is None:
+            self.stream = self._open()
+        size = self.stream.tell()
+        # 标准文本流会转换 Windows 换行，容量计算包含转换后的字节。
+        entry = (self.format(record) + self.terminator).replace("\n", os.linesep)
+        entry_bytes = len(entry.encode("utf-8"))
+        return size > 0 and size + entry_bytes > self.maxBytes
+
+    # 长期运行时，在间隔一天后的首次写入清理；不额外持有后台线程或计时器。
+    def emit(self, record: logging.LogRecord) -> None:
+        self.cleanup_expired()
+        super().emit(record)
+
+    # 只清理本进程新旧白名单内的普通文件；当前文件及链接不作为删除目标。
+    def cleanup_expired(self) -> None:
+        now = time.time()
+        if self.last_cleanup is not None and now - self.last_cleanup < CLEANUP_INTERVAL_SECONDS:
+            return
+        self.last_cleanup = now
+        try:
+            for path in self.directory.iterdir():
+                if not WORKER_LOG.fullmatch(path.name) or path.absolute() == Path(
+                    self.baseFilename
+                ):
+                    continue
+                try:
+                    info = path.lstat()
+                    if path.is_symlink() or not path.is_file():
+                        continue
+                    if info.st_mtime < now - LOG_RETENTION_SECONDS:
+                        path.unlink()
+                except FileNotFoundError:
+                    # 并发清理已移除目标是正常状态。
+                    continue
+                except OSError:
+                    sys.stderr.write("KnowledgeBase diagnostic cleanup failed\n")
+        except OSError:
+            sys.stderr.write("KnowledgeBase diagnostic cleanup failed\n")
+
     # 不使用 logging 默认的 handleError，它会把原始记录和异常写到 stderr。
     def handleError(self, record: logging.LogRecord) -> None:
         sys.stderr.write("KnowledgeBase diagnostic write failed\n")
 
 
-# 在后台启动装配前配置；单进程独占 worker.log，不与 Electron 竞争轮转。
+# 在后台启动装配前配置；每次启动独占新后台日志，不与 Electron 竞争清理。
 def configure(data_dir: Path, session_id: str | None = None) -> None:
     LOGGER.setLevel(logging.DEBUG)
     CONTEXT.set({"session_id": session_id or str(uuid.uuid4())})
     try:
         directory = data_dir / "logs"
         directory.mkdir(parents=True, exist_ok=True)
-        handler = SafeFileHandler(
-            directory / "worker.log",
-            maxBytes=MAX_LOG_BYTES,
-            backupCount=LOG_BACKUPS,
-            encoding="utf-8",
-        )
+        handler = SafeFileHandler(directory)
         handler.setFormatter(JsonFormatter())
         # 重配只关闭本诊断器的文件句柄，不改第三方或测试 root logger。
         for old in LOGGER.handlers[:]:

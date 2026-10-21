@@ -3,14 +3,13 @@
 // 作用：验证全库重构确认、跨页阶段推进和完整分类树。
 // 说明：仅隔离数据和本机模拟接口，不发送真实知识。
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
+import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 import { checkMergeUi } from './check_merge_ui.mjs'
 import { verifyPlanetPages } from './check_planet_ui.mjs'
 
 // 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
 async function assertSummaryFailure(logDir, requestId) {
-  const text = await readFile(join(logDir, 'worker.log'), 'utf8')
+  const text = await readDiagnosticLog(logDir, 'worker')
   const rows = text.trim().split('\n').map(JSON.parse)
   const failure = rows.find(
     (row) =>
@@ -39,10 +38,7 @@ async function checkSummaryFailure({ ui, click, waitFor, fixture, logDir, report
       ),
     'failed summary pauses with source context'
   )
-  const rows = (await readFile(join(logDir, 'worker.log'), 'utf8'))
-    .trim()
-    .split('\n')
-    .map(JSON.parse)
+  const rows = (await readDiagnosticLog(logDir, 'worker')).trim().split('\n').map(JSON.parse)
   const failure = rows.findLast(
     (row) => row.event === 'step.failed' && row.step === 'library.validate_summary'
   )

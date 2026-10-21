@@ -4,12 +4,12 @@
 // 说明：使用隔离桌面数据，运动证据与宽窄截图写入现有报告。
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
-import { readFile } from 'node:fs/promises'
 import { dirname, join, resolve } from 'node:path'
+import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 
 // 只暂停从本次隔离日志取得的后台 PID，辅助进程退出前必恢复。
 async function verifyPlanetSlow({ ui, click, waitFor, logDir }) {
-  const rows = (await readFile(join(logDir, 'worker.log'), 'utf8')).trim().split('\n')
+  const rows = (await readDiagnosticLog(logDir, 'worker')).trim().split('\n')
   const pid = JSON.parse(rows.at(-1)).pid
   const source = `import ctypes,sys
 k=ctypes.WinDLL('kernel32',use_last_error=True); n=ctypes.WinDLL('ntdll')

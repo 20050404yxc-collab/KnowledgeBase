@@ -203,7 +203,7 @@ def test_legacy_price_worker_handshake_and_bootstrap(tmp_path):
     with closing(sqlite3.connect(tmp_path / "knowledge.sqlite3")) as db:
         assert db.execute("PRAGMA user_version").fetchone()[0] == 5
         assert business_rows(db) == expected
-    text = (tmp_path / "logs/worker.log").read_text(encoding="utf-8")
+    text = next((tmp_path / "logs").glob("*-worker.log")).read_text(encoding="utf-8")
     rows = [json.loads(line) for line in text.splitlines()]
     assert "private-" not in text and "secret-fixture-only" not in text
     assert any(

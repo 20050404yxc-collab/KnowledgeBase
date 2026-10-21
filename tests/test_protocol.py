@@ -46,7 +46,7 @@ def test_worker_jsonlines_ready_errors_and_shutdown(tmp_path):
                 process.kill()
     assert not list((tmp_path / "sessions").iterdir())
     # 真实协议输出仍只有 JSON 帧；日志落独立文件且不含合成知识正文。
-    text = (tmp_path / "logs" / "worker.log").read_text(encoding="utf-8")
+    text = next((tmp_path / "logs").glob("*-worker.log")).read_text(encoding="utf-8")
     logs = [json.loads(line) for line in text.splitlines()]
     assert "协议测试" not in text and "hello" not in text and "world" not in text
     assert any(row["event"] == "worker.ready" for row in logs)

@@ -3,11 +3,12 @@
 // 作用：验证滚动写入、诊断失败隔离及界面白名单。
 // 说明：动态编译源码，使用隔离临时目录，不启动正式桌面。
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, readdir, rm, utimes, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { transformSync } from '@swc/core'
+import { readDiagnosticLog } from '../scripts/diagnostic_fixtures.mjs'
 
 // 导入地址由本测试构造，源码和依赖使用实际实现。
 async function moduleUrl(path, replacements = {}) {
@@ -107,7 +108,7 @@ test('renderer diagnostics whitelist metadata and discard arbitrary payloads', (
   )
 })
 
-// 串行追加不会交错 JSON；文件增长受轮转约束，最新错误保持脱敏。
+// 串行追加不会交错 JSON；容量分段保留全部近期记录，最新错误保持脱敏。
 test('desktop logger rotates bounded files and flushes the latest event', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'knowledgebase-logs-'))
   try {
@@ -118,7 +119,7 @@ test('desktop logger rotates bounded files and flushes the latest event', async 
     logger.write('synthetic.error', {}, new Error('private-token-and-body'))
     await logger.flush()
     const files = await readdir(directory)
-    assert.equal(files.length, 6)
+    assert.ok(files.length > 6)
     for (const file of files) {
       const text = await readFile(join(directory, file), 'utf8')
       assert.ok(Buffer.byteLength(text) <= 700)
@@ -130,7 +131,8 @@ test('desktop logger rotates bounded files and flushes the latest event', async 
           .every((line) => JSON.parse(line).session_id)
       )
     }
-    const lines = (await readFile(join(directory, 'desktop.log'), 'utf8')).trim().split('\n')
+    const lines = (await readDiagnosticLog(directory, 'desktop')).trim().split('\n')
+    assert.equal(lines.length, 41)
     assert.equal(JSON.parse(lines.at(-1)).event, 'synthetic.error')
   } finally {
     await rm(directory, { recursive: true, force: true })
@@ -155,11 +157,86 @@ test('logger failure resolves flush and queue overload is recorded', async (cont
       logger.write('synthetic.burst', { index })
     }
     await logger.flush()
-    const rows = (await readFile(join(directory, 'valid', 'desktop.log'), 'utf8'))
+    const rows = (await readDiagnosticLog(join(directory, 'valid'), 'desktop'))
       .trim()
       .split('\n')
       .map(JSON.parse)
     assert.ok(rows.some((row) => row.event === 'diagnostics.dropped' && row.dropped > 0))
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+// 每次启动独占新文件；当天有空号也延续最大序号，跨天从一开始。
+test('each desktop startup creates a dated file without appending previous logs', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'knowledgebase-log-sessions-'))
+  const date = new Date(2026, 9, 21, 12)
+  const now = () => date
+  try {
+    await writeFile(join(directory, '2026-10-21-9-desktop.log'), 'previous\n')
+    const first = new DiagnosticLog(directory, undefined, now)
+    const second = new DiagnosticLog(directory, undefined, now)
+    first.write('first.start')
+    second.write('second.start')
+    await Promise.all([first.flush(), second.flush()])
+    assert.equal(await readFile(join(directory, '2026-10-21-9-desktop.log'), 'utf8'), 'previous\n')
+    const events = await Promise.all(
+      [10, 11].map(
+        async (index) =>
+          JSON.parse(await readFile(join(directory, `2026-10-21-${index}-desktop.log`), 'utf8'))
+            .event
+      )
+    )
+    assert.deepEqual(events.sort(), ['first.start', 'second.start'])
+    date.setDate(22)
+    const nextDay = new DiagnosticLog(directory, undefined, now)
+    nextDay.write('next.day')
+    await nextDay.flush()
+    assert.equal(
+      JSON.parse(await readFile(join(directory, '2026-10-22-1-desktop.log'), 'utf8')).event,
+      'next.day'
+    )
+  } finally {
+    await rm(directory, { recursive: true, force: true })
+  }
+})
+
+// 严格超过十四天才删除；只认本进程新旧日志，目录及其他数据不受影响。
+test('desktop retention respects exact age and protects unrelated and active files', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'knowledgebase-log-retention-'))
+  let nowMs = new Date(2026, 9, 21, 12).getTime()
+  const cutoff = nowMs - 14 * 86400000
+  try {
+    const ages = {
+      '2026-10-01-1-desktop.log': cutoff - 1000,
+      'desktop.log.1': cutoff - 1000,
+      '2026-10-07-1-desktop.log': cutoff,
+      '2026-10-06-1-desktop.log': cutoff + 1000,
+      'worker.log': cutoff - 1000,
+      'notes.txt': cutoff - 1000
+    }
+    for (const [name, time] of Object.entries(ages)) {
+      await writeFile(join(directory, name), name)
+      await utimes(join(directory, name), time / 1000, time / 1000)
+    }
+    await mkdir(join(directory, '2026-10-01-2-desktop.log'))
+    const logger = new DiagnosticLog(directory, undefined, () => new Date(nowMs))
+    logger.write('retention.start')
+    await logger.flush()
+    const names = await readdir(directory)
+    assert.ok(!names.includes('2026-10-01-1-desktop.log') && !names.includes('desktop.log.1'))
+    for (const name of Object.keys(ages).slice(2)) {
+      assert.ok(names.includes(name), name)
+    }
+    assert.ok(names.includes('2026-10-01-2-desktop.log'))
+    // 不重启也会在一天后的写入清理；当前文件即使陈旧也保留。
+    const active = join(directory, '2026-10-21-1-desktop.log')
+    await utimes(active, (cutoff - 1000) / 1000, (cutoff - 1000) / 1000)
+    nowMs += 86400000
+    logger.write('retention.next_day')
+    await logger.flush()
+    assert.ok(!(await readdir(directory)).includes('2026-10-07-1-desktop.log'))
+    assert.equal((await readFile(active, 'utf8')).trim().split('\n').length, 2)
   } finally {
     await rm(directory, { recursive: true, force: true })
   }

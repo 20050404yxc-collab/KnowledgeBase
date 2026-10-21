@@ -60,7 +60,9 @@ function StorageSettings() {
           <PathRow label="知识数据库" path={paths.database} />
           <PathRow label="资料副本目录" path={paths.sources} directory="sources" />
           <PathRow label="日志目录" path={paths.logs} directory="logs" />
-          <p className="subtle">桌面日志 desktop.log；后台日志 worker.log。日志按大小轮转。</p>
+          <p className="subtle">
+            每次启动新建日志，按日期和当天序号命名；自动清理超过 14 天的日志。
+          </p>
           <p className="info-box">
             API Key 保存在 Windows 凭据管理器，普通配置不保存密钥。当前目录只读展示。
           </p>

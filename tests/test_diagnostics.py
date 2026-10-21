@@ -4,6 +4,9 @@
 # 说明：仅使用临时目录与合成异常，不访问正式数据或外部服务。
 import asyncio
 import json
+import os
+from datetime import datetime
+from pathlib import Path
 
 import pytest
 from knowledge_agent import diagnostics as logs
@@ -54,7 +57,9 @@ def test_concurrent_requests_threads_and_cancellation_keep_context(diagnostic_se
     asyncio.run(run())
     rows = [
         json.loads(line)
-        for line in (diagnostic_session / "worker.log").read_text(encoding="utf-8").splitlines()
+        for line in Path(logs.LOGGER.handlers[0].baseFilename)
+        .read_text(encoding="utf-8")
+        .splitlines()
     ]
     threads = [row for row in rows if row["event"] == "synthetic.thread"]
     assert {row["request_id"] for row in threads} == {"one", "two"}
@@ -75,7 +80,7 @@ def test_private_errors_keep_codes_and_frames_without_messages(diagnostic_sessio
                     raise PermissionError(13, secret, "C:/private/document.txt")
                 except PermissionError as error:
                     raise ValueError(secret) from error
-    text = (diagnostic_session / "worker.log").read_text(encoding="utf-8")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
     assert secret not in text and "private/document" not in text
     failed = next(
         json.loads(line) for line in text.splitlines() if json.loads(line)["event"] == "step.failed"
@@ -85,14 +90,15 @@ def test_private_errors_keep_codes_and_frames_without_messages(diagnostic_sessio
     assert failed["errors"][0]["frames"][-1]["file"] == "test_diagnostics.py"
 
 
-# 滚动只保留当前日志和五份备份；每一条保留记录仍是独立合法 JSON。
+# 容量分段不删除十四天内的日志；每条记录恰好保留一次。
 def test_rotation_is_bounded_and_keeps_latest_record(diagnostic_session):
     handler = logs.LOGGER.handlers[0]
     handler.maxBytes = 650
     for index in range(50):
-        logs.record("synthetic.rotation", index=index)
-    files = list(diagnostic_session.glob("worker.log*"))
-    assert len(files) == 6
+        logs.record("synthetic.rotation", index=index, stage="合成阶段" * 8)
+    files = list(diagnostic_session.glob("*-worker.log"))
+    assert len(files) > 6
+    assert sum(len(path.read_text(encoding="utf-8").splitlines()) for path in files) == 50
     for path in files:
         assert path.stat().st_size <= 650
         assert all(
@@ -101,10 +107,94 @@ def test_rotation_is_bounded_and_keeps_latest_record(diagnostic_session):
         )
     assert (
         json.loads(
-            (diagnostic_session / "worker.log").read_text(encoding="utf-8").splitlines()[-1]
+            Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8").splitlines()[-1]
         )["index"]
         == 49
     )
+
+
+# 当天启动延续最大序号，每次配置写入新文件，日期改变后从一开始。
+def test_each_worker_start_creates_a_new_dated_log(diagnostic_session, monkeypatch):
+    # 固定本地日期供跨天验证，诊断记录仍使用真实 UTC 时间。
+    class Clock(datetime):
+        day = 21
+
+        # 返回可切换的本地测试日期；保留诊断 UTC 时间的调用形态。
+        @classmethod
+        def now(cls, tz=None):
+            return cls(2026, 10, cls.day, 12, tzinfo=tz)
+
+    monkeypatch.setattr(logs, "datetime", Clock)
+    previous = diagnostic_session / "2026-10-21-9-worker.log"
+    previous.write_text("previous\n", encoding="utf-8")
+    logs.configure(diagnostic_session.parent, "new-session")
+    logs.record("new.start")
+    first = Path(logs.LOGGER.handlers[0].baseFilename)
+    assert first.name == "2026-10-21-10-worker.log"
+    logs.configure(diagnostic_session.parent, "another-session")
+    logs.record("another.start")
+    assert Path(logs.LOGGER.handlers[0].baseFilename).name == "2026-10-21-11-worker.log"
+    assert json.loads(first.read_text(encoding="utf-8"))["event"] == "new.start"
+    assert previous.read_text(encoding="utf-8") == "previous\n"
+    Clock.day = 22
+    logs.configure(diagnostic_session.parent, "next-day")
+    logs.record("next.day")
+    assert Path(logs.LOGGER.handlers[0].baseFilename).name == "2026-10-22-1-worker.log"
+
+
+# 只删除严格超过十四天的本进程日志；同龄边界、其他文件和当前日志受到保护。
+def test_worker_retention_age_scope_and_daily_cleanup(diagnostic_session, monkeypatch):
+    now = 1792555200.0
+    monkeypatch.setattr(logs.time, "time", lambda: now)
+    cutoff = now - logs.LOG_RETENTION_SECONDS
+    ages = {
+        "2026-10-01-1-worker.log": cutoff - 1,
+        "worker.log.1": cutoff - 1,
+        "2026-10-07-1-worker.log": cutoff,
+        "2026-10-06-1-worker.log": cutoff + 1,
+        "desktop.log": cutoff - 1,
+        "notes.txt": cutoff - 1,
+    }
+    for name, modified in ages.items():
+        path = diagnostic_session / name
+        path.write_text(name, encoding="utf-8")
+        os.utime(path, (modified, modified))
+    (diagnostic_session / "2026-10-01-2-worker.log").mkdir()
+    # 相对路径中的父目录分量也必须正确识别当前文件，避免长期运行时误删。
+    monkeypatch.chdir(diagnostic_session.parent)
+    logs.configure(Path("logs/.."), "retention")
+    logs.record("retention.start")
+    assert not (diagnostic_session / "2026-10-01-1-worker.log").exists()
+    assert not (diagnostic_session / "worker.log.1").exists()
+    assert all((diagnostic_session / name).exists() for name in list(ages)[2:])
+    assert (diagnostic_session / "2026-10-01-2-worker.log").is_dir()
+    active = Path(logs.LOGGER.handlers[0].baseFilename)
+    os.utime(active, (cutoff - 1, cutoff - 1))
+    now += logs.CLEANUP_INTERVAL_SECONDS
+    logs.record("retention.next_day")
+    assert not (diagnostic_session / "2026-10-07-1-worker.log").exists()
+    assert len(active.read_text(encoding="utf-8").splitlines()) == 2
+
+
+# 单个过期文件删除失败不会阻止其他文件清理或本次新日志写入。
+def test_worker_cleanup_failure_preserves_logging(diagnostic_session, monkeypatch, capsys):
+    expired = diagnostic_session / "worker.log.5"
+    expired.write_text("old", encoding="utf-8")
+    os.utime(expired, (0, 0))
+    original = Path.unlink
+
+    # 只阻塞合成旧日志，其他目录与文件继续走真实文件系统。
+    def fail_one(path, *args, **kwargs):
+        if path == expired:
+            raise PermissionError("private-cleanup-error")
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "unlink", fail_one)
+    logs.configure(diagnostic_session.parent, "cleanup-failure")
+    logs.record("still.writes")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
+    assert json.loads(text)["event"] == "still.writes"
+    assert "diagnostic cleanup failed" in capsys.readouterr().err
 
 
 # 写日志失败不得替换业务主错误，也不能把原始错误体写到 stderr 或 stdout。
@@ -127,7 +217,7 @@ def test_logging_failure_preserves_original_error(diagnostic_session, monkeypatc
 def test_untrusted_metadata_is_not_serialized(diagnostic_session):
     with logs.request_context("safe-id", "private-operation-body"):
         logs.record("synthetic.usage", input_tokens={"body": "private-token"})
-    text = (diagnostic_session / "worker.log").read_text(encoding="utf-8")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
     row = json.loads(text)
     assert "private" not in text
     assert row["operation"] == "unknown" and row["input_tokens"] is None
@@ -160,7 +250,7 @@ def test_model_http_failure_is_diagnosable_without_private_content(diagnostic_se
         assert store.list_attempts()[0]["status"] == "failed"
     finally:
         store.close()
-    text = (diagnostic_session / "worker.log").read_text(encoding="utf-8")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
     rows = [json.loads(line) for line in text.splitlines()]
     assert "private" not in text and "secret-fixture-only" not in text
     assert any(
@@ -214,7 +304,7 @@ def test_red_summary_error_preserves_state_and_records_rule(
         assert service.store.get(item["id"])["content"] == "private-note-body"
     finally:
         service.close()
-    text = (diagnostic_session / "worker.log").read_text(encoding="utf-8")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
     assert "private-" not in text and "x" * 1601 not in text
     rows = [json.loads(line) for line in text.splitlines()]
     failure = next(
@@ -268,7 +358,7 @@ def test_controlled_plan_fallback_retains_actionable_reason(diagnostic_session):
         assert result["search"]["items"][0]["knowledge_id"] == item["id"]
     finally:
         service.close()
-    text = (diagnostic_session / "worker.log").read_text(encoding="utf-8")
+    text = Path(logs.LOGGER.handlers[0].baseFilename).read_text(encoding="utf-8")
     assert "private-" not in text
     rows = [json.loads(line) for line in text.splitlines()]
     fallback = next(row for row in rows if row["event"] == "topic.plan_fallback")

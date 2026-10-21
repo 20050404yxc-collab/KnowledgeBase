@@ -3,12 +3,13 @@
 // 作用：验证对应开发环境或桌面流程。
 // 说明：使用隔离资源，不访问正式用户数据。
 import { spawn } from 'node:child_process'
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, writeFile, readFile, readdir, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { resolve, join } from 'node:path'
 import { createServer } from 'node:net'
 import assert from 'node:assert/strict'
 import { checkModelUi } from './check_model_ui.mjs'
+import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 
 const root = resolve(import.meta.dirname, '..')
 const artifactDir = join(root, 'artifacts', 'test0.03')
@@ -289,8 +290,8 @@ try {
   await screenshot('desktop-knowledge.png')
   await closeApp(ui)
   // 正常关闭已 flush，三端同一请求必须可关联，合成私密内容不得进入文件。
-  const desktopLog = await readFile(join(dataDir, 'logs', 'desktop.log'), 'utf8')
-  const workerLog = await readFile(join(dataDir, 'logs', 'worker.log'), 'utf8')
+  const desktopLog = await readDiagnosticLog(join(dataDir, 'logs'), 'desktop')
+  const workerLog = await readDiagnosticLog(join(dataDir, 'logs'), 'worker')
   const desktopRows = desktopLog.trim().split('\n').map(JSON.parse)
   const workerRows = workerLog.trim().split('\n').map(JSON.parse)
   const desktopFailure = desktopRows.find(
@@ -311,11 +312,27 @@ try {
     'persistent diagnostics correlate renderer, desktop and worker without private content'
   )
   report.checks.push('graceful Electron shutdown')
+  const firstLogNames = await readdir(join(dataDir, 'logs'))
+  const firstLogs = await Promise.all(
+    firstLogNames.map((name) => readFile(join(dataDir, 'logs', name), 'utf8'))
+  )
   ui = await launch()
   await waitFor(
     () => ui.evaluate(`document.querySelector('.knowledge-card') !== null`),
     'initial page list loaded after restart'
   )
+  // 真实重启增加两类新文件，之前的日志逐字保持不变。
+  const restartedLogNames = await readdir(join(dataDir, 'logs'))
+  assert.equal(restartedLogNames.length, firstLogNames.length + 2)
+  for (const [index, name] of firstLogNames.entries()) {
+    assert.equal(await readFile(join(dataDir, 'logs', name), 'utf8'), firstLogs[index])
+  }
+  assert.ok(
+    restartedLogNames.every((name) =>
+      /^\d{4}-\d{2}-\d{2}-[1-9]\d*-(desktop|worker)\.log$/.test(name)
+    )
+  )
+  report.checks.push('restart creates dated sequential logs without modifying previous logs')
   assert.ok(
     await ui.evaluate(
       `document.querySelector('.knowledge-card')?.innerText.includes('数据库事务与一致性')`

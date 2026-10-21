@@ -1,5 +1,7 @@
 # Verification
 
+## Revision 1 baseline
+
 Status: completed, 2026-10-21. No real paid API, formal credential or production data used.
 
 - Focused initial backend checks: 5 passed (diagnostics and real worker protocol).
@@ -11,3 +13,12 @@ Status: completed, 2026-10-21. No real paid API, formal credential or production
 - Final `git diff --check`: passed. Review kept domain free of I/O, existing schema/credential identity/data paths/wire operations intact, and diagnostic ownership process-local. Saving a generation key was extracted into a transaction-owned helper solely to keep the touched save function within the mandatory size limit. Existing concurrent product revision-9 documents/task records were preserved; overview gained only this task's navigation row.
 - New task/documentation links verified locally; no commit, push or release was requested or performed.
 - Limitations: no real provider access, native crash collection, abrupt power-loss durability, packaged installation or large-dataset performance validation.
+
+## Revision 2: completed, 2026-10-21
+
+- AC-04/08: host focused diagnostics tests passed (7); backend diagnostics/protocol/legacy startup focused tests passed (24 before the final byte-accounting/path-normalization refinements). Final full suite includes all refinements: 215 Python tests and 19 host tests passed.
+- `npm run check`: passed on final code. Includes source standards, Prettier, Ruff lint/format, strict TypeScript, Python and host tests, and Electron/preload/renderer build. During implementation, checks caught a missing test-method comment and optional-byte-counter narrowing; both were corrected before the final passing run. UTF-8 and Windows translated newlines count toward segment limits; failure recovery allocates a fresh host file.
+- AC-06: `npm run test:ui` passed with 32 report items. Actual Electron restart creates new dated files for both processes and leaves previous content unchanged. Existing renderer/host/worker request correlation, privacy, settings, mocked-model operations, cancellation, persistence, graceful shutdown and owned-process forced shutdown pass. Artifact: `artifacts/test0.03/desktop-check.json` (ignored).
+- AC-08 regression coverage: local-date index increments and reset, simultaneous host allocations, strict expiry versus exact 14-day boundary, recent writes despite old filename, legacy numeric backups, directories/unrelated/other-process files, active files, daily cleanup without restart, relative data paths, and worker deletion failure without loss of new logging. Code review also verifies link exclusion and per-process ownership.
+- AC-07: Chinese logging page, overview, README and settings explanatory text reconciled; 23 local documentation links resolve. Single-file 5 MiB segmentation remains; aggregate fourteen-day volume is no longer capped by five backups. No wire operation, schema, credential identity, data location or third-party dependency changed.
+- Limitations: expiry is verified with isolated clocks and temporary files, without waiting fourteen real days or cleaning production logs. No real paid API, production credentials/data, installation, native crash or abrupt-power-loss validation was performed. Active files participate in expiry only after closure and a later cleanup. User subsequently requested a local Git commit; push and release are outside this request.
