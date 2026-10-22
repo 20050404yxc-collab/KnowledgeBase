@@ -1,6 +1,6 @@
 {
   "name": "knowledgebase",
-  "version": "0.0.1-test.0.3",
+  "version": "0.1.0",
   "private": true,
   "description": "Local-first personal knowledge desktop application",
   "engines": {
@@ -17,11 +17,13 @@
     "typecheck": "tsc --noEmit",
     "test": ".venv\\Scripts\\python.exe -m pytest tests -q",
     "test:ui": "node scripts/check_desktop.mjs",
-    "test:host": "node --test tests/desktop_boundaries.test.mjs tests/diagnostics.test.mjs",
+    "test:host": "node --test tests/desktop_boundaries.test.mjs tests/diagnostics.test.mjs tests/storage_location.test.mjs",
     "check:standards": "node scripts/check_standards.mjs && .venv\\Scripts\\python.exe scripts/check_standards.py",
     "lint:python": ".venv\\Scripts\\python.exe -m ruff check services/knowledge-agent tests scripts && .venv\\Scripts\\python.exe -m ruff format --check services/knowledge-agent tests scripts",
     "format:check": "prettier --check apps contracts scripts/*.mjs tests/*.mjs electron.vite.config.ts package.json tsconfig.json .prettierrc.json",
-    "check": "npm run check:standards && npm run format:check && npm run lint:python && npm run typecheck && npm test && npm run test:host && npm run build"
+    "check": "npm run check:standards && npm run format:check && npm run lint:python && npm run typecheck && npm test && npm run test:host && npm run build",
+    "build:worker": ".venv\\Scripts\\python.exe scripts/build_worker.py",
+    "dist:win": "npm run build:worker && npm run build && node scripts/release_notices.mjs && node scripts/build_installer.mjs && node scripts/release_manifest.mjs"
   },
   "dependencies": {
     "react": "19.3.1",
@@ -36,10 +38,12 @@
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react-swc": "4.3.3",
     "electron": "44.9.1",
+    "electron-builder": "26.15.3",
     "electron-vite": "6.0.0",
     "prettier": "3.6.2",
     "typescript": "7.0.2",
     "vite": "8.3.4"
   },
-  "main": "out/main/index.js"
+  "main": "out/main/index.js",
+  "author": "KnowledgeBase contributors"
 }

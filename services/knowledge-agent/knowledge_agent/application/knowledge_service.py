@@ -74,7 +74,7 @@ class KnowledgeService:
     @traced
     def info(self) -> dict:
         return {
-            "version": "test0.03",
+            "version": "0.1",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
             "knowledge": self.store.list_knowledge(),

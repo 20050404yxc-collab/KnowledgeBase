@@ -4,7 +4,6 @@
 // 说明：仅清理本对象拥有的进程树。
 import { spawn, type ChildProcessWithoutNullStreams } from 'node:child_process'
 import { existsSync } from 'node:fs'
-import { join } from 'node:path'
 import { createInterface } from 'node:readline'
 import { randomUUID } from 'node:crypto'
 
@@ -12,6 +11,7 @@ import type { Operation, WorkerEvent } from '../../../contracts/desktop'
 import { isWorkerMessage } from '../shared/protocol_validation'
 import { RequestRegistry } from './request_registry'
 import { diagnostic, sessionId } from './diagnostics'
+import { workerRuntime, type WorkerRuntime } from './worker_runtime'
 
 const START_TIMEOUT_MS = 15_000
 const SHUTDOWN_GRACE_MS = 2_500
@@ -25,9 +25,10 @@ export class WorkerBridge {
   private stopping = false
   // 装配项目路径、数据目录与受限事件接收者，不立即启动后台。
   constructor(
-    private root: string,
+    root: string,
     private dataDir: string,
-    private event: (value: WorkerEvent) => void
+    private event: (value: WorkerEvent) => void,
+    private runtime: WorkerRuntime = workerRuntime(root)
   ) {}
 
   // 只终止本桥接创建的后台进程树，不按名称全局杀进程。
@@ -59,35 +60,38 @@ export class WorkerBridge {
     }
     diagnostic('worker.starting', { timeout_ms: START_TIMEOUT_MS })
     this.starting = new Promise<void>((resolve, reject) => {
-      const python = join(this.root, '.venv', 'Scripts', 'python.exe')
+      const python = this.runtime.executable
       // 缺少运行时即受控失败，保留安装说明供用户恢复。
       if (!existsSync(python)) {
         diagnostic('worker.runtime_missing')
-        reject(new Error('缺少开发运行时，请按 README 准备 .venv'))
+        reject(new Error('缺少后台运行环境，请修复安装或按 README 准备开发环境'))
         return
       }
-      const child = spawn(
-        python,
-        [
-          '-u',
-          join(this.root, 'services', 'knowledge-agent', 'worker.py'),
-          '--data-dir',
-          this.dataDir
-        ],
-        {
-          cwd: this.root,
-          windowsHide: true,
-          stdio: ['pipe', 'pipe', 'pipe'],
-          env: {
-            ...process.env,
-            PYTHONUTF8: '1',
-            PYTHONIOENCODING: 'utf-8',
-            KB_LOG_SESSION: sessionId
-          }
+      const child = spawn(python, [...this.runtime.arguments, '--data-dir', this.dataDir], {
+        cwd: this.runtime.cwd,
+        windowsHide: true,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: {
+          ...process.env,
+          PYTHONUTF8: '1',
+          PYTHONIOENCODING: 'utf-8',
+          KB_LOG_SESSION: sessionId
         }
-      )
+      })
       this.child = child
-      this.bind(child, resolve, reject)
+      this.bind(
+        child,
+        () => {
+          // 建库完成后持久化初始化状态；记录失败不能伪装成已就绪。
+          const ready = this.runtime.ready?.() ?? Promise.resolve()
+          void ready.then(resolve).catch((error: unknown) => {
+            diagnostic('storage.initialization_failed', {}, error)
+            this.terminateOwned(child)
+            reject(new Error('无法保存数据位置状态，请检查目录权限后重试'))
+          })
+        },
+        reject
+      )
     })
     const startup = this.starting
     // 已处理失败才释放共享启动状态，下次请求可以重新启动。

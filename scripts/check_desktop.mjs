@@ -12,7 +12,7 @@ import { checkModelUi } from './check_model_ui.mjs'
 import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', 'test0.03')
+const artifactDir = join(root, 'artifacts', '0.1')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
@@ -36,7 +36,7 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: 'test0.03', checks: [], screenshots: [] }
+const report = { version: '0.1', checks: [], screenshots: [] }
 let child, socket
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 

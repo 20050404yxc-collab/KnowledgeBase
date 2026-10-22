@@ -1,0 +1,41 @@
+appId: com.knowledgebase.desktop
+productName: 知序
+executableName: KnowledgeBase
+copyright: Copyright © 2026 KnowledgeBase contributors
+directories:
+  output: release
+  buildResources: installer
+files:
+  - out/**/*
+  - package.json
+  - '!node_modules/**/*'
+extraResources:
+  - from: build/worker/knowledge-worker
+    to: worker
+  - from: build/notices
+    to: notices
+asar: true
+npmRebuild: false
+electronDist: node_modules/electron/dist
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  artifactName: KnowledgeBase-Setup-${version}-${arch}.${ext}
+  signExecutable: false
+nsis:
+  guid: 5c3e43e9-291e-4f4a-a2b3-a915021860d1
+  oneClick: false
+  perMachine: false
+  allowElevation: false
+  allowToChangeInstallationDirectory: false
+  deleteAppDataOnUninstall: false
+  runAfterFinish: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: 知序
+  installerLanguages: [zh_CN]
+  language: '2052'
+  include: installer/paths.nsh
+  differentialPackage: false
+  warningsAsErrors: true

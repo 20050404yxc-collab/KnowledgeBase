@@ -3,27 +3,46 @@
 // 作用：连接窗口、受限 IPC 和 Python 桥接。
 // 说明：保持单实例和既有用户数据位置。
 import { app, dialog, type BrowserWindow } from 'electron'
-import { resolve } from 'node:path'
+import { dirname, resolve } from 'node:path'
 import { registerIpc } from './ipc_gateway'
 import { createWindow } from './window_manager'
 import { registerStorageIpc } from './storage_settings'
 import { WorkerBridge } from './worker_bridge'
 import { configureDiagnostics, diagnostic, flushDiagnostics } from './diagnostics'
+import { markDatabaseInitialized, resolveStorageLocation } from './storage_location'
+import { workerRuntime } from './worker_runtime'
 
 app.setName('KnowledgeBase')
 let window: BrowserWindow | null = null
 let bridge: WorkerBridge | undefined
 let quitting = false
 // 应用就绪后装配；窗口关闭触发后台有界退出。
-function startDesktop(): void {
+async function startDesktop(): Promise<void> {
+  // 安装定位失败先停止启动，不允许日志或后台静默落入另一个数据目录。
+  const location = await resolveStorageLocation({
+    packaged: app.isPackaged,
+    profile: app.getPath('userData'),
+    program: dirname(process.execPath),
+    environment: process.env
+  })
+  configureDiagnostics(location.data)
+  diagnostic('desktop.start', {
+    version: app.getVersion(),
+    electron: process.versions.electron,
+    node: process.versions.node
+  })
   diagnostic('desktop.ready')
+  const root = resolve(__dirname, '../..')
+  const runtime = workerRuntime(root, app.isPackaged ? process.resourcesPath : undefined)
+  runtime.ready = () => markDatabaseInitialized(location)
   bridge = new WorkerBridge(
-    resolve(__dirname, '../..'),
-    process.env.KB_DATA_DIR || app.getPath('userData'),
-    (event) => window?.webContents.send('kb:event', event)
+    root,
+    location.data,
+    (event) => window?.webContents.send('kb:event', event),
+    runtime
   )
   registerIpc(() => window, bridge)
-  registerStorageIpc(() => window, process.env.KB_DATA_DIR || app.getPath('userData'))
+  registerStorageIpc(() => window, location.data)
   window = createWindow()
   window.on('closed', () => {
     diagnostic('window.closed')
@@ -35,12 +54,6 @@ if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {
   // 取得单实例锁后才拥有日志文件，第二个启动器不能竞争轮转。
-  configureDiagnostics(process.env.KB_DATA_DIR || app.getPath('userData'))
-  diagnostic('desktop.start', {
-    version: app.getVersion(),
-    electron: process.versions.electron,
-    node: process.versions.node
-  })
   // 异常仅提取代码位置；捕获器不擅自把未完成业务显示为成功。
   process.on('uncaughtExceptionMonitor', (error) =>
     diagnostic('desktop.uncaught_exception', {}, error)
@@ -60,7 +73,10 @@ if (!app.requestSingleInstanceLock()) {
     .then(startDesktop)
     .catch((error: unknown) => {
       diagnostic('desktop.start_failed', {}, error)
-      dialog.showErrorBox('启动失败', '无法初始化桌面程序，请检查运行环境后重新启动。')
+      dialog.showErrorBox(
+        '启动失败',
+        '无法读取安装时确认的数据位置或初始化桌面程序。请检查原数据磁盘、目录权限，或重新运行安装包修复；不会改用空知识库。'
+      )
       app.quit()
     })
   app.on('window-all-closed', () => app.quit())

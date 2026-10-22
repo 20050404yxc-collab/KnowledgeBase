@@ -125,19 +125,22 @@ def test_each_worker_start_creates_a_new_dated_log(diagnostic_session, monkeypat
             return cls(2026, 10, cls.day, 12, tzinfo=tz)
 
     monkeypatch.setattr(logs, "datetime", Clock)
-    previous = diagnostic_session / "2026-10-21-9-worker.log"
+    # 使用独立日志位置，避免 fixture 按真实日期创建的文件干扰固定日期断言。
+    log_directory = diagnostic_session / "fixed-clock" / "logs"
+    log_directory.mkdir(parents=True)
+    previous = log_directory / "2026-10-21-9-worker.log"
     previous.write_text("previous\n", encoding="utf-8")
-    logs.configure(diagnostic_session.parent, "new-session")
+    logs.configure(log_directory.parent, "new-session")
     logs.record("new.start")
     first = Path(logs.LOGGER.handlers[0].baseFilename)
     assert first.name == "2026-10-21-10-worker.log"
-    logs.configure(diagnostic_session.parent, "another-session")
+    logs.configure(log_directory.parent, "another-session")
     logs.record("another.start")
     assert Path(logs.LOGGER.handlers[0].baseFilename).name == "2026-10-21-11-worker.log"
     assert json.loads(first.read_text(encoding="utf-8"))["event"] == "new.start"
     assert previous.read_text(encoding="utf-8") == "previous\n"
     Clock.day = 22
-    logs.configure(diagnostic_session.parent, "next-day")
+    logs.configure(log_directory.parent, "next-day")
     logs.record("next.day")
     assert Path(logs.LOGGER.handlers[0].baseFilename).name == "2026-10-22-1-worker.log"
 

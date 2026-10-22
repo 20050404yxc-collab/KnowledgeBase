@@ -2,7 +2,7 @@
 // 层：Electron 桌面宿主
 // 作用：创建窗口并限制导航和外部窗口。
 // 说明：保持沙箱、上下文隔离及禁用 renderer Node。
-import { BrowserWindow, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import { join } from 'node:path'
 import { diagnostic } from './diagnostics'
 
@@ -14,7 +14,7 @@ export function createWindow(): BrowserWindow {
     minWidth: 980,
     minHeight: 700,
     backgroundColor: '#f7f8fa',
-    title: '知序 · test0.03',
+    title: '知序 · 0.1',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
@@ -36,9 +36,10 @@ export function createWindow(): BrowserWindow {
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.webContents.on('will-attach-webview', (event) => event.preventDefault())
   // 加载失败可观察且有关闭路径，不让加载 Promise 的拒绝无人处理。
-  const loading = process.env.ELECTRON_RENDERER_URL
-    ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
-    : window.loadFile(join(__dirname, '../renderer/index.html'))
+  const loading =
+    !app.isPackaged && process.env.ELECTRON_RENDERER_URL
+      ? window.loadURL(process.env.ELECTRON_RENDERER_URL)
+      : window.loadFile(join(__dirname, '../renderer/index.html'))
   void loading.catch((error: unknown) => {
     diagnostic('renderer.load_failed', {}, error)
     if (!window.isDestroyed()) {
