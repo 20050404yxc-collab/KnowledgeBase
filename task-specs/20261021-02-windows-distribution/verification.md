@@ -51,3 +51,10 @@ The pre-existing fixed-date diagnostics test was corrected by using an isolated 
 - npm run test:ui: prior R2 pass reused; no desktop product code changes since that run.
 - Candidate integrity: local EXE SHA-256 still cfa4021e63c9a2d0ff30fc31bdff85692ff6519d1c03c5788a79e0010bc1a3dd; 130264342 bytes. EXE plus .sha256 are the authorized release assets, not Git source-tree content.
 - Clean-machine and provider limitations remain unchanged.
+
+## GitHub publication — 2026-10-22
+
+- Source commit e61b3e1bdcf0d1d3137c0c90bb159cd03ae6d061 pushed to origin/main; annotated tag v0.1.0 pushed and points to that commit. No force push or tag replacement.
+- Release 420567195 published at https://github.com/20050404yxc-collab/KnowledgeBase/releases/tag/v0.1.0; draft=false, prerelease=false. Repository visibility remains private; downloads require repository access.
+- Uploaded KnowledgeBase-Setup-0.1.0-x64.exe (130264342 bytes) and KnowledgeBase-Setup-0.1.0-x64.exe.sha256 (100 bytes). GitHub-reported sizes and SHA-256 digests match the local assets; EXE digest is cfa4021e63c9a2d0ff30fc31bdff85692ff6519d1c03c5788a79e0010bc1a3dd.
+- Assets were verified before publishing the draft. Build outputs and API response records remain ignored local artifacts, not source-tree content. Publication does not establish the unverified installation/provider acceptance listed above.
