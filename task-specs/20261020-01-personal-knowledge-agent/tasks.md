@@ -1,3 +1,9 @@
+## GitHub publication follow-up
+
+- [x] Verify remote ancestry, stable tag, repository visibility and unchanged local asset integrity; push main and v0.12.0 without force.
+- [x] Upload installer, SHA-256 and manifest to a draft; verify GitHub digests/sizes, then publish stable v0.12.0 as latest.
+- [x] Reconcile current download/publication docs and verification records; validate Markdown/whitespace and push the documentation follow-up.
+
 ## Stable 0.12.0 release follow-up
 
 - [x] Synchronize stable version declarations and current human documentation; preserve persistent identities and historical evidence.

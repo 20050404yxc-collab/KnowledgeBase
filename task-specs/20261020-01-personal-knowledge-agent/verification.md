@@ -1,3 +1,13 @@
+## GitHub publication verification — 2026-10-23
+
+- Authorization: user explicitly requested “提交GitHub，并把安装包也进行发布”. Reused verified 0.12.0 product/installer unchanged; no paid/provider/production operation or new product code.
+- Remote origin is https://github.com/20050404yxc-collab/KnowledgeBase.git; GitHub reported private=false and default branch main. Visibility was not changed. Fetched remote main and confirmed it is an ancestor of local main; existing remote tag/release v0.12.0 was absent before publication.
+- `git push --atomic origin main refs/tags/v0.12.0`: passed. Product commit b844b512987dd359b179dbd79cce534984324bb7 and annotated v0.12.0 pushed without force; remote annotated tag was dereferenced through GitHub API and equals that product commit. Earlier local test0.11/test0.12 commits are included in main ancestry.
+- Release 421582985 created as a draft. Uploaded installer (130299056 bytes), checksum (101 bytes) and manifest (655 bytes); each GitHub asset state is uploaded, size agrees and SHA-256 digest matches the local bytes. Installer digest: 275866186d79bcafd1d58318d82ae3d0437c4ae1d3e80b902c71bcbb63592e4f. No overwrite of older release/assets or tag.
+- Published stable release at https://github.com/20050404yxc-collab/KnowledgeBase/releases/tag/v0.12.0; reread confirms draft=false, prerelease=false, tag v0.12.0; /releases/latest returns this release. Publication timestamp: 2026-10-23T08:02:07Z. All three refreshed download URLs use /releases/download/v0.12.0/. Local ignored receipt: build/github-release-0.12.0-state.json. Credentials used through Git credential manager and never printed or saved in scripts/receipts.
+- Current README/confirmation docs now link the published version; historical local-only evidence is retained with explicit new authorization. Documentation-only follow-up reuses the completed npm/desktop/package tests, with no rebuild or repeated product tests. UTF-8, balanced fences, local targets and git diff --check are checked for this delta before committing.
+- Limits remain: unsigned installer; no clean-machine/actual upgrade-uninstall full matrix or real-provider semantic validation. GitHub digest verification confirms asset bytes, not those unverified behaviors. Publication does not certify them.
+
 ## Stable 0.12.0 verification — 2026-10-23
 
 - Authorization: explicit user request for a stable Git commit and installer update supersedes R23's original exclusions. Stable version is 0.12.0 (promotion from 0.12.0-test.0). Persistent app/installer IDs, KnowledgeBase.test0.01 credential identity, paths and schema 6 are unchanged. No paid call or production installation/data/credential operation.

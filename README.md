@@ -20,7 +20,7 @@
 
 ## 安装与启动
 
-本地构建的正式版安装包为 `release/KnowledgeBase-Setup-0.12.0-x64.exe`，配套 `.sha256` 与 `release-manifest.json`；双击安装或手动升级。本次未上传新版到 GitHub；远程仍为历史 [v0.1.0 Release](https://github.com/20050404yxc-collab/KnowledgeBase/releases/tag/v0.1.0)。安装包包含 Python 和 Electron 运行环境，不需要另外安装 Python 或 Node.js。安装前选择并确认程序和数据目录；目录尚未创建、中文、空格和程序／数据分盘均可使用。程序目录保持专用，数据不能与程序目录重叠。
+本地构建的正式版安装包为 `release/KnowledgeBase-Setup-0.12.0-x64.exe`，配套 `.sha256` 与 `release-manifest.json`；双击安装或手动升级。可从 [GitHub Release v0.12.0](https://github.com/20050404yxc-collab/KnowledgeBase/releases/tag/v0.12.0) 下载安装包和校验文件。安装包包含 Python 和 Electron 运行环境，不需要另外安装 Python 或 Node.js。安装前选择并确认程序和数据目录；目录尚未创建、中文、空格和程序／数据分盘均可使用。程序目录保持专用，数据不能与程序目录重叠。
 
 简单说：只需要下载安装 EXE；校验文件供核对下载完整性使用，不是运行依赖。
 
@@ -135,7 +135,7 @@ npm run test:ui
 
 桌面测试使用独立 Electron profile、临时数据目录和本地合成文件，可与正式运行实例共存；当前报告与截图保存在忽略提交的 `artifacts/0.12.0/`，原 0.1 报告保留原路径。执行桌面测试前须先构建。
 
-Git 默认分支为 `main`，当前源码与 npm 版本为 `0.12.0`，本地正式版标签为 `v0.12.0`；本次更新本地安装包并提交源码，远程发布仍为历史 `v0.1.0`。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
+Git 默认分支为 `main`，当前源码与 npm 版本为 `0.12.0`，正式版标签为 `v0.12.0`，源码与标签已推送 GitHub，安装包、SHA-256 和发布清单已正式发布。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
 
 完整产品方向与未完成的 v1 验收要求见 [确认文档总览](docs/确认页/确认文档总览.md)。
 

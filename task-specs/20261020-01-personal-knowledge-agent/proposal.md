@@ -1,3 +1,7 @@
+## GitHub publication follow-up — 2026-10-23
+
+User explicitly requested “提交GitHub，并把安装包也进行发布”. This authorizes fast-forward push of existing main and annotated v0.12.0, upload of the verified installer/checksum/manifest, and stable GitHub Release publication. The prior local-only boundary below remains historical and is superseded for this follow-up. Repository was observed public; no visibility change is authorized or performed. Reuse completed product/packaging evidence; only current download/publication docs change. No rebuild, product change, production data or paid call.
+
 ## Stable release follow-up — 2026-10-23
 
 - User explicitly requested “帮我提交git，这次作为正式版提交，然后更新安装包等”. This supersedes R23's original no-version/no-commit/no-packaging boundary for this follow-up.
