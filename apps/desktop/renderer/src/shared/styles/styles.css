@@ -1499,6 +1499,38 @@ td small {
 .knowledge-question {
   margin: 22px 0;
 }
+
+/* 页面末尾的提问栏随阅读吸附；正文末尾有实际占位，不盖住最后一段。 */
+.reading-question {
+  position: sticky;
+  bottom: 12px;
+  z-index: 8;
+  min-width: 0;
+  padding: 14px 18px;
+  margin-top: 24px;
+  box-shadow: 0 4px 22px #25301918;
+}
+.reading-question h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.reading-question .knowledge-question {
+  margin: 10px 0 0;
+}
+.reading-question-settings {
+  max-height: 30vh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.reading-question-settings summary {
+  cursor: pointer;
+  color: #61715c;
+}
+/* 执行时由已有任务条提供进度和取消，禁用的提问栏不争用底部位置。 */
+.reading-question[aria-busy='true'] {
+  position: static;
+}
 .markdown-content {
   white-space: normal;
   overflow-wrap: anywhere;

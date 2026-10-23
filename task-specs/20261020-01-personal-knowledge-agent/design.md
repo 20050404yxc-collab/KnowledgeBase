@@ -325,3 +325,10 @@ Application `topic_review_contract` projects question/scope/authorized evidence/
 Domain `ReviewValidationError` carries only enumerated structural rule, actual type and aggregate expected/actual/missing/duplicate/unknown counts. Diagnostics applies allowlists and bounded integer filtering. Application formats existing `notice` using fixed templates plus the request reference, not arbitrary exception text. Existing cancellation propagation, request snapshot, session creation after complete validation and formal capture remain unchanged.
 
 Official request reference fetched 2026-10-21: https://developers.openai.com/api/docs/guides/structured-outputs (Responses text.format, strict schema, required fields, additionalProperties=false and array minItems/maxItems). Model/gateway support remains an explicit real-environment limitation.
+## Revision 22: reading placement and question dock
+
+ExplorationPage derives local reading from a saved selection without a learning-point or answer result. KnowledgeWorkspace accepts an optional showReading flag; local reading and its recommendations render after KnowledgeList while directory operations remain in place. No new asynchronous ownership or request lifecycle is introduced.
+
+KnowledgeQuestion reuses the current page draft, buildDirectory, global search, model options and runTask error/cancellation path. Its compact variant is a bottom-sticky page footer, with settings in a bounded details panel. During a task it returns to normal flow so TaskStatus owns the bottom slot. LibraryPage composes KnowledgeWorkspace to expose planning, local matches and learning results instead of rendering only AnswerPanel. Bucket pages move their existing form to the end.
+
+Files: ExplorationPage.tsx, KnowledgeQuestion.tsx, KnowledgePage.tsx, LibraryPage.tsx, knowledge/index.ts, shared/styles/styles.css and isolated desktop scripts. Human docs: 产品方案 §3.18, 技术设计 and 确认文档总览. Verify R22-01/02/03 with isolated long notes, narrow geometry, offline search, failed planning/retry and mock planning/navigation. Required commands: npm run check; npm run test:ui. No real provider verification.

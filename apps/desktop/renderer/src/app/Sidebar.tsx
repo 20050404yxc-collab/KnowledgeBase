@@ -46,7 +46,7 @@ export function Sidebar() {
           <span /> 本地存储 · 由你掌控
         </div>
         <small>
-          0.11 <span>测试版</span>
+          0.12 <span>测试版</span>
         </small>
       </div>
     </aside>

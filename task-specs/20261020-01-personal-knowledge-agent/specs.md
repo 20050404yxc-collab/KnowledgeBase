@@ -763,3 +763,22 @@ The development application SHALL identify itself as test0.01. Source and reprod
 - R17-01: The review request SHALL identify only newly planned points as review targets, with expected count and exact IDs. Existing-library candidates SHALL NOT appear as alternative review targets. Responses requests SHALL use a strict JSON schema binding item count and allowed IDs; other protocols SHALL retain their wire format.
 - R17-02: Every target SHALL still receive exactly one valid decision, including excluded and uncertain items. Missing/wrong list, count mismatch, duplicate or foreign IDs SHALL produce no learnable session and no capture; local search SHALL remain available. Empty plans SHALL require no review call.
 - R17-03: Controlled fallback SHALL report stage, safe structural/count reason and request reference in the existing notice. Logs SHALL include rule/type/counts and correlation, never target IDs, question, evidence or model text. Failures and cancellation SHALL NOT trigger retries; valid reviews SHALL preserve classification and project gates.
+## Revision 22: reading and questions
+
+### MODIFIED R22-01: List-opened reading placement
+Exploration SHALL display a knowledge item opened from its saved list below that list. Learning-directory results SHALL retain their existing result area. Exactly one article SHALL render for the current selection.
+
+#### Scenario: Saved item opened while a learning directory exists
+- WHEN the user opens a saved list item, THEN its article appears below the list without duplicating it above; selecting a learning point again restores the learning detail area.
+
+### MODIFIED R22-02: Accessible shared reading question
+Exploration, library and frequency pages SHALL provide the existing question workflow in a bottom-sticky form during reading. Settings SHALL remain available and disclose model costs and evidence scope. Task progress SHALL remain usable without dock overlap.
+
+#### Scenario: Long reading and narrow window
+- WHEN reading in the middle or at the end of a long article, THEN the question input and submit controls remain visible and usable, the last paragraph remains reachable, and the page has no horizontal overflow.
+
+### MODIFIED R22-03: Owned results and retry
+Question drafts, planning results and failures SHALL belong to their originating page. Library questions SHALL show results on the library page. Failed planning SHALL preserve a visible editable draft; existing exploration main input SHALL remain unchanged by reading questions.
+
+#### Scenario: Failure and navigation
+- WHEN planning fails or finishes after navigating away, THEN the originating draft/results remain on that page, no other page is overwritten, and the user can return and retry.

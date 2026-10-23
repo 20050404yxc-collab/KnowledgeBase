@@ -362,3 +362,24 @@ Same-title/different-body generated answers now explicitly report that no new no
 - New regression coverage: missing/wrong decisions list, short/extra counts, equal-count duplicate/foreign IDs, mixed keep/exclude/clarify, zero-target review skipping, cancellation propagation, per-request schema IDs and unchanged provider persistence, all three HTTP protocols, schema-rejecting HTTP 400 without retry, request-associated safe logs and hostile error metadata filtering.
 - `git diff --check`: passed before final documentation reconciliation; final reconciliation rechecked independently.
 - Scope/limits: isolated temporary stores and mock/local HTTP only. No real provider, formal credentials/data, migration, version bump, packaging/release, Git commit/push or user-app restart. Strict output support of configured model/gateway and semantic correctness require real usage; schema is not a fact-verification guarantee.
+## Revision 22: reading placement and questions
+
+Completed on 2026-10-23 on Windows using the existing Node/npm/Python development environment, isolated Electron profile and temporary data; model requests used the existing local HTTP fixture with synthetic credentials.
+
+| Requirement / standard | Evidence | Result and limitation |
+|---|---|---|
+| R22-01 | check_reading_ui.mjs opens a listed long note, asserts one article following the list; existing directory, supplement and batch UI regressions retained | Passed; generated-detail placement additionally reviewed in ExplorationPage/KnowledgeWorkspace conditions |
+| R22-02 | Desktop geometry/hit-testing at article middle and end; 900×850 and normal window; bounded settings expansion; disabled dock becomes static during task | Passed; screenshots desktop-reading-{exploration-wide,exploration-narrow,library-wide}.png and desktop-reading-end-* reviewed for wide/narrow layout and final paragraph |
+| R22-03 | Library offline local matches and isolated drafts; mock HTTP 503, retained retry input, explicit retry/planning/review; navigate away during planning and return | Passed; result remains library-owned, exploration main input unchanged; existing bucket questions and page-scroll/draft restoration regressions passed |
+| Project checks | npm run check from repository root | Passed: 147 TS/JS and 103 Python standards files, Prettier, Ruff, TypeScript, 293 Python tests, 27 host tests and build |
+| Desktop regression | npm run test:ui from repository root | Passed: artifacts/test0.11/desktop-check.json status passed, 51 check entries and 67 screenshots |
+
+Chinese product §3.18, technical design, acceptance page, overview and README match the implemented existing-workflow question entry; English task records retain scope/evidence. UTF-8 decoding, balanced fences and 75 local file links passed across 10 Markdown files; anchors were not exhaustively checked. The article is not implicitly appended as request evidence. At this pre-version repair stage there were no backend/protocol/schema/version changes, production data, paid calls, commit/push or release. Real-provider answer quality, arbitrary screen-size/zoom combinations, large-library performance and installed-package acceptance remain unverified. No new claim that drafts survive application exit.
+
+### R22 test0.12 version and local commit follow-up
+
+- User authorized a new testing version and local Git commit, explicitly excluding installer publication. Synchronized VERSION, npm package/lock, window/sidebar, preload, worker startup/bootstrap/ready messages, protocol sample and desktop report/assertions to test0.12 (npm 0.12.0-test.0); updated current docs only, retaining historical evidence.
+- Final `npm run check` passed: standards (147 TS/JS and 103 Python files), Prettier, Ruff, TypeScript, 293 Python tests, 27 host tests and application build.
+- Final `npm run test:ui` passed: artifacts/test0.12/desktop-check.json, 51 check entries and 67 screenshots. Includes matching sidebar/preload/backend versions and the R22 reading/question regressions above.
+- Version/package/lock consistency, unchanged credential service, UTF-8/balanced fences and 75 local links across 11 changed Markdown files passed; anchors were not exhaustively checked. Final staged inventory excludes ignored builds, screenshots, dependencies, user data and secrets.
+- Delivery scope: local source/document/test commit only. No installer command, tag, push, release, real-provider or production-data validation. Existing persistent identities and data paths remain unchanged; original limitations above still apply.

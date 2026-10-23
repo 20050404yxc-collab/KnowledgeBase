@@ -26,10 +26,10 @@ export function KnowledgePage() {
         </button>
       </div>
       <SavedKnowledgeTree />
-      <KnowledgeQuestion />
       {busy && <WorkingStatus />}
       <KnowledgeWorkspace />
       {recommendations.length > 0 && <RelatedKnowledge />}
+      <KnowledgeQuestion compact />
     </section>
   )
 }

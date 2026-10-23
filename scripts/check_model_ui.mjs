@@ -10,6 +10,7 @@ import { checkBatchUi } from './check_batch_ui.mjs'
 import { checkLibraryUi } from './check_library_ui.mjs'
 import { checkSettingsUi } from './check_settings_ui.mjs'
 import { checkTopicReviewUi } from './check_topic_review_ui.mjs'
+import { checkReadingQuestions } from './check_reading_ui.mjs'
 
 // 模型目录和 SSE 来自本机服务，可控制晚到目录及生成完成时机。
 async function fixtureServer() {
@@ -497,6 +498,7 @@ export async function checkModelUi(context) {
     await checkLibraryUi({ ...value, finish })
     await checkSettingsUi(value)
     await checkTopicReviewUi(value)
+    await checkReadingQuestions({ ...value, finish })
     context.report.checks.push(
       'model discovery: stale cancellation, deduplication, manual add/remove, optional default, draft cancellation'
     )

@@ -4,13 +4,14 @@
 // 说明：原始资料仍在资料库管理，本页不把来源块当作知识点。
 import { useAppContext } from '../../app/AppContext'
 import { SavedKnowledgeTree } from './SavedKnowledgeTree'
-import { AnswerPanel } from './AnswerPanel'
+import { KnowledgeQuestion } from './KnowledgeQuestion'
+import { KnowledgeWorkspace, RelatedKnowledge, WorkingStatus } from '../exploration'
 import { ModelPicker } from '../providers'
 import { RestructurePanel } from './RestructurePanel'
 
 // 启动重构明确说明外发范围及费用，用户点击按钮才请求模型。
 export function LibraryPage() {
-  const { selected, answer, ready, restructureDraft, setEditor } = useAppContext()
+  const { ready, restructureDraft, setEditor, busy, recommendations } = useAppContext()
   return (
     <section aria-label="知识库页面">
       <div className="page-heading">
@@ -28,8 +29,11 @@ export function LibraryPage() {
       <RestructurePanel />
       <div className="library-workspace">
         <SavedKnowledgeTree />
-        {(selected || answer) && <AnswerPanel />}
+        {busy && <WorkingStatus />}
+        <KnowledgeWorkspace />
       </div>
+      {recommendations.length > 0 && <RelatedKnowledge />}
+      <KnowledgeQuestion compact />
     </section>
   )
 }

@@ -1,3 +1,17 @@
+## Revision 22: reading placement and accessible questions
+
+- Version/commit follow-up authorization: user explicitly requested “提交git，更新版本，还是测试版，不发布安装包”. Increment source/public version to test0.12 (UI 0.12 测试版; npm 0.12.0-test.0), synchronize current documentation and new report paths, verify and commit locally. This supersedes the original no-version/no-commit boundary below for this follow-up only. Preserve historical evidence, persistent identities and data paths; no installer, tag, push or external release.
+
+- Workflow mode: execute; Plan revision: 22; Approval status: authorized by the current modification request; Approved revision: 22 for the bounded repair below.
+- Source: user requests fixing exploration list details appearing above the list, missing reading questions in exploration/library, and having to scroll to the article top to ask.
+- Plan routing: revise-existing; continues the existing reading and question UX task. Docs language: Chinese; Task-specs language: English.
+- Scope: renderer-only placement of list-opened reading, a shared sticky-bottom question form across exploration/library/buckets, library-local planning results, and isolated UI regressions. Preserve existing question planning, model/scope settings, page-owned state and generated result placement.
+- Diagnosis: ExplorationPage places KnowledgeWorkspace before KnowledgeList, and all reading shares that workspace. KnowledgeQuestion is mounted only on frequency pages, before long reading; LibraryPage renders no question/planning workspace.
+- Approach: distinguish local reading from selected learning points; render list-opened reading after the list. Move/reuse the existing question form at the page bottom with sticky positioning, collapsed model settings and explicit cost/scope text. Library uses the existing learning workspace so submitted questions have visible results and retries.
+- Risks: duplicate reading/forms, stale page state, hidden retry input after failure, dock overlap with task status, narrow overflow and hiding the final paragraph. No backend/protocol/schema changes, paid API calls, production data, version change, commit, push or release.
+- Standards: root AGENTS.md and docs/确认页/工程规范/项目编码与分层规范.md revision 2 read on 2026-10-23; applicable React/state/comment/verification rules retained. No delegation.
+- Status: repair and test0.12 version follow-up verified on 2026-10-23. npm run check passed (293 Python, 27 host tests plus static checks/build); npm run test:ui passed (51 entries, 67 screenshots in artifacts/test0.12). R21 and pre-bump evidence remain historical. Delivery is a local Git commit only; no installer, push, tag or publication.
+
 ## Revision 21: complete UX review follow-up
 
 - Version/commit follow-up authorization: user explicitly requested “帮我提交git，现在是测试版0.11，暂不更新安装包”. Mark source/public version test0.11 (UI 0.11 测试版; npm 0.11.0-test.0), run required verification, and commit the current R18–R21 work locally. This overrides the initial no-version/no-commit boundary below only for this follow-up. No installer update, tag, push or external release; no persistent identity/data-location changes. Historical evidence retains its original version/path.

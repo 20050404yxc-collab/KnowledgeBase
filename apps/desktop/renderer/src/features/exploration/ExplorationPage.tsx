@@ -15,13 +15,24 @@ import { ProjectMaterials } from './ProjectMaterials'
 import { ProjectPanel } from './ProjectPanel'
 import { BatchPanel } from './BatchPanel'
 import { WorkingStatus } from './WorkingStatus'
-import { AnswerPanel } from '../knowledge'
+import { AnswerPanel, KnowledgeQuestion } from '../knowledge'
 import { RelatedKnowledge } from './RelatedKnowledge'
 import { KnowledgeList } from '../knowledge'
 
-// 组合探索输入、回答、相关知识与知识列表。
+// 列表打开的知识在列表下方阅读；学习目录及其生成结果保留原有位置。
 export function ExplorationPage() {
-  const { recommendations, visibleContent, busy } = useAppContext()
+  const {
+    recommendations,
+    visibleContent,
+    selected,
+    selectedPoint,
+    answer,
+    busy,
+    questionDraft,
+    directory,
+    searchResult
+  } = useAppContext()
+  const localReading = !!selected && !selectedPoint && !answer
   return (
     <>
       <ExplorationHeading />
@@ -29,15 +40,20 @@ export function ExplorationPage() {
       <Composer />
       <ComposerCaption />
       {busy && <WorkingStatus />}
-      <KnowledgeWorkspace />
-      {(visibleContent || recommendations.length > 0) && <RelatedKnowledge />}
+      <KnowledgeWorkspace showReading={!localReading} />
+      {!localReading && (visibleContent || recommendations.length > 0) && <RelatedKnowledge />}
       <KnowledgeList />
+      {localReading && <AnswerPanel />}
+      {localReading && recommendations.length > 0 && <RelatedKnowledge />}
+      {(selected || answer || questionDraft || directory || searchResult) && (
+        <KnowledgeQuestion compact />
+      )}
     </>
   )
 }
 
 // 四页复用目录与生成区，各页状态由页面键隔离，首屏无请求时不出现目录。
-export function KnowledgeWorkspace() {
+export function KnowledgeWorkspace({ showReading = true }: { showReading?: boolean }) {
   const { directory, searchResult, visibleContent, selectedPoint } = useAppContext()
   return (
     <div
@@ -52,7 +68,7 @@ export function KnowledgeWorkspace() {
         <ProjectMaterials />
         <PointActions />
         <ProjectPanel key={selectedPoint?.id} />
-        {visibleContent ? (
+        {visibleContent && showReading ? (
           <AnswerPanel />
         ) : (
           (directory || searchResult) && (

@@ -14,9 +14,10 @@ import { checkEmptyEditorUi, checkNoteEditorUi } from './check_note_editor_ui.mj
 import { checkFirstUseUi, checkFeedbackUi } from './check_usability_ui.mjs'
 import { checkRecoveryUi } from './check_recovery_ui.mjs'
 import { checkUxNotes, checkUxSources, checkViewPreference } from './check_ux_review_ui.mjs'
+import { checkReadingUi } from './check_reading_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', 'test0.11')
+const artifactDir = join(root, 'artifacts', 'test0.12')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
@@ -40,7 +41,7 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: 'test0.11', checks: [], screenshots: [] }
+const report = { version: 'test0.12', checks: [], screenshots: [] }
 let child, socket
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -192,12 +193,12 @@ try {
   assert.deepEqual(
     await ui.evaluate(`(async()=>[window.knowledgeBase.version,
       (await window.knowledgeBase.request('bootstrap')).version,
-      document.querySelector('.sidebar-bottom small').innerText.includes('0.11') &&
+      document.querySelector('.sidebar-bottom small').innerText.includes('0.12') &&
       document.querySelector('.sidebar-bottom small').innerText.includes('测试版')])()`),
-    ['test0.11', 'test0.11', true]
+    ['test0.12', 'test0.12', true]
   )
   report.checks.push(
-    'sandboxed renderer: Node require unavailable; test0.11 UI/preload/worker versions agree'
+    'sandboxed renderer: Node require unavailable; test0.12 UI/preload/worker versions agree'
   )
   await checkEmptyEditorUi({ ui, fill, click, waitFor, screenshot, report })
   await click('＋ 新建知识')
@@ -232,6 +233,7 @@ try {
   report.checks.push('edit note; hostile HTML blocked and never executed')
   await checkNoteEditorUi({ ui, fill, click, waitFor, report })
   await checkFeedbackUi({ ui, fill, click, waitFor, report })
+  await checkReadingUi({ ui, fill, click, waitFor, screenshot, report })
   await checkUxNotes({ ui, fill, click, waitFor, screenshot, report })
   await fill('.inline-search', '天文学')
   await waitFor(

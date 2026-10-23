@@ -121,7 +121,7 @@ class ProtocolRuntime:
 
     # EOF 和超大帧结束会话；格式错误可恢复，后续合法请求仍能执行。
     async def run(self) -> None:
-        send({"type": "ready", "version": "test0.11"})
+        send({"type": "ready", "version": "test0.12"})
         record("worker.ready")
         try:
             while True:

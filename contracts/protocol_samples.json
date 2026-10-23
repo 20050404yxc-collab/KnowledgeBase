@@ -10,7 +10,7 @@
         "id": "bootstrap-sample",
         "type": "result",
         "result": {
-          "version": "test0.11",
+          "version": "test0.12",
           "data_dir": "<temporary>",
           "providers": [],
           "knowledge": [],

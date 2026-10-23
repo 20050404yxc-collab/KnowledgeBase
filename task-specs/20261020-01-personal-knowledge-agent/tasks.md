@@ -290,3 +290,13 @@ R3 handoff: implemented and verified on test0.03; `npm run check` passes (78 Pyt
 - [x] R17.3 Preserve fail-closed validation with safe structural diagnostics and meaningful notices.
 - [x] R17.4 Cover actual wire requests, invalid/mixed reviews, local preservation, empty plans, cancellation and private-content exclusion.
 - [x] R17.5 Run required project checks and isolated desktop checks; reconcile evidence and limits.
+## Revision 22: reading placement and question dock
+
+- [x] R22.1 Render list-opened exploration reading after the list without moving generated detail or duplicating the article (R22-01).
+- [x] R22.2 Reuse the bottom-sticky question form on exploration, library and buckets; preserve model/scope disclosure and library-local results (R22-02/03).
+- [x] R22.3 Add isolated regressions for long/narrow reading, final paragraph, failure/retry and page ownership; run required check and UI suites.
+- [x] R22.4 Reconcile Chinese product/technical/overview docs and English verification evidence.
+
+Handoff: R22 repair completed under current user request; clean workspace at start. Renderer repair and isolated tests passed; Chinese docs reconciled. Subsequent user authorization adds test0.12 version synchronization, required version-specific verification and a local Git commit. No real-provider, production-data or installation verification, push or publication is authorized or claimed. See verification.md for evidence.
+
+- [x] R22.5 Synchronize test0.12 version declarations/current docs, verify and include in the local delivery commit without packaging or publication.

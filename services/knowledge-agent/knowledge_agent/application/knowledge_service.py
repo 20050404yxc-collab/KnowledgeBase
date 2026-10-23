@@ -83,7 +83,7 @@ class KnowledgeService:
     @traced
     def info(self) -> dict:
         return {
-            "version": "test0.11",
+            "version": "test0.12",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
             "knowledge": self.store.list_knowledge(),
