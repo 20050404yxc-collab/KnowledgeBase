@@ -43,6 +43,9 @@ export async function checkPageUi(context) {
   for (let index = 1; index <= 3; index++) {
     const first = await navigate(ui, index)
     assert.equal(first.answer, false)
+    await ui.evaluate(
+      `[...document.querySelectorAll('button')].find(b=>b.textContent.trim()==='星球视图').click()`
+    )
     await fill('[aria-label="筛选已有知识"]', ['常用', '在学', '归档'][index - 1] + '页面专属')
     await waitFor(
       () => ui.evaluate(`document.querySelectorAll('.saved-category').length === 1`),
@@ -114,6 +117,10 @@ async function verifyPageReturn({ ui, fill, waitFor }, query) {
     '尚未保存的常用页草稿'
   )
   await ui.evaluate(`document.querySelector('[aria-label="关闭编辑"]').click()`)
+  assert.equal(await ui.evaluate(`!!document.querySelector('.discard-warning')`), true)
+  await ui.evaluate(
+    `[...document.querySelectorAll('.editor button')].find(b => b.textContent.trim() === '放弃修改').click()`
+  )
   await navigate(ui, 0)
   assert.equal(await ui.evaluate(`document.querySelector('#question').value`), query)
   assert.equal(

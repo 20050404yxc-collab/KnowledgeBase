@@ -8,6 +8,7 @@ import { isBucket } from '../../../../shared/protocol_validation'
 import { usePageState } from '../../shared/use_page_state'
 import { api, errorText } from '../../shared/api/client'
 import { useTreeNavigation } from './use_tree_navigation'
+import { useTreePreference } from '../../shared/use_tree_preference'
 
 export interface Branch extends LibraryTree {
   loading: boolean
@@ -26,6 +27,7 @@ const EMPTY_CACHE: { key: string; branches: Record<string, Branch> } = { key: ''
 // 缓存与导航归根会话持有；筛选、日期或数据版本变化使对应页面缓存失效。
 export function useSavedTree(page: string, query: string, revision: number) {
   const [cache, setCache] = usePageState(page, EMPTY_CACHE)
+  const preference = useTreePreference(page)
   const pending = useRef(new Set<string>())
   const contexts = useRef<Record<string, string>>({})
   const day = new Date().toLocaleDateString()
@@ -74,5 +76,5 @@ export function useSavedTree(page: string, query: string, revision: number) {
       }
     }
   }
-  return { branches, loadTree: load, ...navigation }
+  return { branches, loadTree: load, ...preference, ...navigation }
 }

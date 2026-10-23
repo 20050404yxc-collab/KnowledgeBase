@@ -12,6 +12,7 @@ import type {
   PreviewKind
 } from '../../../../../../contracts/library'
 import { useAppContext } from '../../app/AppContext'
+import { CandidatePicker } from './CandidatePicker'
 
 // 记录、来源及重复组分别分页，原文不会挤在一个大协议帧中。
 export function RestructureReview() {
@@ -80,7 +81,7 @@ export function RestructureReview() {
       {preview.kind && ['records', 'duplicates', 'sources'].includes(preview.kind) && (
         <ReviewPages kind={preview.kind} />
       )}
-      {draft?.status === 'outline' && <CandidateInput />}
+      {draft?.status === 'outline' && <CandidatePicker key={draft.draft_id + draft.revision} />}
       <p>
         同一完整路径下的知识会按内容比较并提出拟合并方案；仅相关知识保持独立。调用分别计费，未知用量不估算；仍需核对语义遗漏。
       </p>
@@ -189,11 +190,17 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
       <p>{group.reason}</p>
       <EvidencePages group={group} />
       <label>
-        保留知识标识
+        保留哪条知识
         <select value={target} onChange={(e) => setTarget(e.target.value)}>
           <option value="">请选择</option>
           {group.sources.map((id) => (
-            <option key={id}>{id}</option>
+            <option key={id} value={id}>
+              {group.source_details?.find((item) => item.id === id)?.title ?? id}
+              {' · '}
+              {group.source_details?.find((item) => item.id === id)?.path.join(' → ')}
+              {' · '}
+              {id}
+            </option>
           ))}
         </select>
       </label>
@@ -242,32 +249,6 @@ function DuplicateDecision({ group }: { group: DuplicateGroup }) {
         撤销本组决定
       </button>
     </section>
-  )
-}
-
-// 误标可重新送回核验，人工补候选也不能跳过原文证据检查。
-function CandidateInput() {
-  const [ids, setIds] = useState('')
-  const { reviewRestructure, busy } = useAppContext()
-  return (
-    <label>
-      补充或重新核验候选（逗号分隔知识标识）
-      <input value={ids} onChange={(e) => setIds(e.target.value)} />
-      <button
-        disabled={!!busy || !ids.trim()}
-        onClick={() =>
-          void reviewRestructure({
-            action: 'candidate',
-            sources: ids
-              .split(/[,，]/)
-              .map((id) => id.trim())
-              .filter(Boolean)
-          })
-        }
-      >
-        添加拟合并候选（确认后核验全文）
-      </button>
-    </label>
   )
 }
 

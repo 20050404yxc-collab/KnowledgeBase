@@ -20,6 +20,7 @@ function useExplorationState() {
   const [scope, setScope] = useState<Scope>('mixed')
   const [attachments, setAttachments] = useState<Attached[]>([])
   const [pathEntry, setPathEntry] = useState<string | null>(null)
+  const [sourceArrival, setSourceArrival] = useState(0)
   return {
     query,
     setQuery,
@@ -28,7 +29,9 @@ function useExplorationState() {
     attachments,
     setAttachments,
     pathEntry,
-    setPathEntry
+    setPathEntry,
+    sourceArrival,
+    setSourceArrival
   }
 }
 type ExplorationState = ReturnType<typeof useExplorationState>
@@ -48,8 +51,29 @@ export function useExploration(
   const addFiles = (paths: string[]) => addFilesAction(combined, paths)
   const removeAttachment = (item: Attached) => removeAttachmentAction(combined, item)
   const retain = (item: Attached) => retainAction(combined, item)
+  // 已保存资料使用受管理副本；替换本次选择前明确提示，不自动生成。
+  const reuseSource = (id: string) =>
+    options.runTask(async () => {
+      if (
+        state.attachments.some((item) => item.id !== id) &&
+        !confirm(
+          '基于此资料提问将仅选择这份资料，替换当前附件选择；已保存资料和用户原文件不会删除。继续？'
+        )
+      ) {
+        return
+      }
+      const item = await options.taskRequest('sources.attach', { id })
+      if (options.taskCancelled.current) {
+        return
+      }
+      state.setAttachments([{ ...item, localId: crypto.randomUUID(), path: '', state: 'ready' }])
+      state.setScope('files')
+      state.setQuery('')
+      state.setSourceArrival((current) => current + 1)
+      options.setSection('探索')
+    })
 
-  return { ...state, ...options, ask, addFiles, removeAttachment, retain }
+  return { ...state, ...options, ask, addFiles, removeAttachment, retain, reuseSource }
 }
 
 // 完整回答到达前仅显示进度，终态统一释放忙碌状态。

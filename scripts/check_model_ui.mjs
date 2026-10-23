@@ -137,7 +137,7 @@ async function generate(context) {
   const { ui, fill, click, waitFor, fixture, screenshot } = context
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await fill('#question', '数据库事务：模型强度界面测试新概念')
-  await click('拆解并学习 ↗')
+  await click('生成学习目录 ↗')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('请选择模型；此接口未设置默认模型')`),
     'missing model error'
@@ -158,7 +158,7 @@ async function generate(context) {
   await select(ui, '.composer-caption [aria-label="生成模型"]', 'fixture-b')
   await select(ui, '.composer-caption [aria-label="推理强度"]', 'high')
   await screenshot('desktop-model-selection.png')
-  await click('拆解并学习 ↗')
+  await click('生成学习目录 ↗')
   await waitFor(async () => fixture.state.posts.length === 1, 'generation HTTP received')
   assert.equal(
     await ui.evaluate(
@@ -180,6 +180,15 @@ async function generate(context) {
     'point directory'
   )
   assert.equal(await ui.evaluate(`document.querySelector('.answer-panel') === null`), true)
+  assert.equal(await ui.evaluate(`document.querySelector('#question-form').hidden`), true)
+  await click('修改问题与附件')
+  assert.equal(
+    await ui.evaluate(`document.querySelector('#question').value`),
+    '数据库事务：模型强度界面测试新概念'
+  )
+  await click('收起输入区')
+  await click('查看结果')
+  assert.equal(await ui.evaluate(`document.activeElement.id`), 'learning-results')
   await screenshot('desktop-directory.png')
   await ui.evaluate(`document.querySelector('.directory-point').click()`)
   await click('学习这个知识点')
@@ -349,7 +358,7 @@ function finish(fixture, value) {
 async function supplement(context) {
   const { ui, fill, click, waitFor, fixture, screenshot, generated } = context
   await fill('#question', '模型选择验证有哪些新内容')
-  await click('拆解并学习 ↗')
+  await click('生成学习目录 ↗')
   await waitFor(async () => fixture.state.posts.length === 4, 'supplement planning')
   finish(fixture, {
     points: [
@@ -384,6 +393,12 @@ async function supplement(context) {
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('确认归属并保存补充')`),
     'review before capture'
+  )
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.answer-heading .pill').innerText.includes('尚未保存')`
+    ),
+    true
   )
   assert.equal(
     (
@@ -451,10 +466,12 @@ async function maintainSupplement(context) {
     0
   )
   await fill('#question', '模型选择验证')
-  await click('本地检索')
+  await click('搜索此问题')
   await waitFor(
     () =>
-      ui.evaluate(`document.querySelector('.local-results')?.innerText.includes('模型选择验证')`),
+      ui.evaluate(
+        `document.querySelector('.global-search-results')?.innerText.includes('模型选择验证')`
+      ),
     'independent local search'
   )
   assert.equal(fixture.state.posts.length, 6)
@@ -462,6 +479,7 @@ async function maintainSupplement(context) {
   context.report.checks.push(
     'directory lazy learning; safe Markdown table/code/reference; review, edit, delete and index supplement; independent zero-model search'
   )
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
 }
 
 // 新功能验收附加到既有桌面回归，失败也删除本轮合成系统凭据。

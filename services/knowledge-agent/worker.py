@@ -34,7 +34,7 @@ def main() -> None:
     parser.add_argument("--data-dir", required=True, type=Path)
     args = parser.parse_args()
     configure(args.data_dir, os.environ.get("KB_LOG_SESSION"))
-    record("worker.start", python_version=sys.version.split()[0], version="0.1")
+    record("worker.start", python_version=sys.version.split()[0], version="test0.11")
     try:
         with step("worker.lifecycle"):
             asyncio.run(run_service(args.data_dir))

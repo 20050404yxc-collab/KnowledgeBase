@@ -2,21 +2,22 @@
 // 层：React 交互 hook
 // 作用：持有当前知识、回答、引用弹窗及笔记编辑状态。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
-import { useRef } from 'react'
-import { usePageState } from '../../shared/use_page_state'
+import { useEffect, useRef } from 'react'
 import type {
   Answer,
   Citation,
   Knowledge,
   Recommendation
 } from '../../../../../../contracts/desktop'
+import { usePageState } from '../../shared/use_page_state'
+import { useNoteEditor } from './use_note_editor'
 
 // 空推荐作为稳定初值，由各页 setter 创建新数组，不在原地修改。
 const EMPTY_CARDS: Recommendation[] = []
 const EMPTY_DRAFTS: Record<string, string | null> = {}
 
 // 持有当前知识、回答、引用弹窗及笔记编辑状态。
-export function useReading(page: string) {
+export function useReading(page: string, searchRevision = 0) {
   const sequences = useRef<Record<string, { current: number }>>({})
   const pageSequence = (sequences.current[page] ??= { current: 0 })
   const owner = useRef(page)
@@ -27,13 +28,21 @@ export function useReading(page: string) {
   const [answer, setAnswer] = usePageState<Answer | null>(page, null)
   const [selected, setSelected] = usePageState<Knowledge | null>(page, null)
   const [recommendations, setRecommendations] = usePageState<Recommendation[]>(page, EMPTY_CARDS)
-  const [editor, setEditor] = usePageState<{ id?: string; title: string; content: string } | null>(
-    page,
-    null
-  )
+  const noteEditor = useNoteEditor(page)
   const [saving, setSaving] = usePageState(page, false)
   const [supplementDrafts, setSupplementDrafts] = usePageState(page, EMPTY_DRAFTS)
   const [citation, setCitation] = usePageState<Citation | null>(page, null)
+  const consumedSearch = useRef(-1)
+  useEffect(() => {
+    // 新搜索只清理搜索页旧阅读；切出再回来继续保留本次阅读。
+    if (page === '搜索' && consumedSearch.current !== searchRevision) {
+      consumedSearch.current = searchRevision
+      pageSequence.current++
+      setSelected(null)
+      setAnswer(null)
+      setCitation(null)
+    }
+  }, [page, searchRevision])
   const visibleContent = answer?.content ?? selected?.content
   const visibleCitations = answer?.citations ?? selected?.citations ?? []
 
@@ -46,8 +55,7 @@ export function useReading(page: string) {
     setSelected,
     recommendations,
     setRecommendations,
-    editor,
-    setEditor,
+    ...noteEditor,
     saving,
     setSaving,
     supplementDrafts,

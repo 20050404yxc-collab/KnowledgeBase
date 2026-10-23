@@ -1,3 +1,57 @@
+## Revision 21: complete UX review follow-up
+
+- Version/commit follow-up authorization: user explicitly requested “帮我提交git，现在是测试版0.11，暂不更新安装包”. Mark source/public version test0.11 (UI 0.11 测试版; npm 0.11.0-test.0), run required verification, and commit the current R18–R21 work locally. This overrides the initial no-version/no-commit boundary below only for this follow-up. No installer update, tag, push or external release; no persistent identity/data-location changes. Historical evidence retains its original version/path.
+
+- Workflow mode: execute; Plan revision: 21; Approval status: approved; Approved revision: 21.
+- Approval basis: user explicitly requested “开始修改，但我觉得所有都要修改” following the eight-item UX review. All eight items are authorized for implementation and isolated verification now.
+- Status: implemented and verified on 2026-10-23. Full project check passed (293 Python / 27 host tests); final isolated desktop regression passed (49 entries / 61 screenshots). All pre-existing R18–R20 worktree changes preserved; a local source commit is now authorized by the follow-up, with no installer update or release.
+- Plan routing: revise-existing; continues the same product and usability task.
+- Docs language: Chinese; Task-specs language: English. Human documentation: 产品方案 §3.17, 技术设计, 实施与验收, 确认文档总览 and README.
+- Scope: strict manual note save and draft retention on conflicts; optional note category and version-checked move; visible model/cost semantics for bucket questions; fixed all-library search; retained-source paginated reading and reuse as a file-only attachment; explained frequency buckets and prominent fixed override; persistent per-page compact-view default; direct recycle navigation, backup settings, and a collapsed directory-only/content restructure choice.
+- Boundaries: preserve generation reuse, existing bucket computation, planet view and existing knowledge. Additive local contracts only, no schema migration, provider calls, production data, credentials, version/release/commit/push or delegated agents.
+- Diagnosis: manual entry shared generated-content reuse and always closed the editor on a returned item. A same-title different-body draft was not committed but was reported saved. Manual saves must reject reuse conflicts while preserving the input; generation retains its original reuse rules.
+- Risks: title/path collisions, stale revisions and callbacks, original-source safety, pagination/complete search, preference storage failure and restore placement. Verify failed/conflicting saves, moves/rollback, retained-source reopen, search request ordering, restart preference and wide/narrow desktop flows with mock providers.
+
+## Revision 20: remaining usability and recovery
+
+- Workflow mode: execute; Plan revision: 20; Approved revision: 20.
+- Authorization: user requested “继续优化剩下的”, continuing the remaining usability implementation; preserve R18/R19 local changes.
+- Scope: searchable paginated title/path candidate selection; named merge survivor; page-owned composer collapse after successful results with explicit navigation; persistent recycle bin with atomic restore; daily bounded SQLite snapshots and explicit library-only restore with a pre-restore snapshot.
+- Recovery boundary: schema 6 adds a recycle table after a unique consistent migration backup. Restore knowledge, supplements, classification, use days, reuse keys and merge provenance transactionally; never overwrite API configuration, usage accounting, credentials or source files. Full offline directory backup remains the way to recover source copies. Reject conflicts, corrupt snapshots, unknown schemas and restore during other requests; clear stale backend learning/edit/restructure sessions after library restoration.
+- Risks/validation: stale picker requests/revisions, complete inventories beyond 200, hidden-page completion, destructive restore, rollback/restart, retained original contents, no active indexing of trash, protocol allowlists and mock-only desktop regression.
+- Standards: supplied AGENTS.md and project coding/layering standard revision 2; general-engineering skill reused; no delegation or publication.
+- Status: implemented and verified on 2026-10-23. Full project checks passed (284 Python / 27 host tests plus standards, formatting, types and build); isolated desktop regression passed (44 report entries / 52 screenshots). Chinese docs and English evidence reconciled; prior R18/R19 local changes preserved.
+- Docs language: Chinese; Task-specs language: English. Human documentation: 产品方案 section 3.16, 技术设计, 实施与验收 and 确认文档总览.
+- Remaining limits: unsaved drafts do not survive process exit; snapshots remain on the same volume and exclude source-file/vault restoration. Real-provider quality, production-data migration and large-library performance remain unverified.
+
+## Revision 19: usability continuation
+
+- Workflow mode: execute; Plan revision: 19; Approved revision: 19.
+- Approval basis: user explicitly requested “继续实现其他优化”, continuing the earlier usability review and implementation. This authorizes the following bounded batch without another confirmation.
+- Implementation status: completed; full project checks and final isolated desktop regression passed; wide/narrow screenshots visually reviewed. Prior R18 dirty worktree preserved.
+- Docs language: Chinese; Task-specs language: English.
+- Standards: root AGENTS.md and project coding/layering standard revision 2 read and applicable; general-engineering skill reused; no exceptions or delegation.
+- Scope: first-use local/AI entry, blank-new-provider connection templates, per-page compact saved-tree view using the existing complete cursor API, useful no-match clearing, truthful saved/location labels, named deletion confirmation, and manual full-data backup guidance.
+- Design choices: prefer additive UI over storage migration; preserve the planet default and all read/expand and confirmation gates. Templates never replace edited/new populated configuration; no model ID or price guesses.
+- Risks: truncated compact inventories, lost path/mode across navigation, accidental reading/use-day changes, template overwrite, incorrect saved-state claims, narrow overflow. Verify with isolated real backend and mock providers.
+- Deferred: title-based restructure candidate picker, automatic composer collapse/result scrolling, persistent drafts, trash and automated backup/restore. These remain separate follow-up work, not delivered by this batch.
+- No production data/credentials, paid calls, schema/protocol/version/path changes, commit/push or release.
+- Human documentation: 产品方案 section 3.15 and 技术设计 usability continuation.
+
+## Revision 18: first usability improvements
+
+- Workflow mode: execute; Plan revision: 18; Approved revision: 18.
+- Approval status/basis: user requested “帮我进行优化” after the usability review and its recommended first three improvements. Proceed with this bounded first batch; no additional confirmation required.
+- Implementation status: completed; project checks and final isolated desktop regression passed; wide/narrow screenshots visually reviewed.
+- Plan routing: revise-existing; continues note editing and the existing search/topic-directory UI.
+- Docs language: Chinese; Task-specs language: English.
+- Standards: root AGENTS.md and project coding/layering standard revision 2 remain applicable; no exceptions or delegation.
+- Scope: per-page original/draft comparison, explicit discard confirmation, saving-time input/close lock; explicit global local-search and AI-scope labels; accurate directory-generation label and explanatory steps; isolated regressions and existing documentation.
+- Diagnosis: closing clears editor state without checking edits; scope placement implies local search follows AI scope; the old action label implies planning generates a body. These are UI/state problems; backend contracts remain unchanged.
+- Risks: wrong baselines after navigation, dirty-state false positives, lost input after save failure, stale save callbacks, narrow toolbar wrapping. Test actual behavior and wide/narrow screenshots.
+- Excluded from this batch: persistent crash/exit recovery, alternate tree/list modes, provider templates, trash, backup/restore, new database/protocol behavior, paid calls, production data, publication and version changes. Other usability suggestions remain future work.
+- Human documentation: 产品方案 section 3.14.
+
 ## Revision 17: complete topic-review output
 
 - Workflow mode: execute

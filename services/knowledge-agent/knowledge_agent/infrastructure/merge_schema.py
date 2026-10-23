@@ -93,7 +93,7 @@ def legacy_price_schema(db: sqlite3.Connection) -> bool:
 @traced
 def migrate_merges(db: sqlite3.Connection, root: Path) -> None:
     version = db.execute("PRAGMA user_version").fetchone()[0]
-    if version == 5:
+    if version >= 5:
         return
     if version not in (3, 4):
         raise ValueError("可追溯合并迁移只接受 schema 3")

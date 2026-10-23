@@ -3,30 +3,18 @@
 // 作用：显示回答标题、收录状态和手动保存入口。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 
-import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
-
-import { isBucket } from '../../../../shared/protocol_validation'
-import type { Bucket } from '../../../../../../contracts/desktop'
 
 // 显示回答标题、收录状态和手动保存入口。
 export function AnswerHeading() {
-  const {
-    guarded,
-    reload,
-    selected,
-    setSelected,
-    answer,
-    selectedPoint,
-    section,
-    selectionSequence
-  } = useAppContext()
+  const { selected, answer, selectedPoint, section } = useAppContext()
   let label = '未收录内容'
+  // 以正式知识快照确认保存位置；待核对补充仍未提交，不继承成功标签。
   if (selected) {
-    label = selected.generated ? 'AI 学习内容' : '我的知识'
+    label = `已保存 · ${selected.bucket} · ${selected.generated ? 'AI 学习内容' : '个人笔记'}`
   }
   if (answer?.review) {
-    label = '待核对补充'
+    label = '待核对补充 · 尚未保存'
   }
   return (
     <div className="answer-heading">
@@ -36,32 +24,6 @@ export function AnswerHeading() {
           {selected?.title ?? (section === '探索' ? selectedPoint?.title : null) ?? '检索与回答'}
         </h2>
       </div>
-      {selected && (
-        <select
-          aria-label="知识分区"
-          value={selected.manual_bucket ?? 'auto'}
-          onChange={(event) =>
-            void guarded(async () => {
-              const sequence = selectionSequence.current
-              const item = await api.request('knowledge.bucket', {
-                id: selected.id,
-                bucket: isBucket(event.target.value) ? event.target.value : null
-              })
-              if (sequence === selectionSequence.current) {
-                setSelected(item)
-              }
-              void reload()
-            })
-          }
-        >
-          <option value="auto">自动 · {selected.bucket}</option>
-          {(['常用', '在学', '归档'] as Bucket[]).map((bucket) => (
-            <option key={bucket} value={bucket}>
-              固定 · {bucket}
-            </option>
-          ))}
-        </select>
-      )}
     </div>
   )
 }

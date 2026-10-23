@@ -7,12 +7,29 @@ import { useAppContext } from './AppContext'
 
 // 显示当前分区名称及知识筛选输入。
 export function Topbar() {
-  const { section, ready } = useAppContext()
+  const { section, ready, globalQuery, setGlobalQuery, searchGlobal } = useAppContext()
   return (
     <header className="topbar">
       <span>
         我的知识库 <span className="crumb">/</span> <strong>{section}</strong>
       </span>
+      <form
+        className="global-search-form"
+        role="search"
+        onSubmit={(event) => {
+          event.preventDefault()
+          void searchGlobal()
+        }}
+      >
+        <input
+          aria-label="搜索知识与资料"
+          placeholder="搜索知识与资料…"
+          value={globalQuery}
+          maxLength={12000}
+          onChange={(event) => setGlobalQuery(event.target.value)}
+        />
+        <button disabled={!ready || !globalQuery.trim()}>搜索全库</button>
+      </form>
       <div className="connection">
         <i className={ready ? 'online' : ''} />
         {ready ? '本地后台已连接' : '后台连接中'}

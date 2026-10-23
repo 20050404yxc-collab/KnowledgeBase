@@ -74,6 +74,9 @@ function duplicate(value: Record<string, unknown>) {
     ['undecided', 'keep', 'merge'].includes(String(value.decision)) &&
     optional(value.category_path, isCategoryPath) &&
     stringList(value.sources) &&
+    optional(value.source_details, (part) =>
+      rows(part, (item) => strings(item, ['id', 'title']) && stringList(item.path))
+    ) &&
     typeof value.bucket_decided === 'boolean' &&
     (value.manual_bucket === null ||
       ['常用', '在学', '归档'].includes(String(value.manual_bucket))) &&

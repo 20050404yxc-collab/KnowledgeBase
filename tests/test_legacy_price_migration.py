@@ -59,6 +59,7 @@ def legacy_database(root, empty_prices=False):
         store.finish_attempt("fixture-attempt", "success", 1, 11, 17, 0.5)
         for name in ("knowledge_merges", "restructure_originals", "restructure_provenance"):
             store.db.execute(f"DROP TABLE {name}")
+        store.db.execute("DROP TABLE knowledge_trash")
         store.db.execute("PRAGMA user_version=4")
         store.db.commit()
         expected = business_rows(store.db)
@@ -74,7 +75,7 @@ def legacy_database(root, empty_prices=False):
 def test_legacy_prices_startup_preserves_data_and_restart(tmp_path, empty_prices):
     expected = legacy_database(tmp_path, empty_prices)
     with closing(Store(tmp_path)) as store:
-        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 6
         assert business_rows(store.db) == expected
         assert store.db.execute("PRAGMA foreign_key_check").fetchall() == []
         # 真正调用合并结构的读路径，不能只改版本号骗过启动。
@@ -139,7 +140,7 @@ def test_legacy_price_migration_rollback_and_retry(tmp_path, monkeypatch, caplog
         ).fetchone()
     with closing(Store(tmp_path)) as store:
         assert business_rows(store.db) == expected
-        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 6
     failed = [row.msg for row in caplog.records if row.msg.get("event") == "step.failed"]
     assert any(
         row["request_id"] == "legacy-retry" and row["step"].endswith("migrate_merges")
@@ -201,7 +202,7 @@ def test_legacy_price_worker_handshake_and_bootstrap(tmp_path):
                 process.kill()
                 process.wait(timeout=15)
     with closing(sqlite3.connect(tmp_path / "knowledge.sqlite3")) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
         assert business_rows(db) == expected
     text = next((tmp_path / "logs").glob("*-worker.log")).read_text(encoding="utf-8")
     rows = [json.loads(line) for line in text.splitlines()]

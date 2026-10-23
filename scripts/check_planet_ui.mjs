@@ -171,6 +171,7 @@ export async function enterPlanet({ ui, waitFor, report }, back = false) {
 // 展示页只保留四至六项，后端游标与展示分页分别验证。
 export async function verifyPlanetPages(context, expected) {
   const { ui, click, waitFor } = context
+  await click('星球视图')
   await enterPlanet(context)
   await enterPlanet(context)
   for (const count of [50, 100, 150, 200, 205]) {

@@ -3,11 +3,13 @@
 // 作用：验证全库重构确认、跨页阶段推进和完整分类树。
 // 说明：仅隔离数据和本机模拟接口，不发送真实知识。
 import assert from 'node:assert/strict'
+import { startOrganization } from './check_ux_review_ui.mjs'
 import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
 import { checkMergeUi } from './check_merge_ui.mjs'
 import { verifyPlanetPages } from './check_planet_ui.mjs'
 import { checkLongTextUi } from './check_long_text_ui.mjs'
 import { checkKnowledgeTreeUi } from './check_knowledge_tree_ui.mjs'
+import { checkCompactPages } from './check_usability_ui.mjs'
 
 // 校验摘要失败的后台记录只包含固定字段、规则和上下文索引。
 async function assertSummaryFailure(logDir, requestId) {
@@ -32,7 +34,7 @@ async function assertSummaryFailure(logDir, requestId) {
 // 重现截图中的红色摘要校验提示，编号必须关联到具体校验原因且原知识不变。
 async function checkSummaryFailure({ ui, click, waitFor, fixture, logDir, report, screenshot }) {
   fixture.state.reply = () => ({ summary: ['private-summary-body'] })
-  await click('重构知识库')
+  await startOrganization({ ui, click, waitFor })
   await waitFor(
     () =>
       ui.evaluate(
@@ -100,7 +102,7 @@ function reply(body) {
 // 执行目录预览、内容差异和原子应用，保留未选更新与手工知识正文。
 async function runRestructureFlow(context, manual, original, count) {
   const { ui, click, waitFor, fixture, finish, screenshot } = context
-  await click('重构知识库')
+  await startOrganization({ ui, click, waitFor })
   await waitFor(async () => fixture.state.posts.length >= count + 1, 'first overview stage')
   await go(ui, '资料库')
   assert.equal(await ui.evaluate(`!!document.querySelector('.session-task')`), true)
@@ -154,7 +156,7 @@ async function runRestructureFlow(context, manual, original, count) {
   await checkNarrowDiff(context)
   await click('确认目录并应用所选更新（1）')
   await waitFor(
-    () => ui.evaluate(`document.body.innerText.includes('重构已保存')`),
+    () => ui.evaluate(`document.body.innerText.includes('整理已保存')`),
     'atomic library apply'
   )
   const applied = await ui.evaluate(
@@ -170,7 +172,7 @@ async function runRestructureFlow(context, manual, original, count) {
     )
     assert.equal(current.content.slice(0, 260), item.content)
   }
-  await click('关闭重构结果')
+  await click('关闭整理结果')
   fixture.state.reply = null
 }
 
@@ -213,13 +215,14 @@ async function checkFeedbackMemory({ ui, fill, click, waitFor, fixture, screensh
 // 先确认目录，再核对差异；未选更新保持原样，手工知识只追加。
 export async function checkLibraryUi(context) {
   const { ui, waitFor, fixture, report } = context
-  const manual = await ui.evaluate(
-    `window.knowledgeBase.request('knowledge.save', {title:'重构手工保护',content:'手工正文逐字保留'})`
-  )
   await go(ui, '知识库')
   await waitFor(
     () => ui.evaluate(`!!document.querySelector('[aria-label="知识库页面"]')`),
     'library page'
+  )
+  await checkDirectoryOnly(context)
+  const manual = await ui.evaluate(
+    `window.knowledgeBase.request('knowledge.save', {title:'重构手工保护',content:'手工正文逐字保留'})`
   )
   await checkSummaryFailure(context)
   const original = await ui.evaluate(`window.knowledgeBase.request('knowledge.list')`)
@@ -303,6 +306,7 @@ async function verifyCompleteTree(context) {
     'complete tree count'
   )
   await verifyPlanetPages(context, ids.length)
+  await checkCompactPages(context, ids.length)
   await ui.evaluate(`window.scrollTo(0,0)`)
   await screenshot('desktop-saved-tree.png')
   await ui.command('Emulation.setDeviceMetricsOverride', {
@@ -359,4 +363,40 @@ async function decideExistingGroups({ ui, click, waitFor }) {
       )
     }
   }
+}
+
+// 目录核对后可直接保存分类；提交阶段不再调用正文模型。
+async function checkDirectoryOnly({ ui, click, waitFor, fixture, screenshot, report }) {
+  fixture.state.reply = reply
+  await ui.evaluate(`document.querySelector('.organization-setup').open=true`)
+  await ui.evaluate(`document.querySelector('input[name=organization-mode]').click()`)
+  await click('生成整理方案')
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `!!document.querySelector('.outline-change') && !document.querySelector('.session-task')`
+      ),
+    'category-only outline',
+    30000
+  )
+  const before = await ui.evaluate(`window.knowledgeBase.request('knowledge.list',{})`)
+  const count = fixture.state.posts.length
+  await screenshot('desktop-ux-directory-only.png')
+  await click('确认目录并仅整理分类')
+  await waitFor(
+    () =>
+      ui.evaluate(`document.querySelector('.restructure-panel')?.innerText.includes('整理已保存')`),
+    'directory-only commit'
+  )
+  const after = await ui.evaluate(`window.knowledgeBase.request('knowledge.list',{})`)
+  assert.equal(fixture.state.posts.length, count)
+  assert.deepEqual(
+    after.map((n) => [n.id, n.content]).sort(),
+    before.map((n) => [n.id, n.content]).sort()
+  )
+  await click('关闭整理结果')
+  fixture.state.reply = null
+  report.checks.push(
+    'directory-only organization confirms at outline without body calls or content changes'
+  )
 }

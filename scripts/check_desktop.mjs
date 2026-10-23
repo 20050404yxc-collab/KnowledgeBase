@@ -10,9 +10,13 @@ import { createServer } from 'node:net'
 import assert from 'node:assert/strict'
 import { checkModelUi } from './check_model_ui.mjs'
 import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
+import { checkEmptyEditorUi, checkNoteEditorUi } from './check_note_editor_ui.mjs'
+import { checkFirstUseUi, checkFeedbackUi } from './check_usability_ui.mjs'
+import { checkRecoveryUi } from './check_recovery_ui.mjs'
+import { checkUxNotes, checkUxSources, checkViewPreference } from './check_ux_review_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', '0.1')
+const artifactDir = join(root, 'artifacts', 'test0.11')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
@@ -36,7 +40,7 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: '0.1', checks: [], screenshots: [] }
+const report = { version: 'test0.11', checks: [], screenshots: [] }
 let child, socket
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -182,9 +186,20 @@ try {
     await writeFile(join(artifactDir, name), Buffer.from(result.data, 'base64'))
     report.screenshots.push(name)
   }
+  await checkFirstUseUi({ ui, fill, click, waitFor, screenshot, report })
   await screenshot('desktop-empty.png')
   assert.equal(await ui.evaluate(`typeof require`), 'undefined')
-  report.checks.push('sandboxed renderer: Node require unavailable')
+  assert.deepEqual(
+    await ui.evaluate(`(async()=>[window.knowledgeBase.version,
+      (await window.knowledgeBase.request('bootstrap')).version,
+      document.querySelector('.sidebar-bottom small').innerText.includes('0.11') &&
+      document.querySelector('.sidebar-bottom small').innerText.includes('测试版')])()`),
+    ['test0.11', 'test0.11', true]
+  )
+  report.checks.push(
+    'sandboxed renderer: Node require unavailable; test0.11 UI/preload/worker versions agree'
+  )
+  await checkEmptyEditorUi({ ui, fill, click, waitFor, screenshot, report })
   await click('＋ 新建知识')
   await fill('.editor input', '数据库事务与一致性')
   await fill(
@@ -215,6 +230,9 @@ try {
   )
   assert.equal(await ui.evaluate('window.__noteExecuted === undefined'), true)
   report.checks.push('edit note; hostile HTML blocked and never executed')
+  await checkNoteEditorUi({ ui, fill, click, waitFor, report })
+  await checkFeedbackUi({ ui, fill, click, waitFor, report })
+  await checkUxNotes({ ui, fill, click, waitFor, screenshot, report })
   await fill('.inline-search', '天文学')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('没有找到匹配的知识')`),
@@ -234,13 +252,39 @@ try {
     () => ui.evaluate(`document.querySelector('.attachment.ready') !== null`),
     'attachment parsing'
   )
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.attachment.ready').innerText.includes('临时附件')`),
+    true
+  )
   await fill('#question', '数据库事务')
   await ui.evaluate(`(() => {
-    const input = document.querySelector('[aria-label="回答范围"]')
+    const input = document.querySelector('[aria-label="AI 学习范围"]')
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(input, 'files')
     input.dispatchEvent(new Event('change', {bubbles: true}))
   })()`)
-  await click('拆解并学习 ↗')
+  // 即使学习范围选了文件，独立全库搜索仍命中已有笔记且不调用模型。
+  await click('搜索此问题')
+  await waitFor(
+    () =>
+      ui.evaluate(`!document.querySelector('.session-task') &&
+      !!document.querySelector('.global-search-hit')`),
+    'all-library search independent of learning scope'
+  )
+  await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
+  assert.equal(
+    await ui.evaluate(`document.querySelector('[aria-label="AI 学习范围"]').value`),
+    'files'
+  )
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.learning-guide').innerText.includes('正文按需生成')`
+    ),
+    true
+  )
+  report.checks.push(
+    'explicit all-library search ignores AI file-only scope; learning guide separates planning from generation'
+  )
+  await click('生成学习目录 ↗')
   await waitFor(
     () =>
       ui.evaluate(
@@ -261,10 +305,16 @@ try {
   )
   await screenshot('desktop-citation.png')
   await ui.evaluate(`document.querySelector('[aria-label="关闭引用"]').click()`)
-  await click('保留')
+  await click('保存到资料库')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('资料已保留')`),
     'retain source'
+  )
+  assert.equal(
+    await ui.evaluate(
+      `document.querySelector('.attachment.ready').innerText.includes('已保存到资料库')`
+    ),
+    true
   )
   report.checks.push(
     'local path attachment, offline scoped evidence, safe citation modal and source retention'
@@ -276,11 +326,13 @@ try {
     () => ui.evaluate(`document.querySelector('.source-row') !== null`),
     'source library'
   )
+  await checkUxSources({ ui, click, waitFor, screenshot, report })
   await ui.evaluate(
     `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
   )
   await screenshot('desktop-settings.png')
   assert.equal(await ui.evaluate(`document.querySelector('input[type=password]') !== null`), true)
+  await checkRecoveryUi({ ui, click, waitFor, screenshot, report })
   report.checks.push('source and provider settings screens render')
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await waitFor(
@@ -288,6 +340,7 @@ try {
     'back to exploration'
   )
   await screenshot('desktop-knowledge.png')
+  await checkViewPreference({ ui, click, waitFor, report })
   await closeApp(ui)
   // 正常关闭已 flush，三端同一请求必须可关联，合成私密内容不得进入文件。
   const desktopLog = await readDiagnosticLog(join(dataDir, 'logs'), 'desktop')
@@ -321,6 +374,7 @@ try {
     () => ui.evaluate(`document.querySelector('.knowledge-card') !== null`),
     'initial page list loaded after restart'
   )
+  await checkViewPreference({ ui, click, waitFor, report }, true)
   // 真实重启增加两类新文件，之前的日志逐字保持不变。
   const restartedLogNames = await readdir(join(dataDir, 'logs'))
   assert.equal(restartedLogNames.length, firstLogNames.length + 2)

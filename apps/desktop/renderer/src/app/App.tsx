@@ -22,10 +22,20 @@ import { AppContext } from './AppContext'
 import { useAppModel } from './use_app_model'
 import { LibraryPage } from '../features/knowledge/LibraryPage'
 import { TaskStatus } from './TaskStatus'
+import { useCallback, useState } from 'react'
+import { SearchPage } from '../features/search/SearchPage'
+import { RecoverySettings } from '../features/settings/RecoverySettings'
 
 // 组合会话上下文、导航、反馈与页面布局。
 export function App() {
-  const model = useAppModel()
+  const [session, setSession] = useState(0)
+  const resetSession = useCallback(() => setSession((value) => value + 1), [])
+  return <AppSession key={session} resetSession={resetSession} />
+}
+
+// 恢复后重建所有页面状态，不通过窗口导航放开沙箱或保留旧知识选择。
+function AppSession({ resetSession }: { resetSession: () => void }) {
+  const model = useAppModel(resetSession)
   return (
     <AppContext.Provider value={model}>
       <AppShell />
@@ -57,7 +67,7 @@ function AppShell() {
         <AppContent />
         <TaskStatus />
       </main>
-      {editor && <NoteEditor />}
+      {editor && <NoteEditor key={section} />}
       {citation && <CitationDialog />}
       {(section === '探索' || isBucket(section)) && pathEntry !== null && <PathDialog />}
     </div>
@@ -95,6 +105,13 @@ function AppContent() {
       {section === '知识库' && <LibraryPage />}
       {isBucket(section) && <KnowledgePage key={section} />}
       {section === '资料库' && <SourcesPage />}
+      {section === '搜索' && <SearchPage />}
+      {section === '回收站' && (
+        <section className="panel">
+          <h1>回收站</h1>
+          <RecoverySettings mode="trash" />
+        </section>
+      )}
       {section === '设置' && <SettingsPage />}
       {section === '用量统计' && <UsagePage />}
       <PageFooter />

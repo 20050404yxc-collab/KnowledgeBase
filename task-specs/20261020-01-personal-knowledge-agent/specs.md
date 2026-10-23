@@ -1,3 +1,50 @@
+## Revision 21 requirements
+
+### AC-UX21-01 Truthful manual save
+Manual saves SHALL reject conflicting existing notes and preserve the entire draft; generated reuse SHALL remain compatible. Scenario: create a different body under an occupied title/path; old content stays intact, the editor stays open, and no saved success appears.
+
+### AC-UX21-02 Explicit generation
+Every bucket question SHALL display its model and paid-call meaning before submission. Scenario: a configured model is visible beside “生成学习目录”; no provider offers configuration and local search instead.
+
+### AC-UX21-03 Manual classification
+Notes SHALL allow optional categories on creation and version-checked offline movement from details. Scenario: move a note without model calls; search/tree update; a colliding or stale move fails without changing either note.
+
+### AC-UX21-04 Source reuse
+Retained sources SHALL offer bounded paginated reading and explicit file-only reuse using the managed copy. Scenario: remove the user original, reopen the saved source, read all pages and bring it to exploration without calling a model.
+
+### AC-UX21-05 Unified global search
+A fixed search SHALL cover saved knowledge, supplements and sources across buckets without model calls. Local filters SHALL be labeled as filters. Scenario: search while another model task runs; changing queries rejects late results and an opened hit belongs to the search page.
+
+### AC-UX21-06 Explained frequency
+Automatic buckets SHALL disclose frequency rules and provide a clear fixed override without changing existing thresholds. Scenario: the detail explains why its current bucket applies and fixed status is explicit.
+
+### AC-UX21-07 Persistent view
+Saved-tree pages SHALL default to compact lists and retain each page's selected view across restart. Scenario: choose planets on one page; restart restores it while another page remains compact; unavailable preference storage does not block browsing.
+
+### AC-UX21-08 Findable recovery and simpler organization
+Recycle SHALL have direct navigation; backup SHALL have an explicit settings tab. Organization SHALL offer category-only or content preparation with advanced implementation details collapsed. Scenario: directory-only organization needs no body preparation, duplicate groups retain existing merge safeguards, and restore remains explicit and reversible.
+
+## Revision 20 requirements
+
+- R20-01: Complete draft candidates SHALL be searchable by title/path and paginated by 30, independent of the ordinary 200-item list. Selection SHALL retain 2–8 stable IDs across queries/pages, reset on draft revision and preserve existing evidence/confirmation gates. Survivor options SHALL show titles/paths with IDs for ambiguity.
+- R20-02: Successful exploration plans/local searches SHALL collapse the composer without clearing input/attachments/options. Explicit result navigation SHALL focus the workspace. Page restoration, hidden completion and offscreen reading SHALL NOT steal scroll; failure SHALL NOT collapse.
+- R20-03: Ordinary deletion SHALL atomically archive all owned knowledge relations and remove active search entries. Persistent recycle restore SHALL reject conflicts without overwriting and survive restart. Merged group deletion remains rejected; user originals/source copies remain safe. Recycle IDs are independent from original knowledge IDs, allowing repeat delete cycles after snapshot restoration.
+- R20-04: Schema 5→6 SHALL first create a unique consistent backup; failure rolls back and blocks startup. Daily first-start database snapshots retain 7 daily copies, preserving manual/pre-restore snapshots. The UI lists the newest 30 snapshots; no claim of offsite/full-source recovery.
+- R20-05: Explicit current-format restore SHALL require no other pending request, validate a readonly snapshot, create a pre-restore snapshot, and restore the complete knowledge graph/index atomically. Current providers/accounting/source files/vault/recycle stay intact. Success invalidates backend sessions and reloads renderer after a draft-loss confirmation; failures retain current data.
+
+## Revision 19 requirements
+
+- R19-01 Without configured providers, exploration SHALL explain local note/search use and offer real note/settings actions after bootstrap. A blank new provider form SHALL offer OpenAI Responses, Anthropic Messages and custom Chat Completions starting connections without model, key or price defaults. Populated or existing forms SHALL not expose a template overwrite action. Selection SHALL not call a network/model API.
+- R19-02 Saved-library and bucket pages SHALL offer planets and compact list modes sharing full tree paths, filters, branch caches and server cursors. Mode SHALL be page-owned for the current session; changing view SHALL not read a body or reset paths. Branches with bodies SHALL have independent expand/read actions. Scenario: visit a five-level internal node in list mode, read its body and a descendant, return and switch mode without losing the path. Scenario: load all 205 entries beyond the ordinary 200-row limit.
+- R19-03 Empty filtered lists/trees SHALL offer clear-filter recovery. Saved knowledge SHALL show its actual bucket, while proposed supplements SHALL explicitly remain unsaved. Attachments SHALL distinguish temporary parsing from saving a source copy to the source library; neither implies generated knowledge capture.
+- R19-04 Knowledge deletion SHALL name the actual selected title and disclose irreversible associated-record deletion plus backup guidance. Cancel SHALL leave data intact. Settings SHALL present the actual full-data backup workflow and exclude system credentials; database-only restructure snapshots SHALL not be called complete backups. No automatic backup/restore/trash is added.
+
+## Revision 18 requirements
+
+- R18-01 The note editor SHALL retain an original per page. Closing/canceling a changed title or body SHALL require explicit discard; continuing SHALL preserve input and return focus. Unchanged/reverted input SHALL close directly. Navigation SHALL preserve the original comparison. Scenario: change body, visit another page, return and close: confirmation is still required.
+- R18-02 In-flight note saving SHALL disable fields, save, cancel and close. Failure SHALL retain editable content and the original, and permit retry; successful save SHALL release the draft and original only for that submitted draft. Scenario: invalid title is rejected by the real isolated backend, retains all input, unlocks editing and succeeds after correction.
+- R18-03 The global local-search action SHALL say 搜索全库 and explicitly disclose no model call; the independent scope SHALL say AI 学习范围. The primary action SHALL say 生成学习目录 with planning/selection/learning guidance. Existing search parameters, generation and persistence semantics SHALL remain unchanged. Scenario: choose file-only AI scope, search the whole library and find a saved note; generating a directory still respects file-only scope.
+
 ## Revision 16 requirements
 
 R16 supersedes fixed-two-level wording in earlier taxonomy and navigation requirements. Other capture, review, scope, lifecycle and preservation requirements remain in force.

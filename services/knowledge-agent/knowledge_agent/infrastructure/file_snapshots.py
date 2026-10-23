@@ -103,6 +103,10 @@ class FileSnapshots:
             raise ValueError("无效资料副本")
         return target
 
+    # 从受管理资料副本建立会话快照，沿用解析取消与清理保证。
+    async def read_retained(self, filename: str) -> Document:
+        return await self.read(str(self._retained_path(filename)))
+
     # 删除仅影响应用持有的副本，保留知识中的引用摘录。
     @traced
     def remove_retained(self, filename: str) -> None:

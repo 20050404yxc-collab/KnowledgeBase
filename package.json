@@ -1,6 +1,6 @@
 {
   "name": "knowledgebase",
-  "version": "0.1.0",
+  "version": "0.11.0-test.0",
   "private": true,
   "description": "Local-first personal knowledge desktop application",
   "engines": {

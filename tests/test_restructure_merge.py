@@ -259,11 +259,12 @@ def test_price_upgrade_retains_existing_merge_group(merge_case):
     call(service, "library.restructure.apply", {**value, "selected": [first["id"]]})
     store = service.store
     store.db.execute("DROP TABLE provider_model_prices")
+    store.db.execute("DROP TABLE knowledge_trash")
     store.db.execute("PRAGMA user_version=4")
     store.db.commit()
     reopened = Store(store.root)
     try:
-        assert reopened.db.execute("PRAGMA user_version").fetchone()[0] == 5
+        assert reopened.db.execute("PRAGMA user_version").fetchone()[0] == 6
         current = reopened.get(second["id"])
         assert current["id"] == first["id"] and current["original_sources"]
         assert reopened.search({"query": "仅限乙条件"})["total"] == 1

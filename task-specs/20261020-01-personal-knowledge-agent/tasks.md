@@ -1,3 +1,42 @@
+## Revision 21 execution
+
+- [x] 21.1 Strict manual save, optional categories and version-checked movement (AC-UX21-01/03).
+- [x] 21.2 Retained-source read/reuse and safe snapshot ownership (AC-UX21-04).
+- [x] 21.3 Global search and explicit model/call controls (AC-UX21-02/05).
+- [x] 21.4 Frequency explanation, persistent compact default, recycle/backup and organization choices (AC-UX21-06/07/08).
+- [x] 21.5 Add behavioral failure/ordering/rollback regressions and reconcile Chinese documentation.
+- [x] 21.6 Run project checks, isolated desktop tests and wide/narrow visual QA; record limits.
+
+Handoff: authorized revision 21 implemented and verified; no blocker. Full check: 293 Python / 27 host tests. Final desktop run: 49 entries / 61 screenshots. Existing dirty R18–R20 worktree preserved. Subsequent user instruction authorizes source version test0.11 and a local Git commit, deferring installers; no production/paid validation, push or release is claimed.
+
+## Revision 20 execution
+
+- [x] Trace candidate canonical identities, page task ownership, deletion relations, migration and restore lifecycle.
+- [x] Implement title/path candidate selection, named survivor and page-owned composer collapse/result navigation.
+- [x] Implement backed-up schema-6 migration, persistent recycle restore, daily/manual/pre-restore snapshots and explicit scoped restore UI/contracts.
+- [x] Complete failure/conflict/restart/concurrency tests, project and desktop checks; visually review wide/narrow artifacts.
+- [x] Reconcile current Chinese docs/English evidence, links and final diff.
+
+R20 handoff: implemented and verified; full check passed (284 Python / 27 host tests), final isolated desktop regression passed (44 entries / 52 screenshots). Recovery wide/narrow, candidate selection and results screenshots reviewed. Final formatting, standards, git diff whitespace and 11 changed Markdown file-target/fence checks passed. No production data/credentials, paid calls, commit, push or release. Persistent unsaved-draft recovery remains unsupported; same-volume snapshots restore only the documented knowledge scope.
+
+## Revision 19 implementation
+
+- [x] R19.1 Trace relevant tree navigation/cache, provider discovery/draft, capture/read state and storage guidance; preserve R18 work.
+- [x] R19.2 Implement first-use/configuration guidance, complete compact browsing and feedback improvements (R19-01/02/03).
+- [x] R19.3 Implement named deletion confirmation and backup instructions without storage mutations (R19-04).
+- [x] R19.4 Verify complete pagination, deep internal/leaf read, page/filter ownership, template draft protection, canceled deletion and wide/narrow layouts using isolated data.
+- [x] R19.5 Run required project/UI checks, visually review artifacts and reconcile the existing Chinese/English records with actual evidence.
+
+R19 handoff: first-use actions and connection presets, page-owned complete compact browsing, bounded scrolling, saved/unsaved feedback, named deletion and offline backup guide implemented. Required full project checks and final desktop regression passed. Screenshots and docs reviewed; no production data, paid calls, schema/protocol/version changes or publication. Candidate title picker, automatic composer collapse/result focus, persistent drafts and trash/automated restore remain deferred.
+
+## Revision 18 execution
+
+- [x] Inspect note state/setters, save lifecycle, scope/actions and dependent UI regressions; reuse existing task and product page.
+- [x] Implement per-page original comparison, explicit discard, saving lock, accurate labels and guidance.
+- [x] Add isolated editor failure/retry/navigation and scope regression coverage; update dependent action selectors.
+- [x] Run npm run check and npm run test:ui; inspect wide/narrow screenshots.
+- [x] Reconcile docs and evidence; inspect final diff and report first-batch limits.
+
 ## Revision 16 execution
 
 - [x] R16.1 Reuse existing task/pages; record explicit authorization, scope, compatibility and wireframe/sequence.

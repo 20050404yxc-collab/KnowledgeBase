@@ -15,6 +15,7 @@ async function choose(ui, selector, value) {
 async function checkPaths(context) {
   const { ui, fill, click, waitFor, screenshot, fixture } = context
   await click('编辑')
+  assert.equal(await ui.evaluate(`!!document.querySelector('.provider-presets')`), false)
   await fill('.provider-form input[placeholder="例如：我的 GPT 接口"]', '设置保留草稿')
   fixture.state.slow = null
   await fill('.provider-form input[type=url]', fixture.url.replace('/v1', '/slow/v1'))
@@ -37,6 +38,9 @@ async function checkPaths(context) {
   assert.equal(await ui.evaluate(`document.querySelectorAll('.storage-row button').length`), 3)
   await ui.evaluate(`window.scrollTo(0,0)`)
   await screenshot('desktop-storage-settings.png')
+  await click('备份与恢复')
+  await ui.evaluate(`document.querySelector('.backup-guide').scrollIntoView({block:'center'})`)
+  await screenshot('desktop-backup-guide.png')
   await ui.command('Emulation.setDeviceMetricsOverride', {
     width: 900,
     height: 850,
@@ -44,8 +48,12 @@ async function checkPaths(context) {
     mobile: false
   })
   try {
+    await click('存储与日志')
     assert.equal(await ui.evaluate(`document.documentElement.scrollWidth<=window.innerWidth`), true)
     await screenshot('desktop-storage-settings-narrow.png')
+    await click('备份与恢复')
+    await ui.evaluate(`document.querySelector('.backup-guide').scrollIntoView({block:'center'})`)
+    await screenshot('desktop-backup-guide-narrow.png')
   } finally {
     await ui.command('Emulation.clearDeviceMetricsOverride')
   }

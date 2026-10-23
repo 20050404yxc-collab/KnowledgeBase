@@ -8,11 +8,19 @@ import { useAppContext } from '../../app/AppContext'
 
 // 显示当前生成接口及提问范围说明。
 export function ComposerCaption() {
-  const { activeProvider, generationOptions, chooseModel, chooseEffort, busy, selectionNotice } =
-    useAppContext()
+  const {
+    activeProvider,
+    generationOptions,
+    chooseModel,
+    chooseEffort,
+    busy,
+    selectionNotice,
+    setSection
+  } = useAppContext()
   return (
     <div className="composer-caption">
       <span>⌁ {activeProvider ? activeProvider.name : '本地模式 · 配置 API 后可生成学习内容'}</span>
+      {!activeProvider && <button onClick={() => setSection('设置')}>配置模型接口</button>}
       {activeProvider && (
         <ModelPicker
           provider={activeProvider}
@@ -24,7 +32,7 @@ export function ComposerCaption() {
       )}
       {selectionNotice && <small role="status">{selectionNotice}</small>}
       <span>
-        关键词检索 <span className="caption-dot">·</span> Ctrl + Enter 发送
+        全库搜索不调用模型 <span className="caption-dot">·</span> Ctrl + Enter 生成目录
       </span>
     </div>
   )

@@ -5,6 +5,7 @@
 from __future__ import annotations
 
 import asyncio
+import copy
 import uuid
 
 from knowledge_agent.diagnostics import traced
@@ -126,6 +127,10 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         draft = self.require(params)
         if draft["receipt"]:
             return draft["receipt"]
+        if params.get("directory_only") is True and draft["status"] == "outline":
+            if params.get("selected", []) != []:
+                raise ValueError("请完成当前结构和内容差异核对后确认")
+            return await self.apply_directory(draft)
         selected = params.get("selected", [])
         allowed = {s["id"] for s in draft["suggestions"]}
         if (
@@ -145,6 +150,21 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         draft.update(receipt=result, status="applied")
         return result
 
+    # 分类确认复用结构校验，不启动正文生成；失败不改变待确认草案。
+    async def apply_directory(self, draft: dict) -> dict:
+        if draft["busy"]:
+            raise ValueError("该重构阶段仍在执行")
+        working = copy.deepcopy({key: value for key, value in draft.items() if key != "children"})
+        working["children"] = []
+        self.approve_structure(working)
+        if working["merges"]:
+            raise ValueError("合并必须整体接受完整原文整理稿，不能仅应用含合并的目录")
+        await asyncio.sleep(0)
+        self.ensure_active(draft)
+        result = self.store.apply_library(working, [])
+        draft.update(receipt=result, status="applied")
+        return result
+
     # 成功或失败后均可重新获取真实状态，不会启动模型。
     @traced
     def preview(self, params: dict) -> dict:
@@ -161,6 +181,22 @@ class LibraryRestructure(LibraryPlanning, LibraryPreparation):
         if not isinstance(kind, str) or kind not in sizes or type(page) is not int or page < 0:
             raise ValueError("重构预览分页无效")
         values = preview_values(draft, kind)
+        if kind == "outline":
+            query = params.get("query", "")
+            if not isinstance(query, str) or len(query) > 200:
+                raise ValueError("候选搜索词无效，请使用 200 字以内的标题或路径")
+            words = query.casefold().split()
+            values = [
+                value
+                for value in values
+                if all(
+                    word
+                    in " ".join(
+                        [value["title"], *parent_path(value), *value["old_path"]]
+                    ).casefold()
+                    for word in words
+                )
+            ]
         total = len(values)
         values = values[page * sizes[kind] : (page + 1) * sizes[kind]]
         if kind == "suggestions":
@@ -326,6 +362,11 @@ def preview_values(draft: dict, kind: str) -> list[dict]:
                 **{key: value for key, value in g.items() if key != "evidence"},
                 "evidence": g["evidence"][:1],
                 "evidence_total": len(g["evidence"]),
+                "source_details": [
+                    {"id": point["id"], "title": point["title"], "path": parent_path(point)}
+                    for point in draft["outline"]
+                    if point["id"] in g["sources"]
+                ],
             }
             for g in draft["duplicates"]
         ]

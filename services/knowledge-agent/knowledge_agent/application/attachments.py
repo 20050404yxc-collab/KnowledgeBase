@@ -38,6 +38,29 @@ class Attachments:
         self.documents[document["id"]] = document
         return self.info(document)
 
+    # 保存资料重新挂到会话；在途删除和重复完成都清理多余临时副本。
+    @traced
+    async def reuse(self, item_id: str) -> dict:
+        source = next((s for s in self.store.list_sources() if s["id"] == item_id), None)
+        filename = self.store.source_filename(item_id)
+        if not source or not filename:
+            raise ValueError("资料不存在或已删除")
+        # 已在当前会话时复用，避免同一资料占用多个副本。
+        if item_id in self.documents:
+            return self.info(self.documents[item_id])
+        document = await self.snapshots.read_retained(filename)
+        # 等待期间资料可能被删除；不能把已删除资料登记成长期保留。
+        if not self.store.has_source(item_id):
+            self.snapshots.remove_temporary(document)
+            raise ValueError("资料不存在或已删除")
+        document.update(id=item_id, name=source["name"], retained=True)
+        existing = self.documents.get(item_id)
+        if existing:
+            self.snapshots.remove_temporary(document)
+            return self.info(existing)
+        self.documents[item_id] = document
+        return self.info(document)
+
     # 保存顺序为复制、原子写入元数据；写入失败补偿副本。
     @traced
     def retain(self, item_id: str) -> list[dict]:

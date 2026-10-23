@@ -68,7 +68,10 @@ class ProtocolRuntime:
             send({**event, "id": request_id})
 
         try:
+            # 整库恢复必须独占会话；后台生成和解析仍在途时拒绝，避免晚到提交覆盖恢复结果。
             with step("request.dispatch"):
+                if message["operation"] == "recovery.restore" and len(self.tasks) > 1:
+                    raise ValueError("请等待其他任务结束后恢复知识库")
                 result = await dispatch(
                     self.service, message["operation"], message.get("params", {}), emit
                 )
@@ -118,7 +121,7 @@ class ProtocolRuntime:
 
     # EOF 和超大帧结束会话；格式错误可恢复，后续合法请求仍能执行。
     async def run(self) -> None:
-        send({"type": "ready", "version": "0.1"})
+        send({"type": "ready", "version": "test0.11"})
         record("worker.ready")
         try:
             while True:

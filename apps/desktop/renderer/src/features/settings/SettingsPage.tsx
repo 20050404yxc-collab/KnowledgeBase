@@ -7,6 +7,8 @@ import type { StoragePaths, StorageDirectory } from '../../../../../../contracts
 import { ProviderSettings } from '../providers'
 import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
+import { BackupGuide } from './BackupGuide'
+import { RecoverySettings } from './RecoverySettings'
 
 // 页内切换保持未保存接口草稿的状态，离开 API 表单仍取消模型发现。
 export function SettingsPage() {
@@ -27,8 +29,18 @@ export function SettingsPage() {
         <button role="tab" aria-selected={tab === 'storage'} onClick={() => setTab('storage')}>
           存储与日志
         </button>
+        <button role="tab" aria-selected={tab === 'backup'} onClick={() => setTab('backup')}>
+          备份与恢复
+        </button>
       </div>
-      {tab === 'api' ? <ProviderSettings /> : <StorageSettings />}
+      {tab === 'api' && <ProviderSettings />}
+      {tab === 'storage' && <StorageSettings />}
+      {tab === 'backup' && (
+        <section className="panel">
+          <BackupGuide />
+          <RecoverySettings mode="backup" />
+        </section>
+      )}
     </>
   )
 }

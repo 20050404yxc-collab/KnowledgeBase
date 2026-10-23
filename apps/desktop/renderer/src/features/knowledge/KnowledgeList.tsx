@@ -20,7 +20,7 @@ export function KnowledgeList() {
         <input
           className="inline-search"
           aria-label="筛选已有知识"
-          placeholder="⌕  搜索已有知识"
+          placeholder="⌕  筛选当前列表"
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
         />
@@ -38,9 +38,15 @@ export function KnowledgeList() {
               ? '试试其他关键词；当前未启用语义检索。'
               : '新建一条笔记，或配置 API 后提问。完整的新知识会自动积累。'}
           </p>
-          <button className="secondary" onClick={() => setEditor({ title: '', content: '' })}>
-            ＋ 写下第一条知识
-          </button>
+          {filter ? (
+            <button className="secondary" onClick={() => setFilter('')}>
+              清除筛选
+            </button>
+          ) : (
+            <button className="secondary" onClick={() => setEditor({ title: '', content: '' })}>
+              ＋ 写下第一条知识
+            </button>
+          )}
         </div>
       )}
     </section>

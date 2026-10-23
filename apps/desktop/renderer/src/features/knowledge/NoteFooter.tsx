@@ -32,7 +32,13 @@ export function NoteFooter() {
         {!selected.content_chars && (
           <button
             onClick={() =>
-              setEditor({ id: selected.id, title: selected.title, content: selected.content })
+              setEditor({
+                id: selected.id,
+                title: selected.title,
+                content: selected.content,
+                category_path: selected.category_path,
+                version: selected.version
+              })
             }
           >
             编辑
@@ -41,7 +47,12 @@ export function NoteFooter() {
         <button
           className="danger-text"
           onClick={() => {
-            if (confirm('删除这条知识？所属补充、索引与使用记录会一并删除，此操作不可撤销。')) {
+            // 显式展示操作对象；取消不发请求，确认后仍沿用后台原子删除与限制。
+            if (
+              confirm(
+                `将知识「${selected.title}」移到回收站？\n正文、补充、分类与使用记录将一并保留，可从左侧“回收站”恢复。`
+              )
+            ) {
               void guarded(async () => {
                 const sequence = selectionSequence.current
                 await api.request('knowledge.delete', { id: selected.id })

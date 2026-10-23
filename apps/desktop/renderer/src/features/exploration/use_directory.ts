@@ -2,7 +2,7 @@
 // 层：React 交互 hook
 // 作用：关联本地检索、知识目录和选中项学习请求。
 // 说明：执行归会话任务，结果归发起页面；阅读选择不取消批量。
-import { useEffect, useRef } from 'react'
+import { useEffect, useLayoutEffect, useRef } from 'react'
 import { usePageState } from '../../shared/use_page_state'
 import type {
   DirectoryPoint,
@@ -43,6 +43,9 @@ function useDirectoryState(options: Options) {
   const [checkedPoints, setCheckedPoints] = usePageState<string[]>(page, [])
   const [outcomes, setOutcomes] = usePageState<Record<string, BatchOutcome>>(page, {})
   const [questionDraft, setQuestionDraft] = usePageState(page, '')
+  const [composerCollapsed, setComposerCollapsed] = usePageState(page, false)
+  const [resultArrival, setResultArrival] = usePageState(page, 0)
+  useSourceArrival(options, composerCollapsed, setComposerCollapsed)
   const paramsByPage = useRef<Record<string, { current: RequestMap['knowledge.search'] }>>({})
   const searchParams = (paramsByPage.current[page] ??= { current: { query: '', page: 0 } })
   const ownRequest = options.activeRequest
@@ -67,6 +70,10 @@ function useDirectoryState(options: Options) {
     outcomes,
     setOutcomes,
     questionDraft,
+    composerCollapsed,
+    setComposerCollapsed,
+    resultArrival,
+    setResultArrival,
     setQuestionDraft,
     searchParams,
     ownRequest,
@@ -97,6 +104,29 @@ function useDirectoryState(options: Options) {
     targetId
   )
   return { ...state, run }
+}
+
+// 显式复用资料后展开并聚焦问题；普通切页沿用阅读位置，不重复抢焦点。
+function useSourceArrival(
+  options: Options,
+  collapsed: boolean,
+  collapse: (value: boolean) => void
+) {
+  const consumed = useRef(0)
+  useLayoutEffect(() => {
+    if (options.section !== '探索' || options.sourceArrival === consumed.current) {
+      return
+    }
+    // 展开提交后再领取本次到达；布局阶段在页面滚动恢复之后定位输入。
+    if (collapsed) {
+      collapse(false)
+      return
+    }
+    consumed.current = options.sourceArrival
+    const input = document.getElementById('question')
+    input?.scrollIntoView({ block: 'center' })
+    input?.focus({ preventScroll: true })
+  }, [options.section, options.sourceArrival, collapsed])
 }
 
 // 目录状态和请求生命周期归同一 hook，批量调用仍受全局忙碌和取消约束。
@@ -233,6 +263,8 @@ async function planAction(options: Options, state: State) {
   if (!options.taskCancelled.current && state.mounted.current) {
     state.setDirectory(plan)
     state.setSearchResult(plan.search)
+    state.setComposerCollapsed(true)
+    state.setResultArrival((value) => value + 1)
     options.setMessage(plan.notice)
   }
 }
@@ -247,6 +279,8 @@ async function searchAction(options: Options, state: State, page?: number) {
   if (sequence === options.selectionSequence.current && state.mounted.current) {
     state.setSearchResult(result)
     if (page === undefined) {
+      state.setComposerCollapsed(true)
+      state.setResultArrival((value) => value + 1)
       state.setDirectory(null)
       state.setOutcomes({})
       state.setCheckedPoints([])

@@ -142,13 +142,13 @@ function SuggestionTextPages({ page, pages }: { page: number; pages: number }) {
 // 状态按钮严格区分规划、确认目录、继续准备与最终应用。
 export function RestructurePanel() {
   const model = useAppContext()
-  const { restructureDraft: draft, busy, restructureFeedback, setRestructureFeedback } = model
+  const { restructureDraft: draft, busy } = model
   if (!draft) {
     return null
   }
   return (
-    <section className="restructure-panel" aria-label="知识库重构">
-      <h2>重构知识库</h2>
+    <section className="restructure-panel" aria-label="知识库整理">
+      <h2>整理知识库</h2>
       <RestructureMemory />
       <p>
         概览 {draft.covered}/{draft.total} · 已归类 {draft.classified}/{draft.total} · 已准备更新{' '}
@@ -164,25 +164,7 @@ export function RestructurePanel() {
       )}
       {draft.status === 'outline' && (
         <>
-          <OutlinePreview />
-          <label>
-            目录调整意见
-            <input
-              value={restructureFeedback}
-              disabled={!!busy}
-              onChange={(event) => setRestructureFeedback(event.target.value)}
-            />
-          </label>
-          <button disabled={!!busy} onClick={() => void model.planRestructure()}>
-            根据意见调整当前方案
-          </button>
-          <button
-            className="primary"
-            disabled={!!busy}
-            onClick={() => void model.prepareRestructure()}
-          >
-            确认目录，准备内容调整
-          </button>
+          <OutlineConfirmation />
         </>
       )}
       {draft.status === 'ready' && (
@@ -211,9 +193,9 @@ export function RestructurePanel() {
           </button>
         </>
       )}
-      {draft.status === 'applied' && <p role="status">重构已保存，目录与搜索已同步。</p>}
+      {draft.status === 'applied' && <p role="status">整理已保存，目录与搜索已同步。</p>}
       <button disabled={!!busy} onClick={() => void model.discardRestructure()}>
-        {draft.status === 'applied' ? '关闭重构结果' : '取消并丢弃草案'}
+        {draft.status === 'applied' ? '关闭整理结果' : '取消并丢弃草案'}
       </button>
     </section>
   )
@@ -233,5 +215,45 @@ function RestructureMemory() {
       <p>调整沿用当前目录和成功分析；记忆保留至关闭应用或丢弃草案。</p>
       <p>先确定完整分类路径，再比较同一知识、提出合并方案；确认后核验全文并融合正文。</p>
     </details>
+  )
+}
+
+// 分类和正文确认分开呈现，切换模式不启动模型。
+function OutlineConfirmation() {
+  const model = useAppContext()
+  const { busy, restructureFeedback, setRestructureFeedback } = model
+  return (
+    <>
+      <OutlinePreview />
+      <label>
+        目录调整意见
+        <input
+          value={restructureFeedback}
+          disabled={!!busy}
+          onChange={(event) => setRestructureFeedback(event.target.value)}
+        />
+      </label>
+      <button disabled={!!busy} onClick={() => void model.planRestructure()}>
+        根据意见调整当前方案
+      </button>
+      <button
+        className="primary"
+        disabled={!!busy}
+        onClick={() =>
+          void (model.organizationMode === 'categories'
+            ? model.applyRestructure(true)
+            : model.prepareRestructure())
+        }
+      >
+        {model.organizationMode === 'categories'
+          ? '确认目录并仅整理分类'
+          : '确认目录，准备内容调整'}
+      </button>
+      {model.organizationMode === 'categories' && (
+        <button disabled={!!busy} onClick={() => model.setOrganizationMode('content')}>
+          改为准备内容调整（含合并）
+        </button>
+      )}
+    </>
   )
 }

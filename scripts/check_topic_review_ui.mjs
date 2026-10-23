@@ -18,7 +18,7 @@ export async function checkTopicReviewUi(context) {
     )
     await waitFor(() => ui.evaluate(`!!document.querySelector('#question')`), 'exploration form')
     await ui.evaluate(`(() => {
-      const select = document.querySelector('[aria-label="回答范围"]')
+      const select = document.querySelector('[aria-label="AI 学习范围"]')
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'knowledge')
       select.dispatchEvent(new Event('change',{bubbles:true}))
     })()`)
@@ -26,7 +26,7 @@ export async function checkTopicReviewUi(context) {
       `window.knowledgeBase.request('knowledge.save',{title:'审核回归本地知识',content:'无需调用模型即可打开的本地知识'})`
     )
     await fill('#question', '审核回归本地知识')
-    await click('拆解并学习 ↗')
+    await click('生成学习目录 ↗')
     await waitFor(
       () =>
         ui.evaluate(

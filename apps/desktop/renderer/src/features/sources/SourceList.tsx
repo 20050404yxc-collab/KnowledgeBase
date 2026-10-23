@@ -5,10 +5,22 @@
 
 import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
+import { useState } from 'react'
+import { SourceReader } from './SourceReader'
 
 // 显示已保留资料的解析信息与删除入口。
 export function SourceList() {
-  const { guarded, sources, setSources, setAnswer, setSelected, setAttachments } = useAppContext()
+  const {
+    guarded,
+    sources,
+    setSources,
+    setAnswer,
+    setSelected,
+    setAttachments,
+    busy,
+    reuseSource
+  } = useAppContext()
+  const [reading, setReading] = useState<string | null>(null)
   return (
     <div className="source-list">
       {sources.length ? (
@@ -29,7 +41,12 @@ export function SourceList() {
                 </details>
               )}
             </div>
+            <button onClick={() => setReading(source.id)}>查看内容</button>
+            <button disabled={!!busy} onClick={() => void reuseSource(source.id)}>
+              基于此资料提问
+            </button>
             <button
+              disabled={!!busy}
               className="danger-text"
               onClick={() => {
                 if (
@@ -44,6 +61,7 @@ export function SourceList() {
                     )
                     setSelected(null)
                     setAnswer(null)
+                    setReading((current) => (current === source.id ? null : current))
                   })
                 }
               }}
@@ -59,6 +77,7 @@ export function SourceList() {
           <p>在探索页加入附件，解析后点击“保留”。临时文件不会自动进入资料库。</p>
         </div>
       )}
+      {reading && <SourceReader key={reading} id={reading} close={() => setReading(null)} />}
     </div>
   )
 }

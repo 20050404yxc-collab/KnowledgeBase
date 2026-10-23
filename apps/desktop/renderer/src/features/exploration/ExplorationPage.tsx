@@ -8,6 +8,7 @@ import { useAppContext } from '../../app/AppContext'
 import { ExplorationHeading } from './ExplorationHeading'
 import { Composer } from './Composer'
 import { ComposerCaption } from './ComposerCaption'
+import { FirstUseGuide } from './FirstUseGuide'
 import { DirectoryPanel } from './DirectoryPanel'
 import { PointActions } from './PointActions'
 import { ProjectMaterials } from './ProjectMaterials'
@@ -24,6 +25,7 @@ export function ExplorationPage() {
   return (
     <>
       <ExplorationHeading />
+      <FirstUseGuide />
       <Composer />
       <ComposerCaption />
       {busy && <WorkingStatus />}
@@ -38,7 +40,12 @@ export function ExplorationPage() {
 export function KnowledgeWorkspace() {
   const { directory, searchResult, visibleContent, selectedPoint } = useAppContext()
   return (
-    <div className={directory || searchResult ? 'knowledge-workspace' : ''}>
+    <div
+      id="learning-results"
+      tabIndex={-1}
+      aria-label="学习与检索结果"
+      className={directory || searchResult ? 'knowledge-workspace' : ''}
+    >
       <DirectoryPanel />
       <div className="directory-detail" aria-label="知识点生成与详情">
         <BatchPanel />

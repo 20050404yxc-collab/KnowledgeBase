@@ -73,13 +73,13 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 `knowledge.tree` 输入 `{query?,bucket?,path?:string[],cursor?}`；路径递归查询下一层，最多 65 段（含知识标题），每页最多 50 节点，结果为 `{nodes,total,revision,next_cursor,content_id?}`；可选 `content_id` 为当前节点正文 ID，空字符串表示没有唯一正文。bucket 先过滤再聚合，查询包含标题、正文、分类与补充；无旧列表上限。游标绑定搜索、分区、完整路径及当前层结果摘要，目录变化拒绝旧游标。节点的可选 `children:boolean` 指示是否有下级，正文 ID 可与下级同时存在；缺少标记时适配旧无 ID 即分支规则。旧显示别名碰撞时，正文以各自稳定 ID 独立列出，详情仍走 `knowledge.get`；展开不增加使用日。
 
-| 操作                          | 参数和状态                                                                                                                                                                             |
-| ----------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance,retry,review`；初始化／重规划；advance 一轮最多两分析块或一个分类／核验阶段；paused 必须显式 retry                                  |
-| `library.restructure.prepare` | `{draft_id,revision,retry?}`；明确确认当前结构后，核验拟合并组并逐个完整原文块生成重组正文                                                                                             |
-| `library.restructure.preview` | `{draft_id,revision,kind,page?,evidence_page?,text_page?}`；outline 每页 30，suggestions／records／sources／duplicates 每页 1；summary 只同步状态；重复组证据另按 evidence_page 每页 1 |
-| `library.restructure.apply`   | `{draft_id,revision,selected:string[]}`；仅 ready 可提交；每个合并保留点 ID 必须选中其完整重组稿；本轮不另生成模型解释建议；无合并时空数组仅改目录                                     |
-| `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                                |
+| 操作                          | 参数和状态                                                                                                                                                                                                                                                                    |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `library.restructure.plan`    | 模型选项及可选 `draft_id,revision,feedback,advance,retry,review`；初始化／重规划；advance 一轮最多两分析块或一个分类／核验阶段；paused 必须显式 retry                                                                                                                         |
+| `library.restructure.prepare` | `{draft_id,revision,retry?}`；明确确认当前结构后，核验拟合并组并逐个完整原文块生成重组正文                                                                                                                                                                                    |
+| `library.restructure.preview` | `{draft_id,revision,kind,page?,evidence_page?,text_page?}`；outline 每页 30，suggestions／records／sources／duplicates 每页 1；summary 只同步状态；重复组证据另按 evidence_page 每页 1                                                                                        |
+| `library.restructure.apply`   | `{draft_id,revision,selected:string[],directory_only?:boolean}`；默认仅 ready 可提交；outline 时显式 directory_only=true 可通过完整结构校验直接保存分类，拒绝拟合并且不调用正文模型；每个合并保留点 ID 必须选中其完整重组稿；本轮不另生成模型解释建议；无合并时空数组仅改目录 |
+| `library.restructure.discard` | `{draft_id,revision}`；先失效再取消并等待两路子任务，返回后无子请求在途                                                                                                                                                                                                       |
 
 `review` 为 `point`（id/title/category_path，缺少新路径时兼容 category/subcategory）、`candidate`（2 至 8 个当前来源 ID）或 `decision`（组 ID、merge/keep/undecided）。merge 必须同时传组内 target_id、title、完整 category_path（或旧 category/subcategory）和明确的 manual_bucket（合法分区或 null）。每次成功结构修改产生新 revision，清空结构确认、内容稿和选择；重新候选须重新核验原文。未知 ID、交叉组及同路径同名阻止结构准备；未决定组默认保持独立；related/conflict 不可合并。
 
@@ -91,9 +91,9 @@ preload 校验未知结果及事件；IPC 校验主窗口主 frame、操作白�
 
 schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来源行，新增 canonical 映射、原始版本与整理 provenance；高于 4 拒绝。全库正文／补充／引用／手工分区／分类／来源映射版本变化使 apply 失效，使用日不影响快照。最终提交前唯一恢复点，事务检查和映射／分类／内容／索引原子写入，收据含 source_count/target_count/groups，重复成功提交幂等。版本号、数据目录、凭据服务名不变；仅隔离库验证迁移。
 
-`knowledge.get` 默认沿旧 ID 解析保留点，并返回可选 original_sources（source_id/version/title/chunks）。以 `{id,original:true,source_id,version,page?}` 逐个 7000 字符片段只读打开原版本，返回 read_only/original_locator/original_page/original_total，不记录使用日。常规 get／编辑／分区／补充均作用于 canonical；树、列表、搜索和复用排除独立隐藏来源，但原内容可检索为保留点。使用日按组内自然日集合计算。合并组普通删除拒绝；未合并知识正常删除其关联快照。恢复方法见 [使用说明](../README.md#重构知识库)。
+`knowledge.get` 默认沿旧 ID 解析保留点，并返回可选 original_sources（source_id/version/title/chunks）。以 `{id,original:true,source_id,version,page?}` 逐个 7000 字符片段只读打开原版本，返回 read_only/original_locator/original_page/original_total，不记录使用日。常规 get／编辑／分区／补充均作用于 canonical；树、列表、搜索和复用排除独立隐藏来源，但原内容可检索为保留点。使用日按组内自然日集合计算。合并组普通删除拒绝；未合并知识正常删除其关联快照。恢复方法见 [使用说明](../README.md#整理知识库)。
 
-普通 `question`／推荐拓展新增收录要求模型返回合法 `category_path`（兼容旧 `category/subcategory`），与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建暂留未分类，不隐式外发。
+普通 `question`／推荐拓展新增收录要求模型返回合法 `category_path`（兼容旧 `category/subcategory`），与正文原子保存；严格 files 范围不读取旧库分类。旧知识复用不为补分类重复调用模型，手工新建可选分类，留空未分类，不隐式外发。
 
 ## Settings and full-history usage
 
@@ -104,3 +104,23 @@ schema 4 通过一致性唯一备份和单事务从 3 增量升级，保留来�
 Preload exposes `storagePaths()` and `openDirectory('data'|'logs'|'sources')` as fixed Electron capabilities, independently of Python operations. The main host checks the active window/main-frame identity and request identifier; it resolves paths from the worker's data root and accepts no arbitrary path. The paths DTO contains `data`, `database`, `sources`, `logs`. Path access/open errors carry correlation identifiers. Paths cannot be edited or migrated by this interface.
 
 Model-price persistence upgrades schema 4 to 5 with a unique consistent backup and transactional rollback, after schema 4 merge migration. Existing default prices migrate only to that default model. Unsupported higher schemas are rejected.
+
+## Recovery and candidate usability (revision 20)
+
+`library.restructure.preview` accepts optional `query` (string, at most 200 characters) for outline title/current-path/original-path filtering before the existing 30-item page; full draft coverage is retained. Duplicate groups may include `source_details: [{id,title,path}]` for title-based choices; existing IDs and evidence gates remain canonical.
+
+`recycle.list({page?:number})` returns `{items:[{id,title,deleted_at}],total,page}` with 30 deletion-event summaries per page. `knowledge.delete` retains its `{deleted:boolean}` result but archives owned knowledge relations atomically; merged groups still reject deletion. `recycle.restore({id})` returns `{restored:boolean}` only on complete restoration; conflicts preserve both current data and the archived event. IDs identify independent deletion events, not knowledge IDs.
+
+`recovery.list({})` returns newest 30 `{id,created_at,kind}` points (Unix seconds; kind daily/manual/before). `recovery.create({})` returns `{backup}`. `recovery.restore({id})` accepts only managed current-schema snapshot names, returns `{restored,backup}` after atomic knowledge-only restoration and rejects when another protocol request remains pending. It preserves current providers, accounting, source metadata/files, vault and recycle; success invalidates backend topic/restructure/edit sessions. Renderer must reload to invalidate its old snapshots. Restore creates a unique pre-restore snapshot; validation/write errors never report success.
+
+Schema 6 adds the persistent recycle table after a unique consistent `before-recovery-v6-*.sqlite3` backup and transactional migration. Unknown versions above 6 reject startup. Daily first-start snapshots retain 7 daily files; manual/pre-restore snapshots are not automatically pruned. These database snapshots are on the same data volume and do not replace offline full-directory or offsite backups.
+
+### 手写笔记、分类移动与资料复用（修订 21）
+
+`knowledge.save` 接受 `{id?,title,content,category_path?,version?}`：手写保存不按标题或正文静默复用，冲突报错；仅显式已有 ID 编辑。新增分类为空数组表示未分类；缺字段保留已有分类（包括旧自由主题）。同父级同标题拒绝；不同父级可同名。UI 编辑携带打开时 version，过期拒绝；旧客户端缺版本仍兼容。标题、正文、分类和搜索索引事务提交，保留引用、模型、补充与使用日。生成用例仍沿用原有复用规则。
+
+新增 `knowledge.move`：`{id,version,category_path:string[]}`，返回 Knowledge；必需当前版本、完整合法父级或空数组。只移动分类并刷新索引，不上传／改写正文、引用或补充。无 schema 或数据位置变更。
+
+新增 `sources.read`：`{id,page?}` 返回 `{name,page,pages,items:Citation[]}`；从保存解析块只读分页，每段最多 12000 字符，保留来源位置；非法页或已删除资料报错，不依赖用户原路径。新增 `sources.attach`：`{id}` 返回 Attachment；从经过管理目录校验的保留副本建立会话快照，复用同会话 ID；在途删除、解析取消和重复完成均释放多余临时文件。挂载本身不调用模型，后续学习仍须用户提交且受显式附件范围约束。
+
+全局搜索固定使用现有 `knowledge.search` 的 `scope=knowledge`，涵盖所有保存知识、补充和资料，不继承 AI 学习范围；不占用模型任务。页面筛选只作用当前列表。树视图偏好仅在渲染器 localStorage 保存各页视图名称，默认 list，失败退回内存，不写知识数据。

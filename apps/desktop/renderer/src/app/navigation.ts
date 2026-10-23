@@ -9,8 +9,10 @@ export const sections = [
   '在学',
   '归档',
   '资料库',
+  '搜索',
+  '回收站',
   '设置',
   '用量统计'
 ] as const
 export type Section = (typeof sections)[number]
-export const icons = ['⌕', '▦', '☆', '▤', '▣', '▱', '⚙', '◷']
+export const icons = ['⌕', '▦', '☆', '▤', '▣', '▱', '⌕', '♲', '⚙', '◷']

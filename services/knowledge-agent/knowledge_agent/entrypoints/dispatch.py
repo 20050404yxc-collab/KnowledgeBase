@@ -14,10 +14,15 @@ def validate_params(operation: str, params: dict) -> None:
     id_operations = {
         "knowledge.get",
         "knowledge.delete",
+        "recycle.restore",
+        "recovery.restore",
         "knowledge.bucket",
+        "knowledge.move",
         "attachments.remove",
         "sources.retain",
         "sources.delete",
+        "sources.read",
+        "sources.attach",
         "providers.select",
         "providers.delete",
         "providers.test",
@@ -42,12 +47,15 @@ def validate_params(operation: str, params: dict) -> None:
         "search_terms",
         "revision",
         "candidate_id",
+        "version",
     ):
         if key == "path" and operation == "knowledge.tree":
             continue
         if key in params and params[key] is not None and not isinstance(params[key], str):
             raise ValueError("请求参数类型无效")
     bucket = params.get("bucket")
+    if "directory_only" in params and type(params["directory_only"]) is not bool:
+        raise ValueError("请求参数类型无效")
     if bucket is not None and bucket not in ("常用", "在学", "归档"):
         raise ValueError("无效分区")
 
@@ -80,6 +88,16 @@ async def dispatch_operation(
         return service.text.execute(params)
     if operation == "knowledge.tree":
         return store.library_tree(params)
+    if operation == "recycle.list":
+        return store.recycle_list(params)
+    if operation == "recycle.restore":
+        return store.recycle_restore(params["id"])
+    if operation == "recovery.list":
+        return store.recovery_list()
+    if operation == "recovery.create":
+        return {"backup": store.recovery_create()}
+    if operation == "recovery.restore":
+        return service.restore_library(params["id"])
     if operation.startswith("library.restructure."):
         return await dispatch_library(service, operation, params, emit)
     if operation in {
@@ -97,19 +115,40 @@ async def dispatch_operation(
             return store.get_original(params["id"], params)
         return store.get(params["id"], active_use=True)
     if operation == "knowledge.save":
-        return store.save(
-            str(params.get("title", "")), str(params.get("content", "")), item_id=params.get("id")
-        )
+        return store.save_note(params)
+    if operation == "knowledge.move":
+        return store.move_note(params)
     if operation == "knowledge.delete":
         return store.delete_knowledge(params["id"])
     if operation == "knowledge.bucket":
         return store.set_bucket(params["id"], params.get("bucket"))
+    if operation == "attachments.add":
+        return await dispatch_resources(service, operation, params, emit)
+    if operation.startswith(("attachments.", "sources.", "providers.", "usage.")):
+        return await dispatch_resources(service, operation, params, emit)
+    if operation == "question":
+        return await service.question(params, emit)
+    if operation == "recommendations":
+        item = store.get(params["id"])
+        return service.recommendations(item["title"], item["content"], exclude=item["id"])
+    raise ValueError("不支持的操作")
+
+
+# 资料与配置路由单独列举，仍只允许已定义操作。
+async def dispatch_resources(
+    service: KnowledgeService, operation: str, params: dict, emit: Emit
+) -> dict | list[dict]:
+    store = service.store
     if operation == "attachments.add":
         return await service.add_attachment(params, emit)
     if operation == "attachments.remove":
         return service.attachment_usecase.remove(params["id"])
     if operation == "sources.list":
         return store.list_sources()
+    if operation == "sources.read":
+        return store.read_source(params)
+    if operation == "sources.attach":
+        return await service.attachment_usecase.reuse(params["id"])
     if operation == "sources.retain":
         return service.retain(params["id"])
     if operation == "sources.delete":
@@ -128,11 +167,6 @@ async def dispatch_operation(
         return store.usage_summary()
     if operation == "usage.list":
         return store.list_attempts()
-    if operation == "question":
-        return await service.question(params, emit)
-    if operation == "recommendations":
-        item = store.get(params["id"])
-        return service.recommendations(item["title"], item["content"], exclude=item["id"])
     raise ValueError("不支持的操作")
 
 

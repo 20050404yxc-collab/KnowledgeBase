@@ -70,11 +70,20 @@ class KnowledgeService:
     async def settle(self) -> None:
         await self.snapshots.settle()
 
+    # 恢复成功后旧目录、重构和分段编辑不再拥有当前库的提交权限。
+    @traced
+    def restore_library(self, name: str) -> dict:
+        result = self.store.recovery_restore(name)
+        self.library.draft = None
+        self.text.edits.clear()
+        self.topics.sessions.clear()
+        return result
+
     # 启动摘要仅含显示数据，不包含凭据或内部文件句柄。
     @traced
     def info(self) -> dict:
         return {
-            "version": "0.1",
+            "version": "test0.11",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
             "knowledge": self.store.list_knowledge(),

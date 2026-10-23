@@ -10,19 +10,7 @@ import { RestructurePanel } from './RestructurePanel'
 
 // 启动重构明确说明外发范围及费用，用户点击按钮才请求模型。
 export function LibraryPage() {
-  const {
-    selected,
-    answer,
-    ready,
-    busy,
-    restructureDraft,
-    planRestructure,
-    setEditor,
-    activeProvider,
-    generationOptions,
-    chooseModel,
-    chooseEffort
-  } = useAppContext()
+  const { selected, answer, ready, restructureDraft, setEditor } = useAppContext()
   return (
     <section aria-label="知识库页面">
       <div className="page-heading">
@@ -31,35 +19,83 @@ export function LibraryPage() {
           <p>所有知识，按多层知识树逐级整理与阅读。</p>
         </div>
         <div>
-          <button
-            disabled={!ready || !!busy || !!restructureDraft}
-            onClick={() => void planRestructure()}
-          >
-            重构知识库
-          </button>
           <button disabled={!ready} onClick={() => setEditor({ title: '', content: '' })}>
             ＋ 新建知识
           </button>
         </div>
       </div>
-      <p className="result-notice">
-        先粗略浏览知识并提出目标结构，概览最多 2400
-        字符；确认结构后再根据完整原文重组正文，正文不设总字符上限。会调用当前模型并记录用量，最后核对内容并保存。
-      </p>
-      {activeProvider && (
-        <ModelPicker
-          provider={activeProvider}
-          value={generationOptions}
-          disabled={!!busy || !!restructureDraft}
-          onModel={(model) => chooseModel(activeProvider, model)}
-          onEffort={(effort) => chooseEffort(activeProvider, effort)}
-        />
-      )}
+      {!restructureDraft && <OrganizationSetup />}
       <RestructurePanel />
       <div className="library-workspace">
         <SavedKnowledgeTree />
         {(selected || answer) && <AnswerPanel />}
       </div>
     </section>
+  )
+}
+
+// 日常阅读收起整理说明；启动前选择分类或内容范围并明确模型费用。
+function OrganizationSetup() {
+  const {
+    activeProvider,
+    generationOptions,
+    chooseModel,
+    chooseEffort,
+    busy,
+    ready,
+    organizationMode,
+    setOrganizationMode,
+    planRestructure,
+    setSection
+  } = useAppContext()
+  return (
+    <details className="organization-setup">
+      <summary>整理知识库</summary>
+      <p>
+        先调用当前模型分析知识并提出分类，概览每条最多 2400
+        字符，记录用量并可能产生费用。确认方案后才保存。
+      </p>
+      <label>
+        <input
+          type="radio"
+          name="organization-mode"
+          checked={organizationMode === 'categories'}
+          onChange={() => setOrganizationMode('categories')}
+          disabled={!!busy}
+        />
+        只整理分类（保留正文）
+      </label>
+      <label>
+        <input
+          type="radio"
+          name="organization-mode"
+          checked={organizationMode === 'content'}
+          onChange={() => setOrganizationMode('content')}
+          disabled={!!busy}
+        />
+        整理分类并准备内容调整
+      </label>
+      <p className="subtle">
+        仅分类无需生成正文。合并知识必须准备并接受完整原文整理稿；内容模式会继续调用模型，全文分片处理后逐项核对。
+      </p>
+      {activeProvider ? (
+        <ModelPicker
+          provider={activeProvider}
+          value={generationOptions}
+          disabled={!!busy}
+          onModel={(model) => chooseModel(activeProvider, model)}
+          onEffort={(effort) => chooseEffort(activeProvider, effort)}
+        />
+      ) : (
+        <button onClick={() => setSection('设置')}>配置生成接口</button>
+      )}
+      <button
+        className="primary"
+        disabled={!ready || !!busy || !activeProvider}
+        onClick={() => void planRestructure()}
+      >
+        生成整理方案
+      </button>
+    </details>
   )
 }

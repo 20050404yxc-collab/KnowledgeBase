@@ -3,6 +3,7 @@
 // 作用：验证真实桌面中的深层导航、内部节点阅读和混合布局。
 // 说明：使用隔离应用与本机模拟模型，不访问正式库或外部服务。
 import assert from 'node:assert/strict'
+import { checkCompactDeep } from './check_usability_ui.mjs'
 
 // 通过实际问答与收录接口建立多层知识，避免绕过运行时路径校验。
 async function seedTree({ ui, fixture }) {
@@ -104,6 +105,7 @@ export async function checkKnowledgeTreeUi(context) {
   await ui.evaluate(
     `Array.from(document.querySelectorAll('.nav-item')).find(n=>n.textContent.trim().endsWith('知识库')).click()`
   )
+  await click('星球视图')
   await fill('[aria-label="筛选已有知识"]', 'DEEPTREEVALIDATIONOCTOBER')
   await waitFor(
     () => ui.evaluate(`document.querySelector('.saved-tree .count')?.innerText==='6'`),
@@ -154,6 +156,7 @@ export async function checkKnowledgeTreeUi(context) {
     `window.knowledgeBase.request('knowledge.get',{id:${JSON.stringify(saved[0].id)}})`
   )
   assert.equal(item.content, 'DEEPTREEVALIDATIONOCTOBER：STL完整正文。')
+  await checkCompactDeep(context)
   report.checks.push(
     'deep tree: full-path capture, readable internal nodes, five-level traversal/back, leaf reading and mixed wide/narrow layout'
   )

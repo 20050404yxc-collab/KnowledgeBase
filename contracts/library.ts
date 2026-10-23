@@ -112,6 +112,7 @@ export interface DuplicateEvidence {
   conflict: EvidenceQuote[]
 }
 export interface DuplicateGroup {
+  source_details?: { id: string; title: string; path: string[] }[]
   id: string
   sources: string[]
   decision: 'undecided' | 'keep' | 'merge'

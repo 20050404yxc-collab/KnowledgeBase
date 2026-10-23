@@ -27,7 +27,7 @@ def backup_prices(db: sqlite3.Connection, root: Path) -> None:
 # 旧单价只回填原默认模型；失败撤销 DDL 与版本并阻止启动。
 def migrate_prices(db: sqlite3.Connection, root: Path) -> None:
     version = db.execute("PRAGMA user_version").fetchone()[0]
-    if version == 5:
+    if version >= 5:
         return
     if version != 4:
         raise ValueError("模型价格迁移只接受 schema 4")

@@ -19,7 +19,7 @@ export function ComposerToolbar() {
     busy,
     setPathEntry,
     addFiles,
-    localSearch,
+    searchGlobal,
     cancelTask
   } = useAppContext()
   return (
@@ -46,23 +46,27 @@ export function ComposerToolbar() {
           本地路径
         </button>
         <span className="toolbar-separator" />
-        <select
-          aria-label="回答范围"
-          value={scope}
-          onChange={(event) => setScope(readScope(event.target.value))}
-        >
-          <option value="mixed">本次文件＋知识库</option>
-          <option value="files">仅本次文件</option>
-          <option value="knowledge">仅知识库</option>
-        </select>
+        <label className="learning-scope">
+          <span>AI 学习范围</span>
+          <select
+            aria-label="AI 学习范围"
+            value={scope}
+            onChange={(event) => setScope(readScope(event.target.value))}
+          >
+            <option value="mixed">本次文件＋知识库</option>
+            <option value="files">仅本次文件</option>
+            <option value="knowledge">仅知识库</option>
+          </select>
+        </label>
       </div>
       <button
         type="button"
         className="secondary"
-        disabled={!ready || !query.trim() || !!busy}
-        onClick={() => void localSearch()}
+        title="搜索全部已保存知识和资料，不调用模型；不受 AI 学习范围影响"
+        disabled={!ready || !query.trim()}
+        onClick={() => void searchGlobal(query)}
       >
-        本地检索
+        搜索此问题
       </button>
       {busy ? (
         <button type="button" className="secondary" onClick={() => void cancelTask()}>
@@ -70,7 +74,7 @@ export function ComposerToolbar() {
         </button>
       ) : (
         <button className="primary" disabled={!ready || !query.trim()}>
-          拆解并学习 <span>↗</span>
+          生成学习目录 <span>↗</span>
         </button>
       )}
     </div>

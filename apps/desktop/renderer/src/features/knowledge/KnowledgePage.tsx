@@ -15,7 +15,7 @@ export function KnowledgePage() {
       <div className="page-heading">
         <div>
           <h1>{section}的知识</h1>
-          <p>按使用频率整理，随时回来继续学习。</p>
+          <p>按使用频率自动整理；不代表掌握程度。打开知识可查看归类原因或手动固定。</p>
         </div>
         <button
           className="secondary"

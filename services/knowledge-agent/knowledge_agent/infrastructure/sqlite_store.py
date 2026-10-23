@@ -30,16 +30,22 @@ from knowledge_agent.domain.models import (
 from knowledge_agent.domain.taxonomy import encode_path, validate_path
 
 from .library_store import LibraryStorage
+from .manual_notes import ManualNotes
 from .merge_schema import migrate_merges
 from .merge_store import MergeStorage
 from .model_catalog_schema import migrate_catalog
 from .model_prices import migrate_prices, read_prices
+from .recovery_schema import migrate_recovery
+from .recovery_store import RecoveryStorage
+from .recycle_store import RecycleStorage
 from .topic_schema import migrate_topics, populate_index, register_tokens
 from .topic_store import TopicStorage
 from .usage_store import summarize_usage
 
 
-class Store(TopicStorage, LibraryStorage, MergeStorage):
+class Store(
+    TopicStorage, LibraryStorage, MergeStorage, RecycleStorage, RecoveryStorage, ManualNotes
+):
     # 重构事务内部重建索引，不开启另一层提交。
     def populate_library_index(self) -> None:
         populate_index(self.db)
@@ -68,7 +74,7 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         record("storage.schema", schema_version=schema_version)
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 5:
+        if schema_version > 6:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
         # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
@@ -108,6 +114,8 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         migrate_topics(self.db, self.root)
         migrate_merges(self.db, self.root)
         migrate_prices(self.db, self.root)
+        migrate_recovery(self.db, self.root)
+        self.daily_snapshot()
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
         # 崩溃恢复仅清理应用资料目录内没有元数据的副本。
@@ -307,14 +315,6 @@ class Store(TopicStorage, LibraryStorage, MergeStorage):
         with self.db:
             self.db.execute("UPDATE knowledge SET manual_bucket=? WHERE id=?", (bucket, item_id))
         return self.get(item_id)
-
-    # 删除知识及外键关联记录，不删除资料或用户文件。
-    @traced
-    def delete_knowledge(self, item_id: str) -> dict:
-        self.require_deletable(item_id)
-        with self.db:
-            self.db.execute("DELETE FROM knowledge WHERE id=?", (item_id,))
-        return {"deleted": True}
 
     # 仅返回资料摘要，不将完整来源正文暴露为列表。
     @traced

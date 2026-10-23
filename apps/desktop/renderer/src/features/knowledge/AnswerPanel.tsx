@@ -12,6 +12,8 @@ import { NoteFooter } from './NoteFooter'
 import { MarkdownContent } from './MarkdownContent'
 import { SupplementList } from './SupplementList'
 import { LongContent } from './LongContent'
+import { MoveKnowledge } from './MoveKnowledge'
+import { FrequencySettings } from './FrequencySettings'
 
 // 安全显示当前回答正文与引用入口。
 export function AnswerPanel() {
@@ -19,6 +21,8 @@ export function AnswerPanel() {
   return (
     <article className="answer-panel">
       <AnswerHeading />
+      {selected && !answer?.review && <MoveKnowledge key={selected.id + selected.version} />}
+      {selected && !answer?.review && <FrequencySettings />}
       {(!answer || answer.content === selected?.content) &&
       selected?.content_chars &&
       selected.version ? (

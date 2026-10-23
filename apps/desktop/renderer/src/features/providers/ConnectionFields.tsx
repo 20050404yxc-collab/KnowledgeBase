@@ -4,12 +4,14 @@
 // 说明：不读取凭据或直接请求供应商。
 import { useAppContext } from '../../app/AppContext'
 import { readProtocol } from './provider_form'
+import { ProviderPresets } from './ProviderPresets'
 
 // 名称、协议和基础地址共同确定连接，不处理凭据存储。
 export function ConnectionFields() {
   const { providerForm, setProviderForm } = useAppContext()
   return (
     <>
+      <ProviderPresets />
       <label>
         配置名称
         <input

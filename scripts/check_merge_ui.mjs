@@ -3,6 +3,7 @@
 // 作用：在隔离 Electron 中验证逐组合并和只读原文入口。
 // 说明：原文与模型均为合成数据，最终只选择完整提取稿。
 import assert from 'node:assert/strict'
+import { startOrganization } from './check_ux_review_ui.mjs'
 
 // React 的 select 必须经原生 setter 派发，不能只改 DOM 属性。
 async function choose(ui, selector, value) {
@@ -75,7 +76,7 @@ async function decideGroups(context, ids) {
   for (let page = 0; page < total; page++) {
     const text = await ui.evaluate(`document.querySelector('[aria-label="重复组决定"]').innerText`)
     if (ids.every((id) => text.includes(id))) {
-      assert.ok(text.includes('merge'))
+      assert.ok(text.includes('undecided') || text.includes('merge'))
       found = true
       await choose(ui, '[aria-label="重复组决定"] select', ids[0])
       await fill('[aria-label="重复组决定"] label:nth-of-type(1) input', '合并界面保留点')
@@ -231,7 +232,7 @@ export async function checkMergeUi(context, fallback) {
     const item=await window.knowledgeBase.request('knowledge.save',{title:'合并界面'+suffix,content:'MERGE_SHARED common concept evidence qualification original source constraint UNIQUE_'+suffix});ids.push(item.id)
   }return ids})()`)
   fixture.state.reply = (body) => mergeReply(body, fallback)
-  await click('重构知识库')
+  await startOrganization({ ui, click, waitFor })
   await waitFor(
     () =>
       ui.evaluate(
@@ -240,11 +241,12 @@ export async function checkMergeUi(context, fallback) {
     'merge outline complete',
     30000
   )
+  await checkCandidatePicker(context, ids)
   await decideGroups(context, ids)
   await selectMergeContent(context)
   await click('确认目录并应用所选更新（1）')
   await waitFor(
-    () => ui.evaluate(`document.body.innerText.includes('重构已保存')`),
+    () => ui.evaluate(`document.body.innerText.includes('整理已保存')`),
     'merge committed'
   )
   const current = await ui.evaluate(
@@ -265,7 +267,7 @@ export async function checkMergeUi(context, fallback) {
     `window.knowledgeBase.request('knowledge.search',{query:'UNIQUE_BETA'})`
   )
   assert.equal(result.items.filter((hit) => hit.knowledge_id === ids[0]).length, 1)
-  await click('关闭重构结果')
+  await click('关闭整理结果')
   await ui.evaluate(
     `(async()=>{let node=await window.knowledgeBase.request('knowledge.tree',{path:['重构大类','整理小类']});return node.total})()`
   )
@@ -275,4 +277,44 @@ export async function checkMergeUi(context, fallback) {
     'explicit duplicate merge retains both unique tails, rejects directory-only, defaults model explanations off, resolves old IDs, deduplicates source search and displays read-only originals'
   )
   await screenshot('desktop-merge-applied.png')
+}
+
+// 标题搜索跨筛选保留选择，提交真实候选后修订会重置本轮选项。
+async function checkCandidatePicker({ ui, fill, click, waitFor, screenshot, report }, ids) {
+  await ui.evaluate(`document.querySelector('.candidate-picker summary').click()`)
+  for (const suffix of ['ALPHA', 'BETA']) {
+    await fill('.candidate-picker input:not([type])', '合并界面' + suffix)
+    await waitFor(
+      () =>
+        ui.evaluate(
+          `document.querySelectorAll('.candidate-options input').length===1 && document.querySelector('.candidate-options').innerText.includes(${JSON.stringify(suffix)})`
+        ),
+      'candidate title search'
+    )
+    await ui.evaluate(`document.querySelector('.candidate-options input').click()`)
+  }
+  assert.equal(
+    await ui.evaluate(`document.querySelector('[aria-label="已选整理候选"] strong').textContent`),
+    '已选 2/8'
+  )
+  await screenshot('desktop-candidate-picker.png')
+  await click('添加拟合并候选（确认后核验全文）')
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `!document.querySelector('.session-task') && document.querySelector('[aria-label="重复组决定"]')?.innerText.includes(${JSON.stringify(ids[0])})`
+      ),
+    'manual candidate added'
+  )
+  assert.equal(
+    await ui.evaluate(`document.querySelector('[aria-label="已选整理候选"] strong').textContent`),
+    '已选 0/8'
+  )
+  const labels = await ui.evaluate(
+    `Array.from(document.querySelectorAll('[aria-label="重复组决定"] select option')).map(o=>o.textContent).join(' ')`
+  )
+  assert.ok(labels.includes('合并界面ALPHA') && labels.includes('合并界面BETA'))
+  report.checks.push(
+    'title/path candidate search retains cross-filter choices; explicit 2-item submission; named survivor options and revision reset'
+  )
 }

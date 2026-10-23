@@ -65,22 +65,12 @@ export function useRestructure(options: Options) {
       }
       const result = await options.taskRequest('library.restructure.apply', {
         ...draft,
-        selected: directoryOnly ? [] : selectedUpdates
+        selected: directoryOnly ? [] : selectedUpdates,
+        directory_only: directoryOnly
       })
       setDraft({ ...draft, status: 'applied' })
-      options.setMessage(`已重构 ${result.count} 条知识；恢复点：${result.backup}`)
+      options.setMessage(`已整理 ${result.count} 条知识；恢复点：${result.backup}`)
       await options.reload()
-    })
-  const discard = () =>
-    options.guarded(async () => {
-      if (draft) {
-        await api.request('library.restructure.discard', draft)
-        state.activeDraft.current = null
-        state.previewSequence.current++
-        setDraft(null)
-        setPreview(EMPTY_PREVIEW)
-        setSelectedUpdates([])
-      }
     })
   const review = useStructureReview(options, state, { advance, showPreview })
   return {
@@ -91,11 +81,13 @@ export function useRestructure(options: Options) {
     setSelectedUpdates,
     restructureFeedback: feedback,
     setRestructureFeedback,
+    organizationMode: state.organizationMode,
+    setOrganizationMode: state.setOrganizationMode,
     planRestructure: plan,
     resumeRestructure: resume,
     prepareRestructure: prepare,
     applyRestructure: apply,
-    discardRestructure: discard,
+    discardRestructure: useDiscard(options, state),
     previewRestructure: (kind: PreviewKind, page: number, evidencePage = 0, textPage = 0) =>
       options.guarded(() => showPreview(draft, kind, page, evidencePage, textPage))
   }
@@ -109,6 +101,7 @@ function useRestructureState() {
   const [preview, setPreview] = useState(EMPTY_PREVIEW)
   const [selectedUpdates, setSelectedUpdates] = useState<string[]>([])
   const [feedback, setRestructureFeedback] = useState('')
+  const [organizationMode, setOrganizationMode] = useState<'categories' | 'content'>('categories')
   return {
     activeDraft,
     previewSequence,
@@ -119,7 +112,9 @@ function useRestructureState() {
     selectedUpdates,
     setSelectedUpdates,
     feedback,
-    setRestructureFeedback
+    setRestructureFeedback,
+    organizationMode,
+    setOrganizationMode
   }
 }
 
@@ -229,9 +224,30 @@ function useStructureReview(
         await showPreview(
           value,
           review.action === 'point' ? 'outline' : 'duplicates',
-          review.action === 'point' ? 0 : state.preview.page
+          review.action === 'point'
+            ? 0
+            : review.action === 'candidate'
+              ? Math.max(0, (value.groups ?? 1) - 1)
+              : state.preview.page
         )
       }
     })
   return review
+}
+
+// 丢弃成功才释放会话草案与分页状态。
+function useDiscard(options: Options, state: ReturnType<typeof useRestructureState>) {
+  const { draft, setDraft, setPreview, setSelectedUpdates } = state
+  const discard = () =>
+    options.guarded(async () => {
+      if (draft) {
+        await api.request('library.restructure.discard', draft)
+        state.activeDraft.current = null
+        state.previewSequence.current++
+        setDraft(null)
+        setPreview(EMPTY_PREVIEW)
+        setSelectedUpdates([])
+      }
+    })
+  return discard
 }

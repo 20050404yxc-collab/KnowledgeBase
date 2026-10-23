@@ -301,6 +301,8 @@ export interface NoteInput {
   id?: string
   title: string
   content: string
+  category_path?: string[]
+  version?: string
 }
 export interface ProviderInput {
   model_prices?: ModelPriceInput[]
@@ -356,12 +358,13 @@ export interface RequestMap {
   }
   'library.restructure.prepare': DraftReference & { retry?: boolean }
   'library.restructure.preview': DraftReference & {
+    query?: string
     kind: PreviewKind
     page?: number
     text_page?: number
     evidence_page?: number
   }
-  'library.restructure.apply': DraftReference & { selected: string[] }
+  'library.restructure.apply': DraftReference & { selected: string[]; directory_only?: boolean }
   'library.restructure.discard': DraftReference
   bootstrap: Record<string, never>
   'knowledge.search': {
@@ -384,11 +387,19 @@ export interface RequestMap {
     page?: number
   }
   'knowledge.save': NoteInput
+  'knowledge.move': { id: string; version: string; category_path: string[] }
   'knowledge.delete': { id: string }
+  'recycle.list': { page?: number }
+  'recycle.restore': { id: string }
+  'recovery.list': Record<string, never>
+  'recovery.create': Record<string, never>
+  'recovery.restore': { id: string }
   'knowledge.bucket': { id: string; bucket: Bucket | null }
   'attachments.add': { path: string }
   'attachments.remove': { id: string }
   'sources.list': Record<string, never>
+  'sources.read': { id: string; page?: number }
+  'sources.attach': { id: string }
   'sources.retain': { id: string }
   'sources.delete': { id: string }
   'providers.save': ProviderInput
@@ -433,11 +444,23 @@ export interface ResultMap {
   'knowledge.list': Knowledge[]
   'knowledge.get': Knowledge
   'knowledge.save': Knowledge
+  'knowledge.move': Knowledge
   'knowledge.delete': { deleted: boolean }
+  'recycle.list': {
+    items: { id: string; title: string; deleted_at: string }[]
+    total: number
+    page: number
+  }
+  'recycle.restore': { restored: boolean }
+  'recovery.list': { id: string; created_at: number; kind: string }[]
+  'recovery.create': { backup: string }
+  'recovery.restore': { restored: boolean; backup: string }
   'knowledge.bucket': Knowledge
   'attachments.add': Attachment
   'attachments.remove': { removed: boolean }
   'sources.list': Source[]
+  'sources.read': { name: string; page: number; pages: number; items: Citation[] }
+  'sources.attach': Attachment
   'sources.retain': Source[]
   'sources.delete': Source[]
   'providers.save': Provider[]

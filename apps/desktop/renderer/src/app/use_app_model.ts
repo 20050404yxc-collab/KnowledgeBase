@@ -14,15 +14,17 @@ import { useProviderForm } from '../features/providers/use_provider_form'
 import { useSessionTask } from './use_session_task'
 import { useSavedTree } from '../features/knowledge/use_saved_tree'
 import { useRestructure } from '../features/knowledge/use_restructure'
+import { useGlobalSearch } from '../features/search/use_global_search'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
-export function useAppModel() {
+export function useAppModel(resetSession: () => void) {
   const navigation = useNavigation()
+  const globalSearch = useGlobalSearch(navigation)
   const feedback = useFeedback(navigation.section)
   const task = useSessionTask(navigation.section, feedback)
   const library = useLibrary({ ...feedback, ...navigation })
   const tree = useSavedTree(navigation.section, navigation.filter, library.dataRevision)
-  const reading = useReading(navigation.section)
+  const reading = useReading(navigation.section, globalSearch.globalSearchRevision)
   const knowledge = useKnowledge({ ...feedback, ...library, ...reading })
   const selection = useModelSelection(library.providers)
   const generationOptions = selection.optionsFor(library.activeProvider)
@@ -51,6 +53,8 @@ export function useAppModel() {
   })
   const providerForm = useProviderForm()
   return {
+    resetSession,
+    ...globalSearch,
     ...feedback,
     ...navigation,
     ...library,

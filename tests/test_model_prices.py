@@ -91,6 +91,7 @@ def legacy_prices(root):
     config = save_provider(store, Vault(), parameters())[0]
     note = store.save("价格迁移", "手工正文不得改变")
     store.db.execute("DROP TABLE provider_model_prices")
+    store.db.execute("DROP TABLE knowledge_trash")
     store.db.execute("PRAGMA user_version=4")
     store.db.commit()
     store.close()

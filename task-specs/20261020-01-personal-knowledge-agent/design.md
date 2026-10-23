@@ -1,3 +1,37 @@
+## Revision 21 implementation design
+
+- Add a dedicated manual-note repository boundary for strict identity checks and atomic title/body/path changes; keep Store.save generation semantics. Optional edit version and dedicated move requests prevent stale overwrites. Rebuild derived search indexes in the same transaction. No table/schema change.
+- Read retained parsed blocks with stable page/locator boundaries and obtain managed source copies through a narrow SnapshotFiles method for repeat attachment parsing. Background copy/parse follows existing cancellation ownership, with original names restored and duplicate snapshots released.
+- Compose a root-owned global search hook and fixed Topbar form; results have their own reading page, request sequence, pagination, and local errors. Existing scoped directory search remains for learning; list fields consistently say filter.
+- Add explicit bucket model controls through the provider public entry. Explain existing frequency thresholds beside a named fixed override. Default complete tree to compact and persist only the per-page presentation preference in guarded localStorage.
+- Reuse RecoverySettings with focused recycle/backup modes and direct navigation. Keep storage technical details separate. Collapse organization introduction and expose category-only apply at outline, while existing merge gating prevents invalid partial applications.
+- UI wireframe and the strict-save/source/search process are in 产品方案 §3.17. Preserve security, content limits, pagination, original files and all existing generation/merge gates.
+- Verify AC-UX21-01..08 with isolated Python and desktop regression; run npm run check then npm run test:ui; inspect wide/narrow artifacts. Real-provider quality and production-data acceptance remain outside verification.
+
+## Revision 20 design
+
+Add query filtering before the existing outline preview page, using the complete immutable draft and current outline paths. CandidatePicker owns bounded selection and guarded asynchronous pages; source_details is optional for backwards-compatible DTO decoding. Candidate submission shows the newly appended group's page. Root page state owns collapse and result-arrival events; mounted Composer checks visibility before focus, while returning pages initialize the event baseline.
+
+Store composes RecycleStorage/RecoveryStorage through repository ports. A schema-6 migration creates knowledge_trash after unique SQLite backup. Recycle IDs identify deletion events separately from stable knowledge IDs. Fixed table/column lists bind all restored values; no user SQL, filesystem paths or raw bodies cross summary boundaries. Rebuild derived and original indexes within transactions. SQLite backup includes committed WAL contents; pending files never appear as valid snapshots. Daily snapshots rotate only 7 daily names. List newest 30 manual/daily/pre-restore names; manual and pre-restore files are never automatically pruned.
+
+Protocol runtime rejects concurrent restore before dispatch. KnowledgeService clears topic sessions, restructure draft and staged edits only after successful scoped restore. The renderer confirms replacement/draft loss and remounts the React app session through a root-owned key after success. This clears page state and bootstraps fresh data while preserving Electron's navigation restrictions; browser location.reload is blocked by the existing will-navigate policy. Source metadata/files, vault, providers, accounting and recycle rows stay current. Validate snapshot schema/integrity/foreign keys in one read transaction, create a unique pre-restore backup, then stream batches of 100 rows into the active connection transaction. Never replace the live database file. Current-schema snapshots only; old restructure snapshots remain offline/manual recovery material.
+
+## Revision 19 design
+
+`useSavedTree` owns the per-page view through the existing root-held `usePageState`; `CompactKnowledgeTree` renders current branch nodes with separate read/expand buttons, leaving server cursors/loading/errors in `TreeStatus`. It does not use the bounded ordinary `knowledge.list`. Planet pages remain independent presentation state and survive view changes. Existing query/revision/day invalidation and late-response rejection are unchanged.
+
+`FirstUseGuide` waits for bootstrap and disappears when providers exist. `ProviderPresets` is available only for pristine new configuration; it fills explicit connection information and never fetches models, writes credentials or picks a model/price. Existing provider setter invalidates discovery on every edit. Existing populated drafts and edit mode cannot be replaced by templates.
+
+Saved labels derive from committed `selected` snapshots; review labels take precedence. Temporary attachment and retained source-copy wording reflect existing lifecycle. Deletion still uses the existing backend operation/atomic constraints after native confirmation, now naming the target. BackupGuide performs no I/O and distinguishes complete offline directory copies from database-only snapshots and OS credentials.
+
+## Revision 18 implementation design
+
+Use a knowledge-feature hook over existing usePageState to store {draft, original} atomically by page. Preserve the existing setEditor value/functional-setter contract, including identity comparisons in asynchronous save completion. Establish original on opening; clear it with the draft. Compare exact title/body text so reverting removes the dirty state. Mount the editor by section key so local discard UI never leaks between page drafts.
+
+Render discard confirmation inside the editor, focus Continue and return focus to the body afterward. Disable fields and close/cancel while saving; retain the existing guarded failure and stale-save identity handling. No beforeunload/native-close interception or persistent drafts.
+
+Change the exploration action/scope/caption and list-filter placeholder only. Keep keyword-search parameters, AI scope, Ctrl+Enter, offline local results and save semantics. Add a compact static guide and wrapping scope label. Update dependent UI selectors. Validate real form interactions, backend rejection/retry, navigation, global-vs-file scope and wide/narrow layout in the existing isolated desktop harness.
+
 ## Revision 16 implementation design
 
 Extend existing topic_links.theme with a version-2 encoded string array for non-two-level paths; retain byte-for-byte v1 encoding for two-level paths and decode both. category_path is authoritative when supplied; absent paths adapt from legacy category/subcategory. Legacy free themes remain opaque. No schema migration.
