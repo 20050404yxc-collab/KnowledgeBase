@@ -93,6 +93,12 @@ export function LongContent(props: Props) {
       )}
       {state.draft === null ? (
         <MarkdownContent
+          source={{
+            kind: props.supplement_id ? 'supplement' : 'knowledge',
+            id: props.id,
+            version: props.version,
+            supplement_id: props.supplement_id
+          }}
           content={state.content}
           citations={props.citations}
           onCitation={setCitation}

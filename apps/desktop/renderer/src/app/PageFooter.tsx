@@ -9,10 +9,10 @@ export function PageFooter() {
     <footer className="page-footer">
       知序 <span>·</span> 让知识有序，让思考自由。
       <details>
-        <summary>测试版边界</summary>
+        <summary>功能边界</summary>
         <p>
-          MD / TXT / DOCX / 文字版 PDF；单文件 50MB，PDF 200 页，单次上下文约 28000 字。未接入
-          OCR、语义索引或安装包，真实接口需自行配置验证。
+          MD / TXT / DOCX / 文字版 PDF；单文件 50MB，PDF 200 页，单次上下文约 28000 字。未接入 OCR
+          或语义索引，真实接口需自行配置验证。
         </p>
       </details>
     </footer>

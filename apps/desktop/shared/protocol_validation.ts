@@ -35,6 +35,7 @@ import type {
   WorkerEvent,
   WorkerMessage
 } from '../../../contracts/desktop'
+import type { SelectionSession, SelectionSource, SelectionTurn } from '../../../contracts/selection'
 
 type Check<T> = (value: unknown) => value is T
 
@@ -254,6 +255,47 @@ const attempt = object<Attempt>({
   input_price: nullable(number),
   output_price: nullable(number)
 })
+// 选区来源只表达阅读定位，不携带执行能力或未经验证的模型出处。
+const selectionSource = object<SelectionSource>({
+  kind,
+  id: string,
+  version: optional(string),
+  supplement_id: optional(string),
+  page: optional(count),
+  block_id: optional(string)
+})
+const turnState: Check<SelectionTurn['state']> = (value): value is SelectionTurn['state'] =>
+  ['local', 'answered', 'unconfigured', 'failed', 'cancelled', 'lookup-failed'].some(
+    (state) => state === value
+  )
+const selectionTurn = object<SelectionTurn>({
+  id: string,
+  question: string,
+  state: turnState,
+  candidates: array(searchHit),
+  total: count,
+  page: count,
+  content: string,
+  title: string,
+  citations: array(citation),
+  model: string,
+  provider_name: string,
+  attempts: array(attempt),
+  notice: string,
+  saved_id: nullable(string)
+})
+const selectionPath: Check<string[]> = (value): value is string[] =>
+  (Array.isArray(value) && value.length === 0) || isCategoryPath(value)
+const selectionSession = object<SelectionSession>({
+  id: string,
+  source: selectionSource,
+  source_title: string,
+  locator: string,
+  quote: string,
+  category_path: selectionPath,
+  turns: array(selectionTurn),
+  notice: string
+})
 const publicProject = object<PublicProject>({
   id: string,
   name: string,
@@ -312,6 +354,12 @@ const textResult: Check<ResultMap['knowledge.text']> = (
     (value.saved === true && value.id !== undefined) ||
     value.discarded === true)
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
+  'selection.open': selectionSession,
+  'selection.ask': selectionSession,
+  'selection.get': selectionSession,
+  'selection.capture': selectionSession,
+  'selection.preview': object({ title: string, content: string }),
+  'selection.close': object({ closed: boolean }),
   'knowledge.tree': isLibraryTree,
   'library.restructure.plan': isRestructureSummary,
   'library.restructure.prepare': isRestructureSummary,

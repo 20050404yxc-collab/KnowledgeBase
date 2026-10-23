@@ -2,6 +2,7 @@
 // 层：跨进程契约
 // 作用：声明操作、DTO、事件和受限桌面 API。
 // 说明：保留协议字段命名，不包含运行时实现。
+import type { SelectionAsk, SelectionCapture, SelectionSession, SelectionSource } from './selection'
 import type {
   LibraryTree,
   DraftReference,
@@ -335,6 +336,12 @@ export interface ModelCatalog {
   partial: boolean
 }
 export interface RequestMap {
+  'selection.open': { source: SelectionSource; quote: string }
+  'selection.ask': SelectionAsk
+  'selection.get': { session_id: string }
+  'selection.capture': SelectionCapture
+  'selection.preview': { session_id: string; turn_id: string }
+  'selection.close': { session_id: string }
   'knowledge.text': {
     action: 'read' | 'begin' | 'append' | 'commit' | 'discard'
     id?: string
@@ -418,6 +425,12 @@ export interface RequestMap {
   recommendations: { id: string }
 }
 export interface ResultMap {
+  'selection.open': SelectionSession
+  'selection.ask': SelectionSession
+  'selection.get': SelectionSession
+  'selection.capture': SelectionSession
+  'selection.preview': { title: string; content: string }
+  'selection.close': { closed: boolean }
   'knowledge.text': {
     content?: string
     version?: string

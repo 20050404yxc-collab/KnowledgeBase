@@ -84,6 +84,8 @@ async def dispatch_operation(
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation.startswith("selection."):
+        return await dispatch_selection(service, operation, params, emit)
     if operation == "knowledge.text":
         return service.text.execute(params)
     if operation == "knowledge.tree":
@@ -206,3 +208,23 @@ async def dispatch_topics(
     if operation == "question.plan":
         return await service.topics.plan(params, emit)
     return await service.topics.learn(params, emit)
+
+
+# 选区问答采用增量白名单，入口不决定检索或模型调用策略。
+async def dispatch_selection(
+    service: KnowledgeService, operation: str, params: dict, emit: Emit
+) -> dict:
+    service.selection.client = service.client
+    if operation == "selection.open":
+        return service.selection.open(params)
+    if operation == "selection.ask":
+        return await service.selection.ask(params, emit)
+    if operation == "selection.get":
+        return service.selection.get(params)
+    if operation == "selection.preview":
+        return service.selection.preview(params)
+    if operation == "selection.capture":
+        return service.selection.capture(params)
+    if operation == "selection.close":
+        return service.selection.close(params)
+    raise ValueError("不支持的操作")

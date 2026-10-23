@@ -48,6 +48,25 @@ const { markdownForDisplay } = await loadModule(
   '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
 )
 
+// 目标读取期间的正文编辑不得被旧闭包覆盖，关闭会话后的回调也不能复活内容。
+test('late selection target preserves current draft and cannot revive closed previews or chats', async () => {
+  const { updateChatEntries, updateCapture } = await loadModule(
+    '../apps/desktop/renderer/src/features/selection/selection_state.ts'
+  )
+  const draft = { turn: 't', title: '原标题', content: '原正文', path: [], target: null }
+  const entry = { session: { id: 's' }, preview: draft }
+  const choose = (current) => updateCapture(current, { target: { id: 'chosen', version: 'v' } })
+  let items = updateChatEntries([entry], 's', (current) =>
+    updateCapture(current, { content: '读取目标期间手工编辑的正文' })
+  )
+  items = updateChatEntries(items, 's', choose)
+  assert.equal(items[0].preview.content, '读取目标期间手工编辑的正文')
+  assert.equal(items[0].preview.target.id, 'chosen')
+  items = updateChatEntries(items, 's', { preview: null })
+  assert.equal(updateChatEntries(items, 's', choose)[0].preview, null)
+  assert.deepEqual(updateChatEntries([], 's', { preview: draft }), [])
+})
+
 // 实际上传编排只替换受限 API，Unicode 分段、取消和提交规则照常执行。
 test('long text preserves untouched pages and cancels incomplete staged saves', async () => {
   const stub = `let respond; export const configure = (value) => { respond = value };
@@ -322,6 +341,43 @@ test('shared protocol samples pass operation and runtime result validation', asy
 })
 
 // 只有真实结构能进入受限 API，泛型声明不能让损坏结果通过。
+test('selection results reject malformed source, state, attempts and pagination', async () => {
+  const samples = JSON.parse(
+    await readFile(new URL('../contracts/protocol_samples.json', import.meta.url), 'utf8')
+  )
+  const original = samples.dto_samples.find((sample) => sample.operation === 'selection.ask').result
+  const changes = [
+    (value) => {
+      value.source.kind = 'system'
+    },
+    (value) => {
+      value.source.page = -1
+    },
+    (value) => {
+      value.turns[0].state = 'streaming-success'
+    },
+    (value) => {
+      value.turns[0].total = -1
+    },
+    (value) => {
+      value.turns[0].attempts = [{}]
+    },
+    (value) => {
+      value.category_path = ['']
+    },
+    (value) => {
+      delete value.turns[0].saved_id
+    }
+  ]
+  for (const change of changes) {
+    const value = structuredClone(original)
+    change(value)
+    assert.throws(() => validation.decodeResult('selection.ask', value), /格式无效/)
+  }
+  assert.throws(() => validation.decodeResult('selection.preview', { title: '残缺' }), /格式无效/)
+})
+
+// 未知消息和不完整结果必须在边界拒绝，不能借泛型进入界面。
 test('protocol rejects malformed messages and operation results', () => {
   for (const value of [
     null,

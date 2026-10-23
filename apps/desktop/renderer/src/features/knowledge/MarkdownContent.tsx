@@ -6,6 +6,8 @@ import ReactMarkdown, { defaultUrlTransform } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import type { Citation } from '../../../../../../contracts/desktop'
 import { markdownForDisplay } from './markdown_display'
+import type { SelectionSource } from '../../../../../../contracts/selection'
+import { SelectableText } from '../selection'
 
 interface MarkdownNode {
   type: string
@@ -55,45 +57,49 @@ export function MarkdownContent({
   content,
   citations,
   onCitation,
-  preview = false
+  preview = false,
+  source
 }: {
   content: string
   citations: Citation[]
   onCitation: (citation: Citation) => void
   preview?: boolean
+  source?: SelectionSource
 }) {
   return (
-    <div className="reading-text markdown-content">
-      <ReactMarkdown
-        remarkPlugins={[remarkGfm, citationPlugin(citations)]}
-        skipHtml
-        urlTransform={defaultUrlTransform}
-        components={{
-          img: ({ alt }) => <span className="media-placeholder">[图片：{alt || '未加载'}]</span>,
-          a: ({ href, children }) => {
-            if (preview || !href) {
-              return <span>{children}</span>
-            }
-            const match = href?.match(/^#kb-citation-(\d+)$/)
-            const citation = match ? citations[Number(match[1])] : undefined
-            // 自定义引用只对应本段真实证据；外部链接保持安全协议与隔离窗口。
-            if (citation) {
+    <SelectableText source={source}>
+      <div className="reading-text markdown-content">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, citationPlugin(citations)]}
+          skipHtml
+          urlTransform={defaultUrlTransform}
+          components={{
+            img: ({ alt }) => <span className="media-placeholder">[图片：{alt || '未加载'}]</span>,
+            a: ({ href, children }) => {
+              if (preview || !href) {
+                return <span>{children}</span>
+              }
+              const match = href?.match(/^#kb-citation-(\d+)$/)
+              const citation = match ? citations[Number(match[1])] : undefined
+              // 自定义引用只对应本段真实证据；外部链接保持安全协议与隔离窗口。
+              if (citation) {
+                return (
+                  <button className="inline-citation" onClick={() => onCitation(citation)}>
+                    {children}
+                  </button>
+                )
+              }
               return (
-                <button className="inline-citation" onClick={() => onCitation(citation)}>
+                <a href={href} target="_blank" rel="noreferrer noopener">
                   {children}
-                </button>
+                </a>
               )
             }
-            return (
-              <a href={href} target="_blank" rel="noreferrer noopener">
-                {children}
-              </a>
-            )
-          }
-        }}
-      >
-        {markdownForDisplay(content)}
-      </ReactMarkdown>
-    </div>
+          }}
+        >
+          {markdownForDisplay(content)}
+        </ReactMarkdown>
+      </div>
+    </SelectableText>
   )
 }

@@ -15,6 +15,7 @@ import { useSessionTask } from './use_session_task'
 import { useSavedTree } from '../features/knowledge/use_saved_tree'
 import { useRestructure } from '../features/knowledge/use_restructure'
 import { useGlobalSearch } from '../features/search/use_global_search'
+import { useSelectionQuestions } from '../features/selection'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
 export function useAppModel(resetSession: () => void) {
@@ -52,7 +53,14 @@ export function useAppModel(resetSession: () => void) {
     generationOptions
   })
   const providerForm = useProviderForm()
+  const selectionChat = useSelectionQuestions({
+    ...task,
+    section: navigation.section,
+    generationOptions,
+    reload: library.reload
+  })
   return {
+    selectionChat,
     resetSession,
     ...globalSearch,
     ...feedback,

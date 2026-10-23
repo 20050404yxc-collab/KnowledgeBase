@@ -22,6 +22,7 @@ from .ports import (
 )
 from .questions import Questions
 from .recommendations import Recommendations
+from .selection_questions import SelectionQuestions
 from .topic_workflow import TopicWorkflow
 
 
@@ -49,6 +50,7 @@ class KnowledgeService:
         self.topics = TopicWorkflow(store, client, self.questions, projects)
         self.library = LibraryRestructure(store, client)
         self.text = LongText(store)
+        self.selection = SelectionQuestions(store, client)
         self.closed = False
         self.catalog = catalog
 
@@ -60,6 +62,7 @@ class KnowledgeService:
         self.closed = True
         self.library.draft = None
         self.text.edits.clear()
+        self.selection.sessions.clear()
         try:
             self.store.close()
         finally:
@@ -77,13 +80,14 @@ class KnowledgeService:
         self.library.draft = None
         self.text.edits.clear()
         self.topics.sessions.clear()
+        self.selection.sessions.clear()
         return result
 
     # 启动摘要仅含显示数据，不包含凭据或内部文件句柄。
     @traced
     def info(self) -> dict:
         return {
-            "version": "test0.12",
+            "version": "0.12.0",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
             "knowledge": self.store.list_knowledge(),

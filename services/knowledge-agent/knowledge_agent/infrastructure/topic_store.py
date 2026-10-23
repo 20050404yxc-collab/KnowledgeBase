@@ -9,6 +9,7 @@ import uuid
 
 from knowledge_agent.diagnostics import record, traced
 from knowledge_agent.domain.knowledge_rules import identity, now, relevance, tokens, validate_note
+from knowledge_agent.domain.selection_rules import SELECTION_PAGE_SIZE, selection_match
 from knowledge_agent.domain.taxonomy import classification
 
 from .topic_schema import populate_index
@@ -22,6 +23,43 @@ def excerpt(text: str, query: str) -> str:
 
 
 class TopicStorage:
+    # 问答只召回已保存知识与补充，遍历完整索引后排除仅重复选区的自命中。
+    @traced
+    def selection_search(self, params: dict) -> dict:
+        query = params["query"]
+        terms = sorted(tokens(query))
+        sql = "SELECT * FROM search_documents WHERE kind IN ('knowledge','supplement')"
+        args = ()
+        fts = self.db.execute("SELECT 1 FROM sqlite_master WHERE name='search_fts'").fetchone()
+        if fts and terms:
+            sql += " AND rowid IN (SELECT rowid FROM search_fts WHERE terms MATCH ?)"
+            args = (" OR ".join('"' + term.replace('"', '""') + '"' for term in terms),)
+        matches = []
+        cursor = self.db.execute(sql, args)
+        while batch := cursor.fetchmany(200):
+            # 分批读取不截断全库范围；不把文档背景行作为独立已保存答案。
+            for value in batch:
+                row = dict(value)
+                path = classification(row["theme"])
+                score = relevance(query, row["title"], row["body"])
+                if score <= 0 or not selection_match(row, params):
+                    continue
+                hit = {key: row[key] for key in ("id", "kind", "knowledge_id", "title", "theme")}
+                hit.update(path)
+                hit["excerpt"] = excerpt(row["body"], params["question"])
+                matches.append((score, hit))
+        matches.sort(key=lambda pair: (-pair[0], pair[1]["id"]))
+        matches = self.canonical_matches(matches)
+        page = params["page"]
+        record("selection.search", matches=len(matches), page=page)
+        return {
+            "items": [
+                hit
+                for _, hit in matches[page * SELECTION_PAGE_SIZE : (page + 1) * SELECTION_PAGE_SIZE]
+            ],
+            "total": len(matches),
+        }
+
     # 遍历完整分类集合后按相关度选入有界摘要，不把近期知识当成全库分类。
     @traced
     def taxonomy_summary(self, query: str) -> dict:

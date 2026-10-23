@@ -1,4 +1,114 @@
 @import url('./theme.css');
+/* 选区入口依附当前可见文字；会话面板独立滚动并在窄屏保持可操作。 */
+.selection-trigger {
+  position: fixed;
+  z-index: 12;
+  background: var(--green);
+  color: white;
+  box-shadow: 0 4px 20px #22311f30;
+}
+.selection-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  z-index: 8;
+  width: min(470px, 100vw);
+  overflow: auto;
+  padding: 22px;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: -8px 0 30px #22311f15;
+  overflow-wrap: anywhere;
+}
+.selection-panel h2 {
+  margin: 0;
+}
+.selection-panel label,
+.selection-capture label {
+  display: grid;
+  gap: 7px;
+  margin: 12px 0;
+}
+.selection-panel select,
+.selection-panel textarea {
+  width: 100%;
+}
+.selection-panel small {
+  display: block;
+  color: var(--muted);
+  line-height: 1.6;
+}
+.selection-quote {
+  margin: 16px 0;
+  padding: 12px;
+  border-left: 3px solid var(--green);
+  background: white;
+  max-height: 170px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+.selection-turn {
+  border-top: 1px solid var(--border);
+  margin-top: 20px;
+  padding-top: 12px;
+}
+.selection-turn h3 {
+  font-size: 15px;
+  white-space: pre-wrap;
+}
+.selection-candidates article {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 10px 0;
+  background: white;
+}
+.selection-candidates p {
+  font-size: 13px;
+  white-space: pre-wrap;
+}
+.selection-composer {
+  margin: 20px 0;
+}
+.selection-composer textarea {
+  min-height: 95px;
+  resize: vertical;
+}
+.selection-composer .primary {
+  margin-top: 10px;
+}
+.selection-attempts {
+  margin-top: 10px;
+}
+.selection-reopen {
+  position: fixed;
+  right: 22px;
+  bottom: 80px;
+  z-index: 7;
+  box-shadow: 0 3px 18px #22311f20;
+}
+.selection-capture-backdrop {
+  z-index: 14;
+}
+.selection-capture fieldset {
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.selection-capture textarea {
+  min-height: 260px;
+  width: 100%;
+  resize: vertical;
+}
+.selection-target button {
+  margin: 4px;
+}
+@media (min-width: 1500px) {
+  .app:has(.selection-panel) main {
+    margin-right: 470px;
+  }
+}
 * {
   box-sizing: border-box;
 }

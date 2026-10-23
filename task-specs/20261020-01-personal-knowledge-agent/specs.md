@@ -1,3 +1,26 @@
+## Revision 23 ADDED requirements (implemented; isolated verification recorded)
+
+### AC-QA23-01 Selection-owned runtime conversation
+The system SHALL open an in-app text-selection conversation without a model call, preserve its source/version/selection snapshot and page ownership across navigation, and clear uncaptured chat on application restart. Scenario: select text in a note, supplement or retained source, ask and navigate away/back; the same session is available without affecting another article; after restart only explicitly captured knowledge remains. Closing or switching a conversation SHALL not redirect late events into another conversation.
+
+### AC-QA23-02 Free local-first candidates
+Every submitted question, including follow-ups, SHALL first perform bounded local lookup over saved knowledge and supplements without model rewriting or reranking. It SHALL show candidate titles, paths, relevant excerpts and full-content access without asserting that lexical relevance proves an answer. Scenario: saved supplement content is returned with zero model requests; the selected quote alone is shown as background, not falsely reused as an answer. The selected article's other matching explanations and supplements remain eligible.
+
+### AC-QA23-03 Explicit and truthful model fallback
+On successful lookup with candidates, generation SHALL require an explicit unresolved-question action. On successful lookup without candidates, the submitted turn MAY automatically call the selected model only under the visible pre-submit fallback policy. Scenario: candidates cause zero calls until override, then one call; a true miss causes one call; search failure, cancellation or no configured model causes zero automatic calls and preserves the question. No automatic retry, extra classification review, paid summary or hidden context attachment is permitted.
+
+### AC-QA23-04 Bounded multi-turn direct answers
+AI turns SHALL use the selected text, current question and necessary bounded history and provide a direct answer with actual model/usage state. Scenario: an anaphoric follow-up retains necessary context and first searches locally; excess context is explicitly reported; repeated sends are suppressed; cancellation propagates and late output cannot change another turn. Session count/history/memory budgets SHALL reject or explicitly request a new session rather than silently evicting active/unsaved work. Unknown usage remains unknown; cancellation does not imply zero billing.
+
+### AC-QA23-05 Preview-confirmed reusable capture
+Only a complete successful answer SHALL be eligible for user-edited preview and explicit capture as new knowledge or a supplement to a chosen target. Saved content SHALL stand alone with the necessary question/selection background, classification, actual model and valid source information, without automatically claiming the quote proves the answer. Scenario: capture an answer with a context-dependent question, restart, retrieve it locally and open it without a model call. Saving SHALL not trigger a paid formatting/classification call or capture the whole chat automatically.
+
+### AC-QA23-06 Atomic, idempotent and non-destructive capture
+Capture SHALL preserve original notes, check target versions and atomically update content, capture identity and search indexes. Scenario: duplicate submit/timeout retry creates only one saved result; a changed/deleted target, title conflict or commit failure leaves existing content/indexes intact and keeps the preview for recovery. Same-content reuse does not claim semantic duplicate detection. Partial/failed/cancelled output SHALL not be capturable, and already committed data SHALL not be described as rolled back by a late cancel.
+
+### AC-QA23-07 Compatible and diagnosable integration
+The system SHALL preserve existing directory/learning/manual-save operations and enforce additive validated contracts, one generation task, request correlation and private-content-free diagnostics. Scenario: cross-page late responses, malformed operations, model failure, save conflict and close/exit clean up owned resources; logs locate the failed stage without quote/question/answer/credential contents; old contract fixtures remain valid. Desktop wide/narrow flow and restart-reuse evidence SHALL use isolated data and mock services.
+
 ## Revision 21 requirements
 
 ### AC-UX21-01 Truthful manual save

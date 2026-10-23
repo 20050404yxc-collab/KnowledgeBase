@@ -52,6 +52,7 @@ class ProviderClient:
                 "topic-plan",
                 "topic-review",
                 "topic-learn",
+                "selection-answer",
                 "project-materials",
                 "library-summary",
                 "library-outline",

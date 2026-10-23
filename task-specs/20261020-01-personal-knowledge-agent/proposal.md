@@ -1,3 +1,24 @@
+## Stable release follow-up — 2026-10-23
+
+- User explicitly requested “帮我提交git，这次作为正式版提交，然后更新安装包等”. This supersedes R23's original no-version/no-commit/no-packaging boundary for this follow-up.
+- Scope: promote 0.12.0-test.0 to stable 0.12.0; synchronize public versions and current docs, run required checks, rebuild the complete Windows x64 installer, verify packaged execution with isolated synthetic resources, commit locally and create annotated v0.12.0. No push or external publication is included.
+- Preserve schema 6, credential service KnowledgeBase.test0.01, app/installer identities and user data locations. No production installation/data/credentials or paid provider calls.
+- Implementation authorization is the current explicit release request; no further planning approval is required. Verification results are recorded in verification.md.
+
+## Revision 23: selection conversations with local-first knowledge reuse
+
+- Workflow mode: execute; Plan revision: 23; Approval status: approved; Approved revision: 23. User explicitly authorized implementation with “进行开发” after receiving the complete R23 plan and selecting runtime-only conversations. Prior R22 authorization remains scoped to that repair/version follow-up.
+- Source: user selected extended selection Q&A, reusable saved answers, local search before answering, local candidates before paid generation, and model fallback on a successful miss. Async reply explicitly selected runtime-only conversations with cross-page return and restart persistence only for captured knowledge.
+- Plan routing: revise-existing; extends the existing reading/question/search/supplement objective without a parallel topic or archive. Docs language: Chinese; Task-specs language: English.
+- Intent: make useful answers reusable knowledge while avoiding model calls when saved content resolves the current question.
+- Scope: in-app rendered text selection, bounded multi-turn runtime sessions, free local lookup, explicit candidate override/automatic successful-miss fallback, one-attempt direct answer generation and preview-confirmed capture as a note or supplement. Add compatible validated operations and mock regressions; retain old directory workflows.
+- Decisions: no persistent chat history, paid retrieval/rewrite/reranking/summarization, automatic model retry, automatic capture, original-note overwrite, global OS selection, OCR or vector index. No version/schema change, production/paid access, Git commit/push or release is authorized by this R23 implementation request.
+- Approach: application-owned session/turn state and immutable selection/source snapshots; separate quote-only source hits from reusable answer candidates; reuse local search and ProviderClient accounting plus capture_topic receipts/version checks. Store selected question/context visibly with the captured answer so existing indexing can retrieve it after restart.
+- Risks: lexical misses/false positives, own-source quote hits, context-dependent follow-ups, excessive history, duplicate generation/capture, stale target versions, cancellation/commit races and misleading citations. Runtime sessions and evidence require bounded budgets and explicit ownership.
+- Confirmation docs: product §3.19, technical R23, acceptance R23 and overview, reconciled to implemented behavior. Estimate 6–10 developer workdays including isolated verification; no measured savings or latency claimed.
+- Standards: supplied AGENTS.md and user-selected project coding/layering standard revision 2; general-engineering references applied. Existing React/Electron/Python layering, diagnostic privacy, no-production and risk-based checks remain binding. No delegation.
+- Status: implemented the displayed R23 plan under the current user authorization; final evidence is recorded in verification.md. No remaining direction question after the async session-persistence decision.
+
 ## Revision 22: reading placement and accessible questions
 
 - Version/commit follow-up authorization: user explicitly requested “提交git，更新版本，还是测试版，不发布安装包”. Increment source/public version to test0.12 (UI 0.12 测试版; npm 0.12.0-test.0), synchronize current documentation and new report paths, verify and commit locally. This supersedes the original no-version/no-commit boundary below for this follow-up only. Preserve historical evidence, persistent identities and data paths; no installer, tag, push or external release.

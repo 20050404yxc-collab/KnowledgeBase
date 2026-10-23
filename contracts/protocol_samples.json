@@ -10,7 +10,7 @@
         "id": "bootstrap-sample",
         "type": "result",
         "result": {
-          "version": "test0.12",
+          "version": "0.12.0",
           "data_dir": "<temporary>",
           "providers": [],
           "knowledge": [],
@@ -381,6 +381,155 @@
             "retained": true
           }
         ]
+      }
+    },
+    {
+      "operation": "selection.open",
+      "result": {
+        "id": "selection-sample",
+        "source": {
+          "kind": "knowledge",
+          "id": "knowledge-sample",
+          "version": "sample-version"
+        },
+        "source_title": "示例来源",
+        "locator": "知识正文",
+        "quote": "仅作为阅读背景的文字",
+        "category_path": [],
+        "turns": [
+          {
+            "id": "turn-sample",
+            "question": "为什么需要等待队列",
+            "state": "local",
+            "candidates": [],
+            "total": 0,
+            "page": 0,
+            "content": "",
+            "title": "",
+            "citations": [],
+            "model": "",
+            "provider_name": "",
+            "attempts": [],
+            "notice": "本地检索，不调用模型",
+            "saved_id": null
+          }
+        ],
+        "notice": "会话仅暂存"
+      }
+    },
+    {
+      "operation": "selection.ask",
+      "result": {
+        "id": "selection-sample",
+        "source": {
+          "kind": "knowledge",
+          "id": "knowledge-sample",
+          "version": "sample-version"
+        },
+        "source_title": "示例来源",
+        "locator": "知识正文",
+        "quote": "仅作为阅读背景的文字",
+        "category_path": [],
+        "turns": [
+          {
+            "id": "turn-sample",
+            "question": "为什么需要等待队列",
+            "state": "local",
+            "candidates": [],
+            "total": 0,
+            "page": 0,
+            "content": "",
+            "title": "",
+            "citations": [],
+            "model": "",
+            "provider_name": "",
+            "attempts": [],
+            "notice": "本地检索，不调用模型",
+            "saved_id": null
+          }
+        ],
+        "notice": "会话仅暂存"
+      }
+    },
+    {
+      "operation": "selection.get",
+      "result": {
+        "id": "selection-sample",
+        "source": {
+          "kind": "knowledge",
+          "id": "knowledge-sample",
+          "version": "sample-version"
+        },
+        "source_title": "示例来源",
+        "locator": "知识正文",
+        "quote": "仅作为阅读背景的文字",
+        "category_path": [],
+        "turns": [
+          {
+            "id": "turn-sample",
+            "question": "为什么需要等待队列",
+            "state": "local",
+            "candidates": [],
+            "total": 0,
+            "page": 0,
+            "content": "",
+            "title": "",
+            "citations": [],
+            "model": "",
+            "provider_name": "",
+            "attempts": [],
+            "notice": "本地检索，不调用模型",
+            "saved_id": null
+          }
+        ],
+        "notice": "会话仅暂存"
+      }
+    },
+    {
+      "operation": "selection.capture",
+      "result": {
+        "id": "selection-sample",
+        "source": {
+          "kind": "knowledge",
+          "id": "knowledge-sample",
+          "version": "sample-version"
+        },
+        "source_title": "示例来源",
+        "locator": "知识正文",
+        "quote": "仅作为阅读背景的文字",
+        "category_path": [],
+        "turns": [
+          {
+            "id": "turn-sample",
+            "question": "为什么需要等待队列",
+            "state": "local",
+            "candidates": [],
+            "total": 0,
+            "page": 0,
+            "content": "",
+            "title": "",
+            "citations": [],
+            "model": "",
+            "provider_name": "",
+            "attempts": [],
+            "notice": "本地检索，不调用模型",
+            "saved_id": null
+          }
+        ],
+        "notice": "会话仅暂存"
+      }
+    },
+    {
+      "operation": "selection.preview",
+      "result": {
+        "title": "可编辑预览",
+        "content": "问题、背景与完整回答"
+      }
+    },
+    {
+      "operation": "selection.close",
+      "result": {
+        "closed": true
       }
     }
   ]

@@ -51,6 +51,7 @@ export function SourceReader({ id, close }: { id: string; close: () => void }) {
         <div key={item.id}>
           <h3>{item.locator}</h3>
           <MarkdownContent
+            source={{ kind: 'source', id, page, block_id: item.id }}
             content={item.text || '此处没有可读文字。'}
             citations={[]}
             onCitation={() => {}}

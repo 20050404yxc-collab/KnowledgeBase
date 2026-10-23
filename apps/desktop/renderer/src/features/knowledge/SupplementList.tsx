@@ -33,6 +33,16 @@ function SupplementItem({ item }: { item: Supplement }) {
         />
       ) : draft === null ? (
         <MarkdownContent
+          source={
+            selected?.version
+              ? {
+                  kind: 'supplement',
+                  id: selected.id,
+                  version: selected.version,
+                  supplement_id: item.id
+                }
+              : undefined
+          }
           content={item.content}
           citations={item.citations}
           onCitation={setCitation}

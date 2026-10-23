@@ -28,7 +28,7 @@ await writeFile(
       automaticUpdates: false,
       notices: 'installed resources/notices and resources/worker/_internal',
       verification:
-        'See task-specs/20261021-02-windows-distribution/verification.md for actual evidence. Building does not certify clean-machine installation or real-provider quality.'
+        'See task-specs/20261020-01-personal-knowledge-agent/verification.md for current release evidence and task-specs/20261021-02-windows-distribution/verification.md for historical installer evidence. Building does not certify clean-machine installation or real-provider quality.'
     },
     null,
     2

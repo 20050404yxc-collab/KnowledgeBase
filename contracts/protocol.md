@@ -124,3 +124,17 @@ Schema 6 adds the persistent recycle table after a unique consistent `before-rec
 新增 `sources.read`：`{id,page?}` 返回 `{name,page,pages,items:Citation[]}`；从保存解析块只读分页，每段最多 12000 字符，保留来源位置；非法页或已删除资料报错，不依赖用户原路径。新增 `sources.attach`：`{id}` 返回 Attachment；从经过管理目录校验的保留副本建立会话快照，复用同会话 ID；在途删除、解析取消和重复完成均释放多余临时文件。挂载本身不调用模型，后续学习仍须用户提交且受显式附件范围约束。
 
 全局搜索固定使用现有 `knowledge.search` 的 `scope=knowledge`，涵盖所有保存知识、补充和资料，不继承 AI 学习范围；不占用模型任务。页面筛选只作用当前列表。树视图偏好仅在渲染器 localStorage 保存各页视图名称，默认 list，失败退回内存，不写知识数据。
+
+## 选区问答与确认入库（修订 23）
+
+契约位于 [selection.ts](selection.ts)，新增六个白名单操作，未升级协议版本或 schema。`selection.open` 输入 `{source,quote}`；source 为知识／补充的 ID、当前 version 与可选 supplement_id，或保留资料的 ID、page、block_id。后台复核来源和可见选区；返回 SelectionSession。`selection.get` 读取 `{session_id}`，`selection.close` 移除会话并返回 `{closed}`；UI 生成期间禁用结束按钮，先通过实际请求 ID 取消，等待终态再结束。
+
+`selection.ask` 输入 `{session_id,turn_id,action,question?,page?,candidate_id?,provider_id?,model?,reasoning_effort?}`。lookup 新建本轮并免费搜索全部已保存知识／补充，候选每页 10 条；成功无候选才自动调用模型。有候选则返回 local，必须显式 generate 才付费；检索错误置 lookup-failed 并返回错误，不自动生成。page 只读分页；candidate_id 仅接受当前显示页摘录。generate 对已完整成功的轮次幂等复用。未配置、失败、取消均保留问题；错误后 get 取回真实状态。
+
+简单说：先显示自己保存的内容，搜索坏了不能偷偷付费；看过的片段只有明确选择才会带给模型。
+
+每进程最多 8 会话，每会话 24 轮、750000 UTF-8 JSON 字节；选区最多 6000 字符，问题最多 12000，模型回答最多 24000，发送上下文最多 28000。历史按最近完整问答装入预算，显示包含轮数；不付费摘要。`selection-answer` 目的直接回答，一次实际请求对应一条 attempts；不运行目录规划和审核。残缺 JSON、无效引用、超限或关闭后晚到答案都不能保存；模型来源与用量使用实际调用记录，缺失值仍未知。
+
+`selection.preview` 输入 `{session_id,turn_id}`，返回本地构造的可编辑 `{title,content}`，包含问题、选区、来源定位、必要前文、完整回答和模型解释标记。`selection.capture` 输入 `{session_id,turn_id,title,content,category_path,target_id?,version?}`；空路径表示未分类，明确选择 target_id 时必须提供当前 version。后台固定真实模型出处、有效引用及稳定收据键，复用 capture_topic 原子提交知识／独立补充和索引，禁止覆盖原文。返回最新会话 saved_id；重复同轮保存只提交一次，冲突与失败保留草稿。
+
+简单说：确认后才能入库，新答案可以另存或追加；聊天切页仍在，重启仅保留已入库内容和实际调用记录。

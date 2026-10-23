@@ -25,6 +25,7 @@ import { TaskStatus } from './TaskStatus'
 import { useCallback, useState } from 'react'
 import { SearchPage } from '../features/search/SearchPage'
 import { RecoverySettings } from '../features/settings/RecoverySettings'
+import { SelectionPanel } from '../features/selection'
 
 // 组合会话上下文、导航、反馈与页面布局。
 export function App() {
@@ -67,6 +68,7 @@ function AppShell() {
         <AppContent />
         <TaskStatus />
       </main>
+      <SelectionPanel />
       {editor && <NoteEditor key={section} />}
       {citation && <CitationDialog />}
       {(section === '探索' || isBucket(section)) && pathEntry !== null && <PathDialog />}

@@ -15,9 +15,10 @@ import { checkFirstUseUi, checkFeedbackUi } from './check_usability_ui.mjs'
 import { checkRecoveryUi } from './check_recovery_ui.mjs'
 import { checkUxNotes, checkUxSources, checkViewPreference } from './check_ux_review_ui.mjs'
 import { checkReadingUi } from './check_reading_ui.mjs'
+import { checkSelectionUi } from './check_selection_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', 'test0.12')
+const artifactDir = join(root, 'artifacts', '0.12.0')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
@@ -41,7 +42,7 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: 'test0.12', checks: [], screenshots: [] }
+const report = { version: '0.12.0', checks: [], screenshots: [] }
 let child, socket
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -193,12 +194,12 @@ try {
   assert.deepEqual(
     await ui.evaluate(`(async()=>[window.knowledgeBase.version,
       (await window.knowledgeBase.request('bootstrap')).version,
-      document.querySelector('.sidebar-bottom small').innerText.includes('0.12') &&
-      document.querySelector('.sidebar-bottom small').innerText.includes('测试版')])()`),
-    ['test0.12', 'test0.12', true]
+      document.querySelector('.sidebar-bottom small').innerText.includes('0.12.0') &&
+      document.querySelector('.sidebar-bottom small').innerText.includes('正式版')])()`),
+    ['0.12.0', '0.12.0', true]
   )
   report.checks.push(
-    'sandboxed renderer: Node require unavailable; test0.12 UI/preload/worker versions agree'
+    'sandboxed renderer: Node require unavailable; 0.12.0 UI/preload/worker versions agree'
   )
   await checkEmptyEditorUi({ ui, fill, click, waitFor, screenshot, report })
   await click('＋ 新建知识')
@@ -234,6 +235,7 @@ try {
   await checkNoteEditorUi({ ui, fill, click, waitFor, report })
   await checkFeedbackUi({ ui, fill, click, waitFor, report })
   await checkReadingUi({ ui, fill, click, waitFor, screenshot, report })
+  await checkSelectionUi({ ui, fill, click, waitFor, screenshot, report })
   await checkUxNotes({ ui, fill, click, waitFor, screenshot, report })
   await fill('.inline-search', '天文学')
   await waitFor(
@@ -404,10 +406,19 @@ try {
     `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('用量统计')).click()`
   )
   await waitFor(
-    () => ui.evaluate(`document.body.innerText.includes('还没有调用记录')`),
+    () => ui.evaluate(`document.querySelectorAll('tbody tr').length === 3`),
     'usage screen'
   )
-  report.checks.push('offline operations incur no API attempts')
+  const selectionAttempts = await ui.evaluate(`window.knowledgeBase.request('usage.list')`)
+  assert.equal(selectionAttempts.length, 3)
+  assert.ok(selectionAttempts.every((attempt) => attempt.purpose === 'selection-answer'))
+  assert.equal(
+    await ui.evaluate(`!!document.querySelector('.selection-reopen, .selection-panel')`),
+    false
+  )
+  report.checks.push(
+    'offline operations add no API attempts; only three synthetic selection attempts survive restart, uncaptured chat clears'
+  )
   await checkModelUi({
     ui,
     fill,

@@ -1,3 +1,23 @@
+## Stable 0.12.0 release follow-up
+
+- [x] Synchronize stable version declarations and current human documentation; preserve persistent identities and historical evidence.
+- [x] Run project checks, desktop regression and native installer location checks.
+- [x] Build full Windows x64 installer; verify packaged worker/application with isolated synthetic data; record checksums and limits.
+- [x] Review intended source inventory, commit locally and create annotated v0.12.0 without external publication (commit/tag identity is verified after creation in the delivery response).
+
+## Revision 23 plan and handoff
+
+- [x] 23.1 Inspect current reading/question/search/generation/capture boundaries; reuse the existing topic/task (AC-QA23-01..07).
+- [x] 23.2 Record the user's extended/local-first direction and explicit runtime-only session choice; write Chinese plan/visuals and English deltas.
+- [x] 23.3 Implement additive validated contracts, source/selection session state and free lookup routing, including no-paid-fallback-on-failure (AC-QA23-01/02/03/07).
+- [x] 23.4 Implement direct-answer purpose, bounded history, single task/cancel ownership and actual attempt accounting (AC-QA23-03/04/07).
+- [x] 23.5 Implement selection UI, candidates, continuous question controls and wide/narrow page-safe state (AC-QA23-01/02/04).
+- [x] 23.6 Implement editable standalone capture preview and generated-metadata-preserving note/supplement commits with idempotency/version recovery (AC-QA23-05/06).
+- [x] 23.7 Add risk-based backend/host/desktop regressions, run required check/UI commands and visually inspect affected layouts (AC-QA23-01..07).
+- [x] 23.8 Reconcile documentation with implemented behavior and record exact evidence/limits.
+
+Handoff: user explicitly authorized the displayed R23 plan with “进行开发”. Implementation now includes six validated operations, bounded application-owned runtime sessions, local-first branching, direct-answer accounting, source-owned selection UI and editable atomic capture. Runtime-only chat and persistent captured knowledge follow the user's async choice. test0.12/schema 6, existing dirty planning documents and prior features are preserved. No production/paid access, version bump, commit/push or installer/release work was performed. Final commands, AC mapping and remaining real-environment limits are in verification.md.
+
 ## Revision 21 execution
 
 - [x] 21.1 Strict manual save, optional categories and version-checked movement (AC-UX21-01/03).

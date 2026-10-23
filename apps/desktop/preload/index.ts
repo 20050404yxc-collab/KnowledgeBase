@@ -17,7 +17,7 @@ function reportDiagnostic(report: RendererDiagnostic): void {
 }
 
 const api: DesktopAPI = {
-  version: 'test0.12',
+  version: '0.12.0',
   // 来自另一个进程的结果先作为 unknown 处理，再按操作对应的 DTO 验证。
   request: async (operation, params, id) => {
     const request_id = id ?? crypto.randomUUID()

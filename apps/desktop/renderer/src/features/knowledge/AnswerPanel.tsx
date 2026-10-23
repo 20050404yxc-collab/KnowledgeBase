@@ -37,6 +37,11 @@ export function AnswerPanel() {
         />
       ) : (
         <MarkdownContent
+          source={
+            selected?.version && (!answer || answer.content === selected.content)
+              ? { kind: 'knowledge', id: selected.id, version: selected.version }
+              : undefined
+          }
           content={visibleContent ?? ''}
           citations={visibleCitations}
           onCitation={setCitation}
