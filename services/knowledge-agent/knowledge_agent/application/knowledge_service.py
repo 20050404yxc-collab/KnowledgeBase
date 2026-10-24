@@ -23,6 +23,7 @@ from .ports import (
 from .questions import Questions
 from .recommendations import Recommendations
 from .selection_questions import SelectionQuestions
+from .semantic_retrieval import SemanticRetrieval
 from .topic_workflow import TopicWorkflow
 
 
@@ -53,6 +54,7 @@ class KnowledgeService:
         self.selection = SelectionQuestions(store, client)
         self.closed = False
         self.catalog = catalog
+        self.semantic: SemanticRetrieval | None = None
 
     # 关闭可重复调用，先关闭数据库再清理会话；不删除保留资料。
     @traced
@@ -64,6 +66,8 @@ class KnowledgeService:
         self.text.edits.clear()
         self.selection.sessions.clear()
         try:
+            if self.semantic is not None:
+                self.semantic.encoder.close()
             self.store.close()
         finally:
             self.snapshots.close()
@@ -71,6 +75,8 @@ class KnowledgeService:
     # 入口退出时先收束解析线程，再执行同步资源释放。
     @traced
     async def settle(self) -> None:
+        if self.semantic is not None:
+            await self.semantic.settle()
         await self.snapshots.settle()
 
     # 恢复成功后旧目录、重构和分段编辑不再拥有当前库的提交权限。
@@ -87,12 +93,12 @@ class KnowledgeService:
     @traced
     def info(self) -> dict:
         return {
-            "version": "0.12.0",
+            "version": "0.13.0",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
-            "knowledge": self.store.list_knowledge(),
+            "knowledge": self.store.exploration_list(),
             "sources": self.store.list_sources(),
-            "notice": "关键词检索 · 未启用语义索引；OCR、旧 DOC 与安装包仍待验证",
+            "notice": "本地长期记忆 · 问答支持可选 INT8 语义检索；首次使用请在设置准备模型",
         }
 
     # 为入口提供稳定的附件用例边界。

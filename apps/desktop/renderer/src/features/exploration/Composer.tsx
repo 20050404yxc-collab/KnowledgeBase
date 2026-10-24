@@ -21,7 +21,7 @@ function showResults() {
 export function Composer() {
   const {
     attachments,
-    buildDirectory,
+    answerQuestion,
     query,
     composerCollapsed,
     setComposerCollapsed,
@@ -61,7 +61,7 @@ export function Composer() {
         hidden={composerCollapsed}
         onSubmit={(event) => {
           event.preventDefault()
-          void buildDirectory()
+          void answerQuestion()
         }}
       >
         <label className="sr-only" htmlFor="question">
@@ -72,7 +72,7 @@ export function Composer() {
         <ComposerToolbar />
       </form>
       <p className="learning-guide" hidden={composerCollapsed}>
-        生成学习目录 → 选择知识点 → 学习并保存。生成目录只规划知识点，正文按需生成。
+        先搜索相关知识，再由 AI 结合最多五段摘录回答；无相关内容时直接回答。满意后可预览保存。
       </p>
       {!composerCollapsed && resultArrival > 0 && (
         <button

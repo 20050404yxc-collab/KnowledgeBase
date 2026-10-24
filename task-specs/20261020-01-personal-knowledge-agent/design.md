@@ -1,3 +1,18 @@
+## Stable 0.13.0 release follow-up — 2026-10-24
+
+Reuse the existing frozen-worker, Electron and NSIS pipeline. Keep model resources as a separate explicit download, with CPU runtime dependencies bundled. Verify the actual packaged executable and worker against isolated synthetic data, then atomically push main/tag and verify uploaded asset sizes and SHA-256 before stable publication.
+
+## Revision 24 implementation design
+
+- Approved behavior: product §3.20 and technical R24. Separate memory/semantic infrastructure from application orchestration and pure ranking/prompt rules.
+- Store preferences, aggregate daily interests/readings, idempotency and versioned derived vectors in additive schema 7; use existing search_documents as canonical source snapshots. Triggers invalidate vector rows on source changes. No mutation of legacy knowledge frequency policy.
+- Encoder: pinned INT8 ONNX + tokenizer.json and configurations, ONNX Runtime CPU; explicit validated resource preparation. Cache outside source tree, no implicit model download during queries. One owned encoding task, immutable snapshots, database work on owner event loop.
+- Add memory state/update/reset, semantic status/prepare/rebuild, exploration list and compatible direct question session operations/modes. Reuse complete answer preview/capture and usage accounting; preserve default legacy operations.
+- Frontend: root-owned direct session actions, selected generation/scope, settings memory/index controls, top-nine exploration endpoint and responsive cap; existing full tree/search remain available.
+- Final details: threshold 0.50 calibrated on 16 positives/4 negatives (no independent holdout); one best chunk per source before top-30 fusion; source bodies shared within each 512-vector scan batch. Schema-7 clear preserves sanitized idempotency receipts, not raw questions; old reading identities remain recoverable but unreachable notes never rank. Edits invalidate vectors; reindex is explicit in settings.
+- Actual compatibility evidence: dev and frozen protocol workers both indexed and retrieved real INT8 vectors offline with stdin open, then exited on EOF. Preloading native libraries before the protocol input thread avoids the reproduced first-import hang; no unproven native root cause is claimed.
+- Verification: AC-M24-01..08; isolated synthetic storage/mocked generator plus actual local encoder and packaged-worker smoke. No production migration, paid call or release.
+
 ## Revision 23 implementation design
 
 - Evidence: shared MarkdownContent renders note/supplement/long/source content; KnowledgeQuestion currently invokes directory planning. TopicStorage.search is full-library lexical retrieval with stable pagination, not semantic retrieval. ProviderClient accounts every actual model attempt. capture_topic checks capture receipts/target versions and atomically updates generated note/supplement metadata and derived indexes. These are static findings, not runtime acceptance of R23.

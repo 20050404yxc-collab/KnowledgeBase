@@ -9,6 +9,7 @@ import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
 import { BackupGuide } from './BackupGuide'
 import { RecoverySettings } from './RecoverySettings'
+import { MemorySettings } from './MemorySettings'
 
 // 页内切换保持未保存接口草稿的状态，离开 API 表单仍取消模型发现。
 export function SettingsPage() {
@@ -32,9 +33,13 @@ export function SettingsPage() {
         <button role="tab" aria-selected={tab === 'backup'} onClick={() => setTab('backup')}>
           备份与恢复
         </button>
+        <button role="tab" aria-selected={tab === 'memory'} onClick={() => setTab('memory')}>
+          记忆与检索
+        </button>
       </div>
       {tab === 'api' && <ProviderSettings />}
       {tab === 'storage' && <StorageSettings />}
+      {tab === 'memory' && <MemorySettings />}
       {tab === 'backup' && (
         <section className="panel">
           <BackupGuide />

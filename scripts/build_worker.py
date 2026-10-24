@@ -11,7 +11,7 @@ from pathlib import Path
 from packaging.requirements import Requirement
 
 ROOT = Path(__file__).resolve().parents[1]
-RUNTIME = ["httpx", "keyring", "python-docx", "pdfplumber"]
+RUNTIME = ["httpx", "keyring", "python-docx", "pdfplumber", "numpy", "onnxruntime", "tokenizers"]
 
 
 # 按当前 Windows 环境解析必需依赖，不把 OCR／开发候选全部作为交付能力。
@@ -51,11 +51,22 @@ def write_notices() -> None:
                     filename = str(item).replace("/", "_").replace("\\", "_")
                     (target / filename).write_bytes(source.read_bytes())
                     files.append(filename)
+        fallback = {"flatbuffers": "25.12.19", "tokenizers": "0.23.3"}
+        if not files and name.lower() in fallback:
+            # Windows wheel 未携带许可文件，使用同版本上游原文并记录来源。
+            filename = f"{name.lower()}-{version}-LICENSE.txt"
+            if version != fallback[name.lower()]:
+                raise RuntimeError("Dependency version changed; recheck upstream license")
+            (target / filename).write_bytes((ROOT / "docs/第三方许可" / filename).read_bytes())
+            files.append(filename)
         if not files:
             raise RuntimeError(f"Missing license material: {name}")
         manifest.append({"name": name, "version": version, "license_files": files})
     (destination / "manifest.json").write_text(
         json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    (destination / "bge-small-zh-v1.5-LICENSE.txt").write_bytes(
+        (ROOT / "docs/第三方许可/bge-small-zh-v1.5-LICENSE.txt").read_bytes()
     )
 
 
@@ -79,7 +90,7 @@ def main() -> None:
         "--collect-data=docx",
         "--collect-data=certifi",
     ]
-    for name in ["numpy", "rapidocr", "onnxruntime", "cv2", "sqlite_vec", "pytest", "ruff"]:
+    for name in ["rapidocr", "cv2", "sqlite_vec", "pytest", "ruff"]:
         command.append("--exclude-module=" + name)
     subprocess.run(command + ["services/knowledge-agent/worker.py"], cwd=ROOT, check=True)
 

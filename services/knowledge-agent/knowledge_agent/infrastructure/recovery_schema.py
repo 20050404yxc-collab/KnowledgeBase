@@ -24,7 +24,7 @@ def database_snapshot(db: sqlite3.Connection, target: Path) -> None:
 # 新增独立回收站，不改已有知识身份、资料位置或接口配置。
 def migrate_recovery(db: sqlite3.Connection, root: Path) -> None:
     version = db.execute("PRAGMA user_version").fetchone()[0]
-    if version == 6:
+    if version >= 6:
         return
     if version != 5:
         raise ValueError("回收站迁移只接受 schema 5")

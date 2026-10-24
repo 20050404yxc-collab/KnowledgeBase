@@ -32,7 +32,7 @@ export function ComposerCaption() {
       )}
       {selectionNotice && <small role="status">{selectionNotice}</small>}
       <span>
-        全库搜索不调用模型 <span className="caption-dot">·</span> Ctrl + Enter 生成目录
+        全库搜索不调用模型 <span className="caption-dot">·</span> Ctrl + Enter 回答问题
       </span>
     </div>
   )

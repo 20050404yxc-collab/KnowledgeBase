@@ -84,6 +84,18 @@ async def dispatch_operation(
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation == "question.open":
+        return service.selection.open_direct(params)
+    if operation == "exploration.list":
+        return store.exploration_list(params.get("query", ""))
+    if operation == "memory.get":
+        return store.memory_state()
+    if operation == "memory.update":
+        return store.memory_update(params)
+    if operation == "memory.clear":
+        return store.memory_clear(params.get("scope", ""))
+    if operation.startswith("semantic."):
+        return await dispatch_semantic(service, operation, emit)
     if operation.startswith("selection."):
         return await dispatch_selection(service, operation, params, emit)
     if operation == "knowledge.text":
@@ -227,4 +239,15 @@ async def dispatch_selection(
         return service.selection.capture(params)
     if operation == "selection.close":
         return service.selection.close(params)
+    raise ValueError("不支持的操作")
+
+
+# 模型准备和索引重建为明确动作，状态读取不产生下载或计算任务。
+async def dispatch_semantic(service: KnowledgeService, operation: str, emit: Emit) -> dict:
+    if service.semantic is None:
+        raise ValueError("检索能力未装配")
+    if operation == "semantic.status":
+        return service.semantic.status()
+    if operation in ("semantic.prepare", "semantic.rebuild"):
+        return await service.semantic.build(operation == "semantic.prepare", emit)
     raise ValueError("不支持的操作")

@@ -58,7 +58,7 @@ function QuestionSettings() {
   return activeProvider ? (
     <>
       <p>
-        生成目录会调用模型并可能产生费用；知识正文按需另行生成。 沿用当前学习范围：
+        AI 回答会先检索相关内容，再调用模型，可能产生费用。沿用当前学习范围：
         {SCOPE_LABELS[effectiveScope]}（{attachments.length} 个附件）。本地搜索不调用模型。
       </p>
       <ModelPicker
@@ -83,6 +83,7 @@ function QuestionForm() {
     questionDraft,
     setQuestionDraft,
     buildDirectory,
+    answerQuestion,
     busy,
     ready,
     activeProvider,
@@ -96,7 +97,7 @@ function QuestionForm() {
         event.preventDefault()
         // 表单与快捷键遵守相同提交条件，空白问题不发起流程。
         if (questionDraft.trim() && !busy && ready) {
-          void buildDirectory(questionDraft)
+          void answerQuestion(questionDraft)
         }
       }}
     >
@@ -116,7 +117,14 @@ function QuestionForm() {
         }}
       />
       <button className="primary" disabled={!ready || !!busy || !questionDraft.trim()}>
-        {activeProvider ? '生成学习目录' : '查看本地相关内容'}
+        {activeProvider ? 'AI 回答' : '查看本地相关内容'}
+      </button>
+      <button
+        type="button"
+        disabled={!ready || !!busy || !questionDraft.trim()}
+        onClick={() => void buildDirectory(questionDraft)}
+      >
+        生成学习目录
       </button>
       <button
         type="button"

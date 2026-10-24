@@ -7,6 +7,7 @@ from knowledge_agent.infrastructure.sqlite_store import Store
 
 # 删除本轮新增对象后再降版，避免伪造版本号却留下未来结构。
 def downgrade_topics(store: Store) -> None:
+    downgrade_memory(store)
     store.db.execute("DROP TABLE IF EXISTS knowledge_trash")
     store.db.execute("DROP TABLE IF EXISTS provider_model_prices")
     for backup in store.root.glob("before-model-prices-v5-*.sqlite3"):
@@ -28,3 +29,21 @@ def downgrade_topics(store: Store) -> None:
     store.db.execute("PRAGMA user_version=2")
     store.db.commit()
     (store.root / "before-knowledge-topics-v3.sqlite3").unlink(missing_ok=True)
+
+
+# 撤销第七版对象后再构造旧版结构，不以修改版本号伪装真实迁移。
+def downgrade_memory(store: Store) -> None:
+    for event in ("update", "delete"):
+        store.db.execute("DROP TRIGGER IF EXISTS semantic_" + event)
+    for table in (
+        "memory_settings",
+        "memory_questions",
+        "memory_daily",
+        "memory_totals",
+        "memory_reading",
+        "memory_reading_totals",
+        "semantic_vectors",
+        "semantic_state",
+    ):
+        store.db.execute("DROP TABLE IF EXISTS " + table)
+    store.db.commit()

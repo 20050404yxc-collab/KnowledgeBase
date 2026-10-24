@@ -14,6 +14,7 @@ from knowledge_agent.entrypoints import protocol_runtime
 from knowledge_agent.entrypoints.protocol_runtime import ProtocolRuntime
 from knowledge_agent.infrastructure import recovery_schema
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_memory
 from test_diagnostics import diagnostic_session as diagnostic_fixture
 from test_library import call, ready
 from test_restructure_merge import approve_merge
@@ -126,7 +127,7 @@ def test_snapshot_failure_rolls_back_and_rejects_invalid_inputs(tmp_path):
             store.recovery_restore("../knowledge.sqlite3")
         path = tmp_path / "recovery" / snapshot
         with closing(sqlite3.connect(path)) as db:
-            db.execute("PRAGMA user_version=7")
+            db.execute("PRAGMA user_version=8")
         with pytest.raises(ValueError, match="版本不兼容"):
             store.recovery_restore(snapshot)
         path.write_bytes(b"corrupt")
@@ -141,6 +142,7 @@ def test_recovery_migration_failure_retry(tmp_path, monkeypatch, failure):
     store = Store(tmp_path)
     item = store.save("升级前正文", "不可覆盖手工内容")
     store.db.execute("DROP TABLE knowledge_trash")
+    downgrade_memory(store)
     store.db.execute("PRAGMA user_version=5")
     store.close()
 
@@ -167,7 +169,7 @@ def test_recovery_migration_failure_retry(tmp_path, monkeypatch, failure):
         assert not db.execute("SELECT 1 FROM sqlite_master WHERE name='knowledge_trash'").fetchone()
     with closing(Store(tmp_path)) as store:
         assert store.get(item["id"])["content"] == "不可覆盖手工内容"
-        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 7
 
 
 # 每日快照仅保留最近七份且不覆盖当天内容，不清理人工快照或用户文件。

@@ -11,6 +11,7 @@ import uuid
 
 from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.answer_validation import validate_answer
+from knowledge_agent.domain.direct_prompt import direct_prompt
 from knowledge_agent.domain.knowledge_rules import validate_note
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.domain.selection_rules import (
@@ -29,8 +30,10 @@ from knowledge_agent.domain.selection_rules import (
 )
 from knowledge_agent.domain.taxonomy import encode_path, validate_path
 
+from .direct_questions import direct_lookup, open_question
 from .generation_context import ATTEMPT_OBSERVER
 from .ports import Emit, Generator, Repository
+from .semantic_retrieval import SemanticRetrieval
 
 
 # 会话内部字段不跨进程；每次返回副本，防止界面改写后台完整回答或出处。
@@ -127,6 +130,13 @@ class SelectionQuestions:
         self.client = client
         self.sessions: dict[str, dict] = {}
         self.generating = False
+        self.processing = False
+        self.retrieval: SemanticRetrieval | None = None
+        self.documents: dict = {}
+
+    # 兼容增量入口独立创建普通问答，不影响原 selection.open 的来源校验。
+    def open_direct(self, params: dict) -> dict:
+        return session_view(open_question(self.sessions, params, self.documents), self.store)
 
     # 入口只返回对应会话，未知标识不得建立隐式会话或恢复旧上下文。
     def require(self, params: dict) -> dict:
@@ -169,9 +179,19 @@ class SelectionQuestions:
     def get(self, params: dict) -> dict:
         return session_view(self.require(params), self.store)
 
-    # 单个生成任务和会话上限都在后台复核，重复发送只返回既有轮次。
+    # 查询阶段也持有会话操作锁，防止并发重试跳过未完成检索而触发付费。
     @traced
     async def ask(self, params: dict, emit: Emit) -> dict:
+        if self.processing:
+            raise ValueError("已有选区回答正在生成或检索，请等待或取消后再试")
+        self.processing = True
+        try:
+            return await self.ask_turn(params, emit)
+        finally:
+            self.processing = False
+
+    # 单轮状态转换由外层锁拥有，检索失败必须经显式重试才能再次生成。
+    async def ask_turn(self, params: dict, emit: Emit) -> dict:
         session = self.require(params)
         action = params.get("action")
         turn_id = selection_text(params.get("turn_id"), 80, "问题标识")
@@ -181,8 +201,11 @@ class SelectionQuestions:
         if action == "lookup" and (turn is None or turn["state"] == "lookup-failed"):
             if turn is None:
                 turn = self.new_turn(session, turn_id, params.get("question"))
-            self.lookup(session, turn, 0)
-            if turn["state"] == "local":
+            if params.get("answer_mode") == "direct" or session["source"]["kind"] == "question":
+                await self.lookup_direct(session, turn)
+            else:
+                self.lookup(session, turn, 0)
+            if turn["state"] == "local" and not turn.get("_direct"):
                 return session_view(session, self.store)
             await self.generate(session, turn, params, emit)
         elif turn is None:
@@ -193,10 +216,36 @@ class SelectionQuestions:
             page = params.get("page")
             if type(page) is not int or not 0 <= page <= 100000:
                 raise ValueError("无效分页位置")
-            self.lookup(session, turn, page, preserve_state=True)
+            if turn.get("_direct"):
+                if page != 0:
+                    raise ValueError("直接问答仅展示最多五段回答证据")
+            else:
+                self.lookup(session, turn, page, preserve_state=True)
         elif action != "lookup":
             raise ValueError("无效选区问答动作")
         return session_view(session, self.store)
+
+    # 直接回答模式成功检索后才允许生成；失败保留本轮并拒绝隐式付费回退。
+    async def lookup_direct(self, session: dict, turn: dict) -> None:
+        if self.retrieval is None:
+            raise ValueError("检索能力未装配")
+        try:
+            result = await direct_lookup(self.store, self.retrieval, self.documents, session, turn)
+            selection_budget(session, turn, {"candidates": result["items"]})
+            turn.update(
+                candidates=result["items"],
+                total=result["total"],
+                page=0,
+                notice=result["notice"],
+                state="local" if result["total"] else "unconfigured",
+            )
+            turn["_candidate_pages"] = {i["id"]: i for i in result["items"]}
+            turn["_direct"] = True
+            turn["_retrieval_notice"] = result["notice"]
+        except BaseException:
+            turn["state"] = "lookup-failed"
+            turn["notice"] = "本地检索未完成，未自动调用模型；请重新检索。"
+            raise
 
     # 持有完整轮次直至用户关闭，超限时保留已有草稿与结果。
     def new_turn(self, session: dict, turn_id: str, question: object) -> dict:
@@ -280,6 +329,8 @@ class SelectionQuestions:
     async def generate(self, session: dict, turn: dict, params: dict, emit: Emit) -> None:
         if turn["state"] == "answered" or turn["_working"]:
             return
+        if self.sessions.get(session["id"]) is not session:
+            raise ValueError("会话已关闭，未调用模型")
         config = self.store.provider(params.get("provider_id"))
         if not config:
             turn["state"] = "unconfigured"
@@ -287,7 +338,13 @@ class SelectionQuestions:
             return
         config = resolve_generation(config, params)
         candidate = self.candidate(turn, params)
-        prompt, coverage = selection_prompt(session, turn, candidate)
+        evidence = []
+        if turn.get("_direct"):
+            prompt, coverage, evidence = direct_prompt(
+                session, turn, self.store.memory_state()["settings"]
+            )
+        else:
+            prompt, coverage = selection_prompt(session, turn, candidate)
         self.generating = turn["_working"] = True
         token = ATTEMPT_OBSERVER.set(turn["_attempts"].append)
         turn.update(model=config["model"], provider_name=config["name"])
@@ -295,7 +352,7 @@ class SelectionQuestions:
             emit({"type": "progress", "message": "正在直接回答选区问题；完整回复后可确认入库"})
             with step("selection.generate"):
                 text = await self.client.generate(config, prompt, "selection-answer", emit)
-                result = validate_answer(text, [], False)
+                result = validate_answer(text, evidence, session.get("_scope") == "files")
                 if len(result["content"]) > MAX_SELECTION_ANSWER_CHARS:
                     raise ValueError("选区回答超过 24000 字符，请缩小问题后重试")
             if self.sessions.get(session["id"]) is not session:
@@ -311,7 +368,7 @@ class SelectionQuestions:
                 content=result["content"],
                 title=result["title"],
                 citations=result["citations"],
-                notice="模型解释，尚未入库。" + coverage,
+                notice=turn.get("_retrieval_notice", "") + "模型解释，尚未入库。" + coverage,
             )
             turn["_context"] = history
             record("selection.answered", chars=len(turn["content"]))

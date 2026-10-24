@@ -10,18 +10,8 @@ import { readScope } from './attachment_state'
 
 // 选择文档与回答范围，并提交或取消请求。
 export function ComposerToolbar() {
-  const {
-    guarded,
-    ready,
-    query,
-    scope,
-    setScope,
-    busy,
-    setPathEntry,
-    addFiles,
-    searchGlobal,
-    cancelTask
-  } = useAppContext()
+  const { guarded, ready, query, scope, setScope, busy, setPathEntry, addFiles, searchGlobal } =
+    useAppContext()
   return (
     <div className="composer-toolbar">
       <div className="toolbar-left">
@@ -68,15 +58,30 @@ export function ComposerToolbar() {
       >
         搜索此问题
       </button>
-      {busy ? (
-        <button type="button" className="secondary" onClick={() => void cancelTask()}>
-          取消任务
-        </button>
-      ) : (
-        <button className="primary" disabled={!ready || !query.trim()}>
-          生成学习目录 <span>↗</span>
-        </button>
-      )}
+      <SubmitActions />
     </div>
+  )
+}
+
+// 目录与直接回答有独立入口，共用取消和忙碌状态。
+function SubmitActions() {
+  const { busy, ready, query, buildDirectory, cancelTask } = useAppContext()
+  return busy ? (
+    <button type="button" className="secondary" onClick={() => void cancelTask()}>
+      取消任务
+    </button>
+  ) : (
+    <>
+      <button
+        type="button"
+        disabled={!ready || !query.trim()}
+        onClick={() => void buildDirectory()}
+      >
+        生成学习目录
+      </button>
+      <button className="primary" disabled={!ready || !query.trim()}>
+        AI 回答 <span>↗</span>
+      </button>
+    </>
   )
 }

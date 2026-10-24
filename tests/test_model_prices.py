@@ -11,6 +11,7 @@ from knowledge_agent.domain.generation import GenerationState
 from knowledge_agent.domain.provider_rules import resolve_generation, validate_provider
 from knowledge_agent.infrastructure.model_prices import migrate_prices
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_memory
 from test_knowledge import Vault
 from test_providers import parameters
 
@@ -92,6 +93,7 @@ def legacy_prices(root):
     note = store.save("价格迁移", "手工正文不得改变")
     store.db.execute("DROP TABLE provider_model_prices")
     store.db.execute("DROP TABLE knowledge_trash")
+    downgrade_memory(store)
     store.db.execute("PRAGMA user_version=4")
     store.db.commit()
     store.close()

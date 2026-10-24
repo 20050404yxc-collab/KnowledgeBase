@@ -16,6 +16,7 @@ import { useSavedTree } from '../features/knowledge/use_saved_tree'
 import { useRestructure } from '../features/knowledge/use_restructure'
 import { useGlobalSearch } from '../features/search/use_global_search'
 import { useSelectionQuestions } from '../features/selection'
+import type { GenerationOptions } from '../../../../../contracts/desktop'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
 export function useAppModel(resetSession: () => void) {
@@ -53,14 +54,18 @@ export function useAppModel(resetSession: () => void) {
     generationOptions
   })
   const providerForm = useProviderForm()
-  const selectionChat = useSelectionQuestions({
+  const chatDependencies = {
     ...task,
     section: navigation.section,
     generationOptions,
     reload: library.reload
-  })
+  }
+  const selectionChat = useSelectionQuestions(chatDependencies)
+  const answerQuestion = (text = exploration.query) =>
+    startAnswer(exploration, feedback, selectionChat, generationOptions, text)
   return {
     selectionChat,
+    answerQuestion,
     resetSession,
     ...globalSearch,
     ...feedback,
@@ -80,3 +85,30 @@ export function useAppModel(resetSession: () => void) {
   }
 }
 export type AppModel = ReturnType<typeof useAppModel>
+
+// 根节点冻结本次范围；附件解析未完成时不创建问答或调用模型。
+async function startAnswer(
+  exploration: ReturnType<typeof useExploration>,
+  feedback: ReturnType<typeof useFeedback>,
+  selectionChat: ReturnType<typeof useSelectionQuestions>,
+  generationOptions: GenerationOptions,
+  text: string
+) {
+  if (!text.trim()) {
+    return
+  }
+  if (exploration.attachments.some((item) => item.state === 'loading')) {
+    feedback.setError('附件仍在解析，请等待完成或移除后提问')
+    return
+  }
+  const ids = exploration.attachments.flatMap((item) =>
+    item.state === 'ready' && item.id ? [item.id] : []
+  )
+  await selectionChat.startQuestion({
+    query: text,
+    scope: !ids.length && exploration.scope !== 'files' ? 'knowledge' : exploration.scope,
+    attachment_ids: ids,
+    purpose: 'question',
+    ...generationOptions
+  })
+}

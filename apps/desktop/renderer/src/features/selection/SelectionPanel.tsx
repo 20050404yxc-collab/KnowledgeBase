@@ -25,7 +25,7 @@ export function SelectionPanel() {
   return (
     <aside className="selection-panel" aria-label="选区问答">
       <div className="section-title">
-        <h2>选区问答</h2>
+        <h2>{entry?.session.source.kind === 'question' ? 'AI 回答' : '选区问答'}</h2>
         <button onClick={() => chat.setVisible(false)}>收起问答</button>
       </div>
       {chat.openingError && <p role="alert">{chat.openingError}</p>}
@@ -62,7 +62,9 @@ function SelectionConversation({ entry }: { entry: ChatEntry }) {
       <p className="subtle">
         {entry.session.source_title} · {entry.session.locator}
       </p>
-      <blockquote className="selection-quote">{entry.session.quote}</blockquote>
+      {!!entry.session.quote && (
+        <blockquote className="selection-quote">{entry.session.quote}</blockquote>
+      )}
       <small>{entry.session.notice}</small>
       <SelectionModel />
       <div className="selection-turns">
@@ -96,7 +98,7 @@ function SelectionConversation({ entry }: { entry: ChatEntry }) {
             placeholder="想理解什么？可以接着上文追问。"
           />
         </label>
-        <small>先免费搜索本地知识；成功检索无结果时自动询问当前模型。模型调用可能产生费用。</small>
+        <small>先检索本地知识，再结合相关摘录回答；无命中时直接回答。模型调用可能产生费用。</small>
         <button className="primary" disabled={!!busy || !entry.draft.trim()}>
           发送问题
         </button>
@@ -219,13 +221,22 @@ function AttemptDetails({ attempts }: { attempts: Attempt[] }) {
 
 // 候选分页覆盖全库，只有点击“携带摘录”才向模型发送对应片段。
 function LocalCandidates({ turn, entry }: { turn: SelectionTurn; entry: ChatEntry }) {
-  const { selectionChat: chat, busy, openItem } = useAppContext()
+  const { selectionChat: chat, busy, openItem, setCitation } = useAppContext()
   return (
     <div className="selection-candidates">
       <strong>本地相关内容 · 共 {turn.total} 条 · 免费</strong>
       {turn.candidates.map((hit) => (
         <article key={hit.id}>
-          <button disabled={!!busy} onClick={() => void openItem(hit.knowledge_id)}>
+          <button
+            disabled={!!busy}
+            onClick={() => {
+              if (hit.citation) {
+                setCitation(hit.citation)
+              } else {
+                void openItem(hit.knowledge_id)
+              }
+            }}
+          >
             {hit.title}
             {hit.kind === 'supplement' ? ' · 补充' : ''}
           </button>

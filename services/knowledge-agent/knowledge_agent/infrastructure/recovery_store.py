@@ -63,7 +63,10 @@ class RecoveryStorage:
                 snapshot.row_factory = sqlite3.Row
                 snapshot.execute("BEGIN")
                 version = snapshot.execute("PRAGMA user_version").fetchone()[0]
-                if version != 6 or snapshot.execute("PRAGMA quick_check").fetchone()[0] != "ok":
+                if (
+                    version not in (6, 7)
+                    or snapshot.execute("PRAGMA quick_check").fetchone()[0] != "ok"
+                ):
                     raise ValueError("恢复点版本不兼容或已损坏；未修改当前知识库")
                 if snapshot.execute("PRAGMA foreign_key_check").fetchone():
                     raise ValueError("恢复点关联不完整；未修改当前知识库")
@@ -78,6 +81,7 @@ class RecoveryStorage:
                         while rows := cursor.fetchmany(100):
                             insert_rows(self.db, table, [dict(row) for row in rows])
                     self.rebuild_recovery_index()
+                    self.semantic_reset()
         except sqlite3.DatabaseError as error:
             raise ValueError("恢复失败，当前知识库已保留；请检查恢复点及存储空间") from error
         return {"restored": True, "backup": backup}

@@ -5,7 +5,7 @@
 import type { Attempt, Citation, GenerationOptions, SearchHit } from './desktop'
 
 export interface SelectionSource {
-  kind: 'knowledge' | 'supplement' | 'source'
+  kind: 'knowledge' | 'supplement' | 'source' | 'question'
   id: string
   version?: string
   supplement_id?: string
@@ -42,6 +42,7 @@ export interface SelectionSession {
 }
 
 export interface SelectionAsk extends GenerationOptions {
+  answer_mode?: 'direct'
   session_id: string
   turn_id: string
   action: 'lookup' | 'generate' | 'page'

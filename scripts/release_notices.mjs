@@ -82,5 +82,7 @@ await writeFile(
   join(destination, 'README.txt'),
   'Third-party notices for KnowledgeBase. Electron/Chromium and Python dependency licenses are included.\n' +
     'The worker is built with PyInstaller 6.22.3 (GPL-2.0-or-later with bootloader distribution exception).\n' +
+    'CPU ONNX Runtime, NumPy and tokenizers are included with Python dependency notices.\n' +
+    'The optional MIT BGE-small-zh-v1.5 INT8 model is downloaded separately on explicit user action.\n' +
     'No OCR model or OCR runtime is shipped. API providers are configured by the user.\n'
 )

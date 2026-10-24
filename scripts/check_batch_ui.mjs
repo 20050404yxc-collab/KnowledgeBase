@@ -12,7 +12,7 @@ async function planBatch(context, project = false) {
     project ? '批量项目的队列、线程与应答如何实现' : '批量校验的重试、超时与幂等'
   )
   let count = fixture.state.posts.length
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === count + 1, 'batch plan')
   finish(fixture, {
     points: ['重试机制', '超时边界', '幂等提交'].map((name) => ({
@@ -239,7 +239,7 @@ async function checkBucketQuestions(context) {
       await ui.evaluate(
         `document.querySelector('[aria-label="知识提问"]').querySelectorAll('input,button').length`
       ),
-      3
+      4
     )
     assert.ok(
       await ui.evaluate(
@@ -248,7 +248,9 @@ async function checkBucketQuestions(context) {
     )
     const count = fixture.state.posts.length
     await fill('[aria-label="知识提问内容"]', `分区${index}的独立知识问题`)
-    await ui.evaluate(`document.querySelector('.knowledge-question .primary').click()`)
+    await ui.evaluate(
+      `[...document.querySelectorAll('.knowledge-question button')].find(b=>b.innerText==='生成学习目录').click()`
+    )
     await waitFor(
       async () => fixture.state.posts.length === count + 1,
       'bucket uses exploration planner'

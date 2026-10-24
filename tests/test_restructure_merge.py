@@ -9,6 +9,7 @@ import pytest
 from knowledge_agent.bootstrap import create_service
 from knowledge_agent.domain.library_rules import inventory_version
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_memory
 from test_knowledge import Vault, config
 from test_library import LibraryClient, call, outline, ready
 from test_topics_store import draft as supplement_draft
@@ -260,11 +261,12 @@ def test_price_upgrade_retains_existing_merge_group(merge_case):
     store = service.store
     store.db.execute("DROP TABLE provider_model_prices")
     store.db.execute("DROP TABLE knowledge_trash")
+    downgrade_memory(store)
     store.db.execute("PRAGMA user_version=4")
     store.db.commit()
     reopened = Store(store.root)
     try:
-        assert reopened.db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert reopened.db.execute("PRAGMA user_version").fetchone()[0] == 7
         current = reopened.get(second["id"])
         assert current["id"] == first["id"] and current["original_sources"]
         assert reopened.search({"query": "仅限乙条件"})["total"] == 1

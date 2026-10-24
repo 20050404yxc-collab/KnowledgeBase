@@ -1,3 +1,18 @@
+## Stable 0.13.0 release follow-up — 2026-10-24
+
+The release SHALL synchronize current public versions to 0.13.0, preserve historical evidence and persistent identities, and ship a standalone Windows x64 installer with checksum and manifest. Given successful-miss retrieval, direct answering SHALL call AI once; a retrieval execution error SHALL not become a miss. Only verified assets may be published as a stable release.
+
+## Revision 24 requirements (approved; verification pending)
+
+- AC-M24-01: Persist editable explicit style preferences and independent enabled flags locally. Aggregate topics/question types and active reading without storing full questions. Restart preserves aggregates; reset is atomic and old uses cannot repopulate cleared memory. Duplicate question IDs and same-day reading do not inflate counts.
+- AC-M24-02: Migrate schema 6 to 7 only after consistent backup; rollback failures, preserve content/configuration/credentials/identities. Knowledge-only restore accepts supported snapshots and invalidates derived vectors without rolling back preferences.
+- AC-M24-03: Prepare pinned BGE-small-zh-v1.5 INT8 resources only by explicit action, verify hashes and <100000000-byte total. CPU inference uses matching tokenizer, CLS pooling, normalization and bounded tokens. Missing/broken/incomplete indexes visibly degrade to lexical retrieval; storage search failures do not trigger paid fallback.
+- AC-M24-04: Hybrid retrieval filters allowed scope, excludes quote-only self matches, merges lexical/semantic hits, rejects unrelated evidence and sends <=5 excerpts / 1200 chars each / 6000 total. Preference <=800, history <=4000, quote <=6000, total serialized context <=28000; reject oversize question without silent truncation.
+- AC-M24-05: New explicit direct-answer mode performs successful retrieval then <=1 generation, hit or miss. Old directory/selection operation defaults remain compatible. No retry/classification/paid summary. Complete answers require preview-confirmed capture; failed/cancelled output cannot be captured. Page/session ownership and actual attempt accounting remain enforced.
+- AC-M24-06: Exploration computes rank over the entire eligible library before top-nine truncation, 60% decayed question interest +40% reading, 90-day recent window/30-day half-life, stable ties, lexical relevance first when filtering. Desktop <=9/3 rows, two columns <=6, one column <=3; all content remains reachable in library/search.
+- AC-M24-07: Index work is bounded/cancellable, off event loop, no shared SQLite connection; verify source content and index epoch before commit. Edits/deletes/merges/restores invalidate stale vectors. Shutdown settles actual workers. Diagnostics correlate failures without private text.
+- AC-M24-08: Run npm run check and npm run test:ui; verify actual INT8 Chinese synonym/negative examples, latency and isolated frozen-worker inference. Record hardware, limitations and no-paid/production boundary.
+
 ## Revision 23 ADDED requirements (implemented; isolated verification recorded)
 
 ### AC-QA23-01 Selection-owned runtime conversation

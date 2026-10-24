@@ -14,7 +14,7 @@ export function createWindow(): BrowserWindow {
     minWidth: 980,
     minHeight: 700,
     backgroundColor: '#f7f8fa',
-    title: '知序 · 0.12.0 正式版',
+    title: '知序 · 0.13.0 正式版',
     autoHideMenuBar: true,
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),

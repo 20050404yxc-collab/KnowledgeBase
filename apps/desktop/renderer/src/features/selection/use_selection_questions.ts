@@ -3,7 +3,7 @@
 // 作用：持有按发起页隔离的运行期选区会话、输入和保存草稿。
 // 说明：模型请求复用应用任务锁；切页不会丢失或串用上下文。
 import { useRef, useState } from 'react'
-import type { GenerationOptions, Knowledge } from '../../../../../../contracts/desktop'
+import type { GenerationOptions, Knowledge, RequestMap } from '../../../../../../contracts/desktop'
 import type {
   SelectionAsk,
   SelectionSession,
@@ -67,31 +67,8 @@ export function useSelectionQuestions(deps: Dependencies) {
       opening.current = false
     }
   }
-  // 本地检索成功无命中才自动生成；任何错误都刷新后台终态并保留草稿。
-  async function ask(entry: ChatEntry, params: Omit<SelectionAsk, 'session_id'>) {
-    if (deps.taskRunning.current) {
-      return
-    }
-    const id = entry.session.id
-    await deps.runTask(async () => {
-      patch(id, { error: '' })
-      try {
-        const session = await deps.taskRequest('selection.ask', {
-          ...deps.generationOptions,
-          ...params,
-          session_id: id
-        })
-        patch(id, { session, ...(params.action === 'lookup' ? { draft: '' } : {}) })
-      } catch (error) {
-        try {
-          patch(id, { session: await api.request('selection.get', { session_id: id }) })
-        } catch {
-          // 断线时保留已有展示，不把缺失会话当作空成功。
-        }
-        patch(id, { error: errorText(error) })
-      }
-    })
-  }
+  const ask = (entry: ChatEntry, params: Omit<SelectionAsk, 'session_id'>) =>
+    askQuestion(deps, patch, entry, params)
   const actions = selectionActions({
     setEntries,
     patch,
@@ -100,6 +77,18 @@ export function useSelectionQuestions(deps: Dependencies) {
     setSavingId,
     reload: deps.reload
   })
+  const startQuestion = (params: RequestMap['question']) =>
+    startDirectQuestion(
+      deps,
+      params,
+      (entry) => {
+        setEntries((items) => [...items, entry])
+        setActive((items) => ({ ...items, [entry.owner]: entry.session.id }))
+        setOpeningError('')
+        setVisible(true)
+      },
+      patch
+    )
   return {
     entries,
     active,
@@ -111,8 +100,44 @@ export function useSelectionQuestions(deps: Dependencies) {
     patch,
     open,
     ask,
+    startQuestion,
     ...actions
   }
+}
+
+// 开会话与首轮生成共用任务锁；先保存会话再请求，取消后仍可明确重试。
+async function startDirectQuestion(
+  deps: Dependencies,
+  params: RequestMap['question'],
+  opened: (entry: ChatEntry) => void,
+  patch: (id: string, value: ChatUpdate) => void
+) {
+  const owner = deps.section
+  await deps.runTask(async () => {
+    const session = await deps.taskRequest('question.open', params)
+    opened({ owner, session, draft: params.query, error: '', preview: null })
+    try {
+      const result = await deps.taskRequest('selection.ask', {
+        ...deps.generationOptions,
+        session_id: session.id,
+        turn_id: crypto.randomUUID(),
+        action: 'lookup',
+        answer_mode: 'direct',
+        question: params.query
+      })
+      patch(session.id, { session: result, draft: '' })
+      await deps.reload()
+    } catch (error) {
+      try {
+        patch(session.id, {
+          session: await api.request('selection.get', { session_id: session.id })
+        })
+      } catch {
+        // 后台不可用时保留发起时的完整问题，不能伪造已完成回答。
+      }
+      patch(session.id, { error: errorText(error) })
+    }
+  })
 }
 
 type Actions = {
@@ -179,4 +204,37 @@ function selectionActions(state: Actions) {
     }
   }
   return { preview, capture, close }
+}
+
+// 直接模式先查找再生成；任何错误都刷新后台终态并保留草稿。
+async function askQuestion(
+  deps: Dependencies,
+  patch: (id: string, value: ChatUpdate) => void,
+  entry: ChatEntry,
+  params: Omit<SelectionAsk, 'session_id'>
+) {
+  if (deps.taskRunning.current) {
+    return
+  }
+  const id = entry.session.id
+  await deps.runTask(async () => {
+    patch(id, { error: '' })
+    try {
+      const session = await deps.taskRequest('selection.ask', {
+        ...deps.generationOptions,
+        ...params,
+        answer_mode: 'direct',
+        session_id: id
+      })
+      patch(id, { session, ...(params.action === 'lookup' ? { draft: '' } : {}) })
+      await deps.reload()
+    } catch (error) {
+      try {
+        patch(id, { session: await api.request('selection.get', { session_id: id }) })
+      } catch {
+        // 断线时保留已有展示，不把缺失会话当作空成功。
+      }
+      patch(id, { error: errorText(error) })
+    }
+  })
 }

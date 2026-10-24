@@ -138,7 +138,7 @@ async function generate(context) {
   const { ui, fill, click, waitFor, fixture, screenshot } = context
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await fill('#question', '数据库事务：模型强度界面测试新概念')
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(
     () => ui.evaluate(`document.body.innerText.includes('请选择模型；此接口未设置默认模型')`),
     'missing model error'
@@ -159,7 +159,7 @@ async function generate(context) {
   await select(ui, '.composer-caption [aria-label="生成模型"]', 'fixture-b')
   await select(ui, '.composer-caption [aria-label="推理强度"]', 'high')
   await screenshot('desktop-model-selection.png')
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === 1, 'generation HTTP received')
   assert.equal(
     await ui.evaluate(
@@ -359,7 +359,7 @@ function finish(fixture, value) {
 async function supplement(context) {
   const { ui, fill, click, waitFor, fixture, screenshot, generated } = context
   await fill('#question', '模型选择验证有哪些新内容')
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === 4, 'supplement planning')
   finish(fixture, {
     points: [

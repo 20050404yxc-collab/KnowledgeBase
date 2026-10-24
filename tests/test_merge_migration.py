@@ -8,6 +8,7 @@ from contextlib import closing
 import pytest
 from knowledge_agent.infrastructure.merge_schema import migrate_merges
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_memory
 
 
 # 回退新增表形成真实 schema 3，避免仅改版本号伪造迁移用例。
@@ -19,6 +20,7 @@ def version_three(root):
     store.db.execute("DROP TRIGGER merge_root")
     for table in ("knowledge_merges", "restructure_provenance", "restructure_originals"):
         store.db.execute("DROP TABLE " + table)
+    downgrade_memory(store)
     store.db.execute("PRAGMA user_version=3")
     store.db.commit()
     return store, item

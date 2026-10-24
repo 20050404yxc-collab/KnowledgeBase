@@ -16,6 +16,7 @@ from knowledge_agent import diagnostics as logs
 from knowledge_agent.application.provider_settings import save_provider
 from knowledge_agent.infrastructure import merge_schema
 from knowledge_agent.infrastructure.sqlite_store import Store
+from legacy_database import downgrade_memory
 from test_knowledge import Vault
 from test_providers import parameters
 
@@ -60,6 +61,7 @@ def legacy_database(root, empty_prices=False):
         for name in ("knowledge_merges", "restructure_originals", "restructure_provenance"):
             store.db.execute(f"DROP TABLE {name}")
         store.db.execute("DROP TABLE knowledge_trash")
+        downgrade_memory(store)
         store.db.execute("PRAGMA user_version=4")
         store.db.commit()
         expected = business_rows(store.db)
@@ -75,7 +77,7 @@ def legacy_database(root, empty_prices=False):
 def test_legacy_prices_startup_preserves_data_and_restart(tmp_path, empty_prices):
     expected = legacy_database(tmp_path, empty_prices)
     with closing(Store(tmp_path)) as store:
-        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 7
         assert business_rows(store.db) == expected
         assert store.db.execute("PRAGMA foreign_key_check").fetchall() == []
         # 真正调用合并结构的读路径，不能只改版本号骗过启动。
@@ -140,7 +142,7 @@ def test_legacy_price_migration_rollback_and_retry(tmp_path, monkeypatch, caplog
         ).fetchone()
     with closing(Store(tmp_path)) as store:
         assert business_rows(store.db) == expected
-        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert store.db.execute("PRAGMA user_version").fetchone()[0] == 7
     failed = [row.msg for row in caplog.records if row.msg.get("event") == "step.failed"]
     assert any(
         row["request_id"] == "legacy-retry" and row["step"].endswith("migrate_merges")
@@ -202,7 +204,7 @@ def test_legacy_price_worker_handshake_and_bootstrap(tmp_path):
                 process.kill()
                 process.wait(timeout=15)
     with closing(sqlite3.connect(tmp_path / "knowledge.sqlite3")) as db:
-        assert db.execute("PRAGMA user_version").fetchone()[0] == 6
+        assert db.execute("PRAGMA user_version").fetchone()[0] == 7
         assert business_rows(db) == expected
     text = next((tmp_path / "logs").glob("*-worker.log")).read_text(encoding="utf-8")
     rows = [json.loads(line) for line in text.splitlines()]

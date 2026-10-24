@@ -16,7 +16,7 @@ export async function checkProjectUi(context) {
     'attach unrelated project material'
   )
   await fill('#question', '项目工件流转如何实现，以及简历职责润色')
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   count++
   await waitFor(async () => fixture.state.posts.length === count, 'project plan')
   finish(fixture, {
@@ -112,7 +112,7 @@ export async function checkLatePage(context) {
   const { ui, fill, click, waitFor, fixture, finish } = context
   const count = fixture.state.posts.length + 1
   await fill('#question', '等待时切页的独立目录')
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === count, 'pending plan')
   await ui.evaluate(
     `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('常用')).click()`

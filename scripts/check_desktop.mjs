@@ -16,9 +16,10 @@ import { checkRecoveryUi } from './check_recovery_ui.mjs'
 import { checkUxNotes, checkUxSources, checkViewPreference } from './check_ux_review_ui.mjs'
 import { checkReadingUi } from './check_reading_ui.mjs'
 import { checkSelectionUi } from './check_selection_ui.mjs'
+import { checkMemoryUi } from './check_memory_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', '0.12.0')
+const artifactDir = join(root, 'artifacts', '0.13.0')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
@@ -42,8 +43,8 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: '0.12.0', checks: [], screenshots: [] }
-let child, socket
+const report = { version: '0.13.0', checks: [], screenshots: [] }
+let child, socket, ui
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
 // 有限轮询隔离测试条件，超时明确失败而不操作正式应用。
@@ -165,7 +166,7 @@ async function closeApp(ui) {
 }
 
 try {
-  let ui = await launch()
+  ui = await launch()
   // 在真实沙箱内触发失败与全局错误，验证日志通道不接受私密正文。
   await ui.evaluate(`(async () => {
     try { await window.knowledgeBase.request('knowledge.get', {id:'missing-diagnostic-fixture'}, 'diagnostic-ui-failure') } catch {}
@@ -194,12 +195,12 @@ try {
   assert.deepEqual(
     await ui.evaluate(`(async()=>[window.knowledgeBase.version,
       (await window.knowledgeBase.request('bootstrap')).version,
-      document.querySelector('.sidebar-bottom small').innerText.includes('0.12.0') &&
+      document.querySelector('.sidebar-bottom small').innerText.includes('0.13.0') &&
       document.querySelector('.sidebar-bottom small').innerText.includes('正式版')])()`),
-    ['0.12.0', '0.12.0', true]
+    ['0.13.0', '0.13.0', true]
   )
   report.checks.push(
-    'sandboxed renderer: Node require unavailable; 0.12.0 UI/preload/worker versions agree'
+    'sandboxed renderer: Node require unavailable; 0.13.0 UI/preload/worker versions agree'
   )
   await checkEmptyEditorUi({ ui, fill, click, waitFor, screenshot, report })
   await click('＋ 新建知识')
@@ -281,14 +282,14 @@ try {
   )
   assert.equal(
     await ui.evaluate(
-      `document.querySelector('.learning-guide').innerText.includes('正文按需生成')`
+      `document.querySelector('.learning-guide').innerText.includes('最多五段摘录')`
     ),
     true
   )
   report.checks.push(
-    'explicit all-library search ignores AI file-only scope; learning guide separates planning from generation'
+    'explicit all-library search ignores AI file-only scope; guide explains bounded direct answering'
   )
-  await click('生成学习目录 ↗')
+  await click('生成学习目录')
   await waitFor(
     () =>
       ui.evaluate(
@@ -337,6 +338,7 @@ try {
   await screenshot('desktop-settings.png')
   assert.equal(await ui.evaluate(`document.querySelector('input[type=password]') !== null`), true)
   await checkRecoveryUi({ ui, click, waitFor, screenshot, report })
+  await checkMemoryUi({ ui, click, fill, waitFor, screenshot, report })
   report.checks.push('source and provider settings screens render')
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await waitFor(
@@ -379,6 +381,7 @@ try {
     'initial page list loaded after restart'
   )
   await checkViewPreference({ ui, click, waitFor, report }, true)
+  await checkMemoryUi({ ui, click, fill, waitFor, screenshot, report }, true)
   // 真实重启增加两类新文件，之前的日志逐字保持不变。
   const restartedLogNames = await readdir(join(dataDir, 'logs'))
   assert.equal(restartedLogNames.length, firstLogNames.length + 2)
@@ -517,6 +520,30 @@ $owned | Select-Object -ExpandProperty ProcessId
   await writeFile(join(artifactDir, 'desktop-check.json'), JSON.stringify(report, null, 2) + '\n')
   console.log(JSON.stringify(report, null, 2))
 } catch (error) {
+  console.error(
+    await ui
+      ?.evaluate(
+        `JSON.stringify({list:document.querySelector('.knowledge-section')?.innerText,filter:document.querySelector('.inline-search')?.value,alerts:[...document.querySelectorAll('[role=alert]')].map(x=>x.innerText)})`
+      )
+      .catch(() => 'unavailable')
+  )
+  const rows = (await readDiagnosticLog(join(dataDir, 'logs'), 'worker'))
+    .trim()
+    .split('\n')
+    .map((line) => JSON.parse(line))
+  console.error(
+    JSON.stringify(
+      rows
+        .filter((r) => r.level === 'error')
+        .slice(-8)
+        .map(({ operation, event, step, errors }) => ({
+          operation,
+          event,
+          step,
+          errors: errors?.map(({ type, reason }) => ({ type, reason }))
+        }))
+    )
+  )
   report.status = 'failed'
   report.error = String(error)
   await writeFile(join(artifactDir, 'desktop-check.json'), JSON.stringify(report, null, 2) + '\n')

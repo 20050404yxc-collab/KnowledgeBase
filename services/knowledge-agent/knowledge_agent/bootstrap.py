@@ -11,11 +11,13 @@ from knowledge_agent.diagnostics import traced
 from .application.generation import ProviderClient
 from .application.knowledge_service import KnowledgeService
 from .application.ports import CredentialVault, Generator, PublicProjectReader
+from .application.semantic_retrieval import SemanticRetrieval
 from .infrastructure.file_snapshots import FileSnapshots
 from .infrastructure.model_catalog import ModelCatalog
 from .infrastructure.model_transport import ModelTransport
 from .infrastructure.public_projects import PublicProjects
 from .infrastructure.secret_vault import SecretVault
+from .infrastructure.semantic_model import LocalSemanticModel
 from .infrastructure.sqlite_store import Store
 
 
@@ -41,7 +43,7 @@ def create_service(
         credentials = vault if vault is not None else SecretVault()
         snapshots = FileSnapshots(store.root)
         generator = client if client is not None else create_client(store, credentials)
-        return KnowledgeService(
+        service = KnowledgeService(
             store,
             credentials,
             generator,
@@ -50,6 +52,10 @@ def create_service(
             ModelCatalog(),
             projects if projects is not None else PublicProjects(),
         )
+        service.semantic = SemanticRetrieval(store, LocalSemanticModel(store.root))
+        service.selection.retrieval = service.semantic
+        service.selection.documents = service.attachments
+        return service
     except Exception:
         store.close()
         if snapshots is not None:

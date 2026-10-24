@@ -1,3 +1,21 @@
+## Stable 0.13.0 release follow-up — 2026-10-24
+
+- Workflow mode: execute; Plan revision: 24-release; Approval status: approved; Approved revision: 24-release.
+- Authorization: user explicitly requested “帮我提交git，作为正式版本，要发布安装包”. This supersedes the original R24 no-version/no-commit/no-release boundary for this follow-up.
+- Scope: stable 0.13.0 version synchronization, required checks, Windows x64 frozen worker and NSIS installer, isolated packaged verification, Git commit/tag and fast-forward publication of source and verified release assets to the existing GitHub repository.
+- Preserve app/installer identities, data paths and credential service KnowledgeBase.test0.01. R24 schema 7 migration is already authorized; do not access production data, credentials or paid providers. No delegation.
+- Standards: user-supplied project coding/layering standard and AGENTS.md retained. Docs language: Chinese; Task-specs language: English. Reuse this task and existing release docs.
+
+## Revision 24: persistent interests and INT8 hybrid retrieval
+
+- Workflow mode: execute; Plan revision: 24; Approval status: approved; Approved revision: 24.
+- Authorization: user selected enhanced semantic retrieval, requires model resources below 100 MB, then explicitly said “那现在定下来INT8，开始开发吧”. This authorizes the displayed R24 plan, local model preparation and isolated verification. No paid calls, production data, version bump, commit or release.
+- Scope: local editable explicit preferences, query/topic and active-reading aggregates, reset/disable controls, CPU BGE-small-zh-v1.5 INT8 hybrid retrieval, bounded direct answers with preview capture, exploration ranking capped at 9 / 3 rows, compatible protocol additions, schema 6-to-7 migration with backup, model/runtime packaging integration.
+- Routing: revise existing personal knowledge task. Docs language: Chinese; Task-specs language: English. No delegation.
+- Standards: supplied AGENTS.md and docs/确认页/工程规范/项目编码与分层规范.md revision 2 (read 2026-10-24); general-engineering references retained. Existing privacy, layering, ownership and isolation constraints apply.
+- Model: BAAI/bge-small-zh-v1.5, Xenova INT8 ONNX conversion, pinned revision 75c43b069aac4d136ba6bc1122f995fedcfd2781; exact resources 24,343,235 bytes. Runtime dependencies/RAM are separate. Hashes, license provenance and real measurements are recorded in the Chinese semantic acceptance page.
+- Status: implementation and isolated verification complete. R23/release evidence remains historical, version remains 0.12.0, no commit/release performed.
+
 ## GitHub publication follow-up — 2026-10-23
 
 User explicitly requested “提交GitHub，并把安装包也进行发布”. This authorizes fast-forward push of existing main and annotated v0.12.0, upload of the verified installer/checksum/manifest, and stable GitHub Release publication. The prior local-only boundary below remains historical and is superseded for this follow-up. Repository was observed public; no visibility change is authorized or performed. Reuse completed product/packaging evidence; only current download/publication docs change. No rebuild, product change, production data or paid call.

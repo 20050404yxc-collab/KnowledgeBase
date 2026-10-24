@@ -10,12 +10,12 @@
         "id": "bootstrap-sample",
         "type": "result",
         "result": {
-          "version": "0.12.0",
+          "version": "0.13.0",
           "data_dir": "<temporary>",
           "providers": [],
           "knowledge": [],
           "sources": [],
-          "notice": "关键词检索 · 未启用语义索引；OCR、旧 DOC 与安装包仍待验证"
+          "notice": "本地长期记忆 · 问答支持可选 INT8 语义检索；首次使用请在设置准备模型"
         }
       }
     },
@@ -131,6 +131,61 @@
           "total": 0,
           "page": 0
         }
+      }
+    },
+    {
+      "request": {
+        "id": "memory-get-sample",
+        "operation": "memory.get",
+        "params": {}
+      },
+      "response": {
+        "id": "memory-get-sample",
+        "type": "result",
+        "result": {
+          "settings": {
+            "preferences_enabled": true,
+            "questions_enabled": true,
+            "reading_enabled": true,
+            "language": "中文",
+            "detail": "适中",
+            "examples": "按需"
+          },
+          "topics": [],
+          "reading_days": 0
+        }
+      }
+    },
+    {
+      "request": {
+        "id": "semantic-status-sample",
+        "operation": "semantic.status",
+        "params": {}
+      },
+      "response": {
+        "id": "semantic-status-sample",
+        "type": "result",
+        "result": {
+          "documents": 0,
+          "indexed": 0,
+          "vectors": 0,
+          "ready": false,
+          "working": false,
+          "model": "BGE-small-zh-v1.5 INT8",
+          "resource_bytes": 24343235
+        }
+      }
+    },
+    {
+      "request": {
+        "id": "exploration-list-sample",
+        "operation": "exploration.list",
+        "params": {}
+      },
+      "response": {
+        "id": "exploration-list-sample",
+        "type": "result",
+        "result": []
       }
     }
   ],
@@ -530,6 +585,76 @@
       "operation": "selection.close",
       "result": {
         "closed": true
+      }
+    },
+    {
+      "operation": "memory.update",
+      "result": {
+        "settings": {
+          "preferences_enabled": true,
+          "questions_enabled": true,
+          "reading_enabled": true,
+          "language": "中文",
+          "detail": "适中",
+          "examples": "按需"
+        },
+        "topics": [],
+        "reading_days": 0
+      }
+    },
+    {
+      "operation": "memory.clear",
+      "result": {
+        "settings": {
+          "preferences_enabled": true,
+          "questions_enabled": true,
+          "reading_enabled": true,
+          "language": "中文",
+          "detail": "适中",
+          "examples": "按需"
+        },
+        "topics": [],
+        "reading_days": 0
+      }
+    },
+    {
+      "operation": "semantic.prepare",
+      "result": {
+        "documents": 0,
+        "indexed": 0,
+        "vectors": 0,
+        "ready": false,
+        "working": false,
+        "model": "BGE-small-zh-v1.5 INT8",
+        "resource_bytes": 24343235
+      }
+    },
+    {
+      "operation": "semantic.rebuild",
+      "result": {
+        "documents": 0,
+        "indexed": 0,
+        "vectors": 0,
+        "ready": false,
+        "working": false,
+        "model": "BGE-small-zh-v1.5 INT8",
+        "resource_bytes": 24343235
+      }
+    },
+    {
+      "operation": "question.open",
+      "result": {
+        "id": "direct-session",
+        "source": {
+          "kind": "question",
+          "id": ""
+        },
+        "source_title": "直接问答",
+        "locator": "本次问题",
+        "quote": "",
+        "category_path": [],
+        "turns": [],
+        "notice": "仅本次会话"
       }
     }
   ]

@@ -3,6 +3,7 @@
 // 作用：声明操作、DTO、事件和受限桌面 API。
 // 说明：保留协议字段命名，不包含运行时实现。
 import type { SelectionAsk, SelectionCapture, SelectionSession, SelectionSource } from './selection'
+import type { MemorySettings, MemoryState, SemanticStatus } from './memory'
 import type {
   LibraryTree,
   DraftReference,
@@ -336,6 +337,14 @@ export interface ModelCatalog {
   partial: boolean
 }
 export interface RequestMap {
+  'question.open': RequestMap['question']
+  'exploration.list': { query?: string }
+  'memory.get': Record<string, never>
+  'memory.update': Partial<MemorySettings>
+  'memory.clear': { scope: 'questions' | 'reading' | 'all' }
+  'semantic.status': Record<string, never>
+  'semantic.prepare': Record<string, never>
+  'semantic.rebuild': Record<string, never>
   'selection.open': { source: SelectionSource; quote: string }
   'selection.ask': SelectionAsk
   'selection.get': { session_id: string }
@@ -425,6 +434,14 @@ export interface RequestMap {
   recommendations: { id: string }
 }
 export interface ResultMap {
+  'question.open': SelectionSession
+  'exploration.list': Knowledge[]
+  'memory.get': MemoryState
+  'memory.update': MemoryState
+  'memory.clear': MemoryState
+  'semantic.status': SemanticStatus
+  'semantic.prepare': SemanticStatus
+  'semantic.rebuild': SemanticStatus
   'selection.open': SelectionSession
   'selection.ask': SelectionSession
   'selection.get': SelectionSession

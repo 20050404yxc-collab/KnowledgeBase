@@ -31,6 +31,8 @@ from knowledge_agent.domain.taxonomy import encode_path, validate_path
 
 from .library_store import LibraryStorage
 from .manual_notes import ManualNotes
+from .memory_schema import migrate_memory
+from .memory_store import MemoryStorage
 from .merge_schema import migrate_merges
 from .merge_store import MergeStorage
 from .model_catalog_schema import migrate_catalog
@@ -38,13 +40,21 @@ from .model_prices import migrate_prices, read_prices
 from .recovery_schema import migrate_recovery
 from .recovery_store import RecoveryStorage
 from .recycle_store import RecycleStorage
+from .semantic_store import SemanticStorage
 from .topic_schema import migrate_topics, populate_index, register_tokens
 from .topic_store import TopicStorage
 from .usage_store import summarize_usage
 
 
 class Store(
-    TopicStorage, LibraryStorage, MergeStorage, RecycleStorage, RecoveryStorage, ManualNotes
+    TopicStorage,
+    LibraryStorage,
+    MergeStorage,
+    RecycleStorage,
+    RecoveryStorage,
+    ManualNotes,
+    MemoryStorage,
+    SemanticStorage,
 ):
     # 重构事务内部重建索引，不开启另一层提交。
     def populate_library_index(self) -> None:
@@ -74,7 +84,7 @@ class Store(
         schema_version = self.db.execute("PRAGMA user_version").fetchone()[0]
         record("storage.schema", schema_version=schema_version)
         # 遇到更新版本的库应拒绝打开，不能建空库绕过数据兼容问题。
-        if schema_version > 6:
+        if schema_version > 7:
             raise ValueError("数据库版本高于当前程序，请使用新版程序打开")
         # 保留基础表与外键，再通过独立增量迁移添加模型目录。
         self.db.executescript("""
@@ -115,6 +125,7 @@ class Store(
         migrate_merges(self.db, self.root)
         migrate_prices(self.db, self.root)
         migrate_recovery(self.db, self.root)
+        migrate_memory(self.db, self.root)
         self.daily_snapshot()
         with self.db:
             self.db.execute("UPDATE attempts SET status='interrupted' WHERE status='running'")
@@ -161,6 +172,7 @@ class Store(
         if not row:
             raise ValueError("知识不存在或已删除")
         if active_use:
+            self.remember_reading(item_id)
             current = datetime.now().astimezone()
             with self.db:
                 self.db.execute(

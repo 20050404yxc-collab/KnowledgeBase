@@ -153,7 +153,7 @@ async function checkLibraryOfflineReading(context, title) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!document.querySelector('.session-task') && document.querySelector('.local-results')?.innerText.includes('阅读停靠验收')`
+        `!document.querySelector('.session-task') && document.querySelector('.selection-candidates')?.innerText.includes('阅读停靠验收')`
       ),
     'library-local question results without provider'
   )
@@ -161,6 +161,7 @@ async function checkLibraryOfflineReading(context, title) {
     await ui.evaluate(`document.querySelector('[aria-label="知识提问内容"]').value`),
     title
   )
+  await click('收起问答')
   await fill('[aria-label="知识提问内容"]', '')
   await fill('[aria-label="筛选已有知识"]', '')
   await click('全部分类')
@@ -168,12 +169,12 @@ async function checkLibraryOfflineReading(context, title) {
 
 // 规划失败后保留草稿可重试；后台完成只更新发起页，主探索输入不被覆盖。
 export async function checkReadingQuestions(context) {
-  const { ui, fill, waitFor, fixture, finish, report } = context
+  const { ui, fill, click, waitFor, fixture, finish, report } = context
   const exploration = await ui.evaluate(`document.querySelector('#question').value`)
   await go(ui, '知识库')
   const before = fixture.state.posts.length
   await fill('[aria-label="知识提问内容"]', '阅读提问失败后重试')
-  await ui.evaluate(`document.querySelector('.knowledge-question').requestSubmit()`)
+  await click('生成学习目录')
   await waitFor(
     async () => fixture.state.posts.length === before + 1,
     'library question model request'
@@ -196,7 +197,7 @@ export async function checkReadingQuestions(context) {
     '阅读提问失败后重试'
   )
   assert.equal(await ui.evaluate(`document.querySelectorAll('.directory-point').length`), 0)
-  await ui.evaluate(`document.querySelector('.knowledge-question').requestSubmit()`)
+  await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === before + 2, 'explicit retry request')
   assert.equal(JSON.parse(fixture.state.posts.at(-1).input).question, '阅读提问失败后重试')
   await go(ui, '探索')

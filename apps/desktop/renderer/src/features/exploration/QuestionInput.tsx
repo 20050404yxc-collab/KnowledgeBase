@@ -7,7 +7,7 @@ import { useAppContext } from '../../app/AppContext'
 
 // 管理问题输入、快捷提交和本地路径粘贴。
 export function QuestionInput() {
-  const { query, setQuery, buildDirectory, addFiles } = useAppContext()
+  const { query, setQuery, answerQuestion, addFiles } = useAppContext()
   return (
     <textarea
       id="question"
@@ -18,7 +18,7 @@ export function QuestionInput() {
       onKeyDown={(event) => {
         if (event.key === 'Enter' && (event.ctrlKey || event.metaKey)) {
           event.preventDefault()
-          void buildDirectory()
+          void answerQuestion()
         }
       }}
       onPaste={(event) => {

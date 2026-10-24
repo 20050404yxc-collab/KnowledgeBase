@@ -146,10 +146,13 @@ async function reloadAction(state: Feedback & Navigation & LibraryState) {
   const sequence = ++loadSequence.current
   setFailedKey('')
   try {
-    const value = await api.request('knowledge.list', {
-      query: filter,
-      bucket: isBucket(section) ? section : null
-    })
+    const value =
+      section === '探索'
+        ? await api.request('exploration.list', { query: filter })
+        : await api.request('knowledge.list', {
+            query: filter,
+            bucket: isBucket(section) ? section : null
+          })
     if (sequence === loadSequence.current && key === currentListKey.current) {
       setPageLists((current) => ({ ...current, [section]: { key, items: value } }))
     }

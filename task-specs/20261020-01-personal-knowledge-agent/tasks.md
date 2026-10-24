@@ -1,3 +1,21 @@
+## Stable 0.13.0 release follow-up — 2026-10-24
+
+- [x] Synchronize version and current user documentation.
+- [x] Run npm run check and npm run test:ui.
+- [x] Build installer, validate NSIS paths, packaged app/worker and archive payload.
+- [ ] Review staged source inventory, commit and annotate v0.13.0.
+- [ ] Fast-forward publish source/tag and verified installer/checksum/manifest; reconcile evidence.
+
+## Revision 24 execution
+
+- [x] Inspect current chains, standards and approval; lock INT8 direction and <100 MB cap.
+- [x] Implement and verify migration, preferences, aggregates and global exploration ranking.
+- [x] Pin/prepare INT8 resources, implement CPU encoder and cancellable hybrid index/retrieval.
+- [x] Integrate bounded direct answering and compatible validated contracts; preserve capture/cancel semantics.
+- [x] Integrate memory settings, retrieval status and responsive exploration cap.
+- [x] Run focused risks, full check, desktop regression and actual model/frozen-worker evaluation.
+- [x] Reconcile Chinese docs and record evidence/limitations.
+
 ## GitHub publication follow-up
 
 - [x] Verify remote ancestry, stable tag, repository visibility and unchanged local asset integrity; push main and v0.12.0 without force.

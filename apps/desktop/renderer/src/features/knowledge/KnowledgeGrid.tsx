@@ -7,9 +7,9 @@ import { useAppContext } from '../../app/AppContext'
 
 // 展示知识卡片并触发完整知识读取。
 export function KnowledgeGrid() {
-  const { items, selected, openItem } = useAppContext()
+  const { items, selected, openItem, section } = useAppContext()
   return (
-    <div className="knowledge-grid">
+    <div className={`knowledge-grid${section === '探索' ? ' exploration-grid' : ''}`}>
       {items.map((item) => (
         <button
           className={`knowledge-card ${selected?.id === item.id ? 'chosen' : ''}`}

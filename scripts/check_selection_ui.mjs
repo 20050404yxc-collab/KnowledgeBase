@@ -14,9 +14,12 @@ async function request(ui, operation, params = {}) {
 
 // 构造真实浏览器范围，模拟鼠标释放；按钮必须来自正文的选区处理。
 async function selectQuote(ui, text) {
+  await ui.evaluate(`(async()=> {
+    document.querySelector('.answer-panel .selectable-text').scrollIntoView({block:'center',behavior:'instant'});
+    await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+  })()`)
   await ui.evaluate(`(() => {
     const root=document.querySelector('.answer-panel .selectable-text');
-    root.scrollIntoView({block:'center'});
     const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);
     let node; while(node=walker.nextNode()) {
       const start=node.textContent.indexOf(${JSON.stringify(text)});
@@ -88,7 +91,7 @@ export async function checkSelectionUi(context) {
     assert.equal(fixture.state.posts.length, 0)
     assert.equal((await request(ui, 'usage.list')).length, 0)
     provider = await saveFixtureProvider(context, fixture)
-    await click('未解决，询问模型')
+    await click('询问模型／重试')
     await waitFor(
       () =>
         ui.evaluate(
@@ -124,7 +127,7 @@ export async function checkSelectionUi(context) {
       'restore original reading fixture'
     )
     await ui.evaluate(`document.querySelector('.knowledge-card').click()`)
-    await click('收起问答')
+    await ui.evaluate(`document.querySelector('.selection-panel .section-title button')?.click()`)
   }
 }
 
@@ -192,7 +195,6 @@ async function checkCaptureAndFollowup(context) {
       ),
     'followup local lookup complete'
   )
-  await click('未解决，询问模型')
   await waitFor(
     () => ui.evaluate(`document.querySelectorAll('.selection-turn .markdown-content').length===2`),
     'followup complete'
@@ -256,14 +258,6 @@ async function checkCancellation(context) {
   fixture.state.hold = true
   await fill('[aria-label="选区问题"]', '公平调度取消验收')
   await click('发送问题')
-  await waitFor(
-    () =>
-      ui.evaluate(
-        `document.querySelectorAll('.selection-turn').length===3 && !document.querySelector('.session-task')`
-      ),
-    'cancellation turn searched'
-  )
-  await click('未解决，询问模型')
   await waitFor(async () => fixture.state.posts.length === 3, 'held actual request')
   await click('取消当前任务')
   await waitFor(

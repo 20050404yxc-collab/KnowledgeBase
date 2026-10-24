@@ -36,6 +36,7 @@ import type {
   WorkerMessage
 } from '../../../contracts/desktop'
 import type { SelectionSession, SelectionSource, SelectionTurn } from '../../../contracts/selection'
+import type { MemorySettings, MemoryState, SemanticStatus } from '../../../contracts/memory'
 
 type Check<T> = (value: unknown) => value is T
 
@@ -257,7 +258,7 @@ const attempt = object<Attempt>({
 })
 // 选区来源只表达阅读定位，不携带执行能力或未经验证的模型出处。
 const selectionSource = object<SelectionSource>({
-  kind,
+  kind: (value): value is SelectionSource['kind'] => kind(value) || value === 'question',
   id: string,
   version: optional(string),
   supplement_id: optional(string),
@@ -353,7 +354,40 @@ const textResult: Check<ResultMap['knowledge.text']> = (
     (value.edit_id !== undefined && value.offset !== undefined) ||
     (value.saved === true && value.id !== undefined) ||
     value.discarded === true)
+const memorySettings = object<MemorySettings>({
+  preferences_enabled: boolean,
+  questions_enabled: boolean,
+  reading_enabled: boolean,
+  language: (value): value is MemorySettings['language'] =>
+    ['中文', 'English', '跟随问题'].some((v) => v === value),
+  detail: (value): value is MemorySettings['detail'] =>
+    ['简洁', '适中', '详细'].some((v) => v === value),
+  examples: (value): value is MemorySettings['examples'] =>
+    ['按需', '多举例', '少举例'].some((v) => v === value)
+})
+const memoryState = object<MemoryState>({
+  settings: memorySettings,
+  topics: array(object({ topic: string, kind: string, count, last_used: string })),
+  reading_days: count
+})
+const semanticStatus = object<SemanticStatus>({
+  documents: count,
+  indexed: count,
+  vectors: count,
+  ready: boolean,
+  working: boolean,
+  model: string,
+  resource_bytes: count
+})
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
+  'question.open': selectionSession,
+  'exploration.list': array(knowledge),
+  'memory.get': memoryState,
+  'memory.update': memoryState,
+  'memory.clear': memoryState,
+  'semantic.status': semanticStatus,
+  'semantic.prepare': semanticStatus,
+  'semantic.rebuild': semanticStatus,
   'selection.open': selectionSession,
   'selection.ask': selectionSession,
   'selection.get': selectionSession,
