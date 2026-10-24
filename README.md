@@ -142,7 +142,7 @@ npm run test:ui
 
 桌面测试使用独立 Electron profile、临时数据目录和本地合成文件，可与正式运行实例共存；当前报告与截图保存在忽略提交的 `artifacts/0.13.0/`，原 0.1 报告保留原路径。执行桌面测试前须先构建。
 
-Git 默认分支为 `main`，当前源码与 npm 版本为 `0.13.0`，正式版标签为 `v0.13.0`，本轮正在验证并准备提交／发布，完成结果见安装与发布记录。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
+Git 默认分支为 `main`，当前源码与 npm 版本为 `0.13.0`，正式版标签为 `v0.13.0`，源码与标签已推送 GitHub，安装包、SHA-256 和发布清单已正式发布。远程仓库为 [GitHub KnowledgeBase](https://github.com/20050404yxc-collab/KnowledgeBase)，版本历史保留开发前基线和各次迭代；依赖环境、模型、编译产物、用户数据和秘密文件不提交。
 
 完整产品方向与未完成的 v1 验收要求见 [确认文档总览](docs/确认页/确认文档总览.md)。
 

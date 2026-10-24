@@ -3,6 +3,7 @@
 - Workflow mode: execute; Plan revision: 24-release; Approval status: approved; Approved revision: 24-release.
 - Authorization: user explicitly requested “帮我提交git，作为正式版本，要发布安装包”. This supersedes the original R24 no-version/no-commit/no-release boundary for this follow-up.
 - Scope: stable 0.13.0 version synchronization, required checks, Windows x64 frozen worker and NSIS installer, isolated packaged verification, Git commit/tag and fast-forward publication of source and verified release assets to the existing GitHub repository.
+- Status: stable 0.13.0 built, verified and published. Feature commit 3277190088f76b1c9ff6b94da021a116a27a8126; annotated tag v0.13.0. Verified publication details are in verification.md.
 - Preserve app/installer identities, data paths and credential service KnowledgeBase.test0.01. R24 schema 7 migration is already authorized; do not access production data, credentials or paid providers. No delegation.
 - Standards: user-supplied project coding/layering standard and AGENTS.md retained. Docs language: Chinese; Task-specs language: English. Reuse this task and existing release docs.
 

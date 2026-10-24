@@ -3,8 +3,8 @@
 - [x] Synchronize version and current user documentation.
 - [x] Run npm run check and npm run test:ui.
 - [x] Build installer, validate NSIS paths, packaged app/worker and archive payload.
-- [ ] Review staged source inventory, commit and annotate v0.13.0.
-- [ ] Fast-forward publish source/tag and verified installer/checksum/manifest; reconcile evidence.
+- [x] Review staged source inventory, commit and annotate v0.13.0.
+- [x] Fast-forward publish source/tag and verified installer/checksum/manifest; reconcile evidence.
 
 ## Revision 24 execution
 
