@@ -27,6 +27,8 @@ def validate_params(operation: str, params: dict) -> None:
         "providers.delete",
         "providers.test",
         "recommendations",
+        "projects.delete",
+        "projects.tree",
     }
     if operation in id_operations and not isinstance(params.get("id"), str):
         raise ValueError("缺少有效条目标识")
@@ -84,6 +86,8 @@ async def dispatch_operation(
     store = service.store
     if operation == "bootstrap":
         return service.info()
+    if operation.startswith("projects."):
+        return await dispatch_projects(service, operation, params)
     if operation == "question.open":
         return service.selection.open_direct(params)
     if operation == "exploration.list":
@@ -145,6 +149,24 @@ async def dispatch_operation(
     if operation == "recommendations":
         item = store.get(params["id"])
         return service.recommendations(item["title"], item["content"], exclude=item["id"])
+    raise ValueError("不支持的操作")
+
+
+# 路径登记与目录预览通过应用用例执行，入口不直接操作本地文件。
+async def dispatch_projects(
+    service: KnowledgeService, operation: str, params: dict
+) -> dict | list[dict]:
+    projects = service.local_projects
+    if projects is None:
+        raise ValueError("项目路径能力未装配")
+    if operation == "projects.list":
+        return projects.list()
+    if operation == "projects.save":
+        return projects.save(params)
+    if operation == "projects.delete":
+        return projects.delete(params["id"])
+    if operation == "projects.tree":
+        return await projects.tree(params["id"])
     raise ValueError("不支持的操作")
 
 

@@ -68,6 +68,20 @@ const api: DesktopAPI = {
       throw requestError(error, request_id)
     }
   },
+  // 单独选择目录以兼容 Windows；拖放和手输路径仍由后台校验。
+  chooseFolder: async () => {
+    const request_id = crypto.randomUUID()
+    try {
+      const value: unknown = await ipcRenderer.invoke('kb:folder', request_id)
+      if (typeof value !== 'string') {
+        throw new Error('文件夹选择结果格式无效，请重试')
+      }
+      return value
+    } catch (error) {
+      reportDiagnostic({ event: 'files_failed', request_id, ...diagnosticError(error) })
+      throw requestError(error, request_id)
+    }
+  },
   // 固定能力单独校验，目录标识不能变成任意文件系统路径。
   storagePaths: async () => {
     const request_id = crypto.randomUUID()

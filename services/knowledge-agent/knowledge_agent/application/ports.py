@@ -4,6 +4,7 @@
 # 说明：只声明契约，不导入 SQLite、HTTP 或文件实现。
 from __future__ import annotations
 
+from threading import Event
 from typing import Callable, Protocol
 
 from knowledge_agent.domain.generation import GenerationState
@@ -17,6 +18,17 @@ from knowledge_agent.domain.models import (
 )
 
 Emit = Callable[[dict], None]
+
+
+class ProjectFiles(Protocol):
+    # 元数据归适配器持有，返回副本；写入失败不改变当前登记。
+    def list(self) -> list[dict]: ...
+    # 标签唯一，目录必须存在；不扫描或复制目录内容。
+    def save(self, params: dict) -> list[dict]: ...
+    # 只删除登记，不删除原件。
+    def delete(self, identity: str) -> list[dict]: ...
+    # 在线程中按预算读取；停止标记控制扫描与每次正文读取边界。
+    def read(self, reference: dict, query: str, stop: Event, tree_only: bool) -> dict: ...
 
 
 class KnowledgeRepository(Protocol):

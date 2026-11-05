@@ -32,6 +32,7 @@ from knowledge_agent.domain.taxonomy import encode_path, validate_path
 
 from .direct_questions import direct_lookup, open_question
 from .generation_context import ATTEMPT_OBSERVER
+from .local_projects import LocalProjects
 from .ports import Emit, Generator, Repository
 from .semantic_retrieval import SemanticRetrieval
 
@@ -133,6 +134,7 @@ class SelectionQuestions:
         self.processing = False
         self.retrieval: SemanticRetrieval | None = None
         self.documents: dict = {}
+        self.local_projects: LocalProjects | None = None
 
     # 兼容增量入口独立创建普通问答，不影响原 selection.open 的来源校验。
     def open_direct(self, params: dict) -> dict:
@@ -340,6 +342,7 @@ class SelectionQuestions:
         candidate = self.candidate(turn, params)
         evidence = []
         if turn.get("_direct"):
+            await self.project_evidence(session, turn, emit)
             prompt, coverage, evidence = direct_prompt(
                 session, turn, self.store.memory_state()["settings"]
             )
@@ -357,6 +360,7 @@ class SelectionQuestions:
                     raise ValueError("选区回答超过 24000 字符，请缩小问题后重试")
             if self.sessions.get(session["id"]) is not session:
                 raise ValueError("会话已关闭，未保存回答")
+            self.check_project(turn)
             history = json.loads(prompt)["history"]
             selection_budget(
                 session,
@@ -384,6 +388,29 @@ class SelectionQuestions:
             ATTEMPT_OBSERVER.reset(token)
             self.generating = turn["_working"] = False
 
+    # 直接问题先完成原本的本地知识检索，只有确需生成时才按唯一标签读取项目。
+    async def project_evidence(self, session: dict, turn: dict, emit: Emit) -> None:
+        turn.pop("_project_reference", None)
+        turn["_project_evidence"] = []
+        turn["_project_notice"] = ""
+        if self.local_projects is None or session.get("_scope") == "files":
+            return
+        reference = self.local_projects.match(turn["question"] + " " + session["quote"])
+        if reference is None:
+            return
+        emit({"type": "progress", "message": "已匹配登记项目，正在按需读取相关文件"})
+        result = await self.local_projects.read(reference, turn["question"])
+        if self.sessions.get(session["id"]) is not session:
+            raise ValueError("会话已关闭，未采用项目片段")
+        turn["_project_reference"] = reference
+        turn["_project_evidence"] = result["evidence"]
+        turn["_project_notice"] = f"已自动关联项目「{reference['label']}」。" + result["notice"]
+
+    # 回答返回和后续人工保存都复核登记，防止移除后旧结果继续入库。
+    def check_project(self, turn: dict) -> None:
+        if self.local_projects is not None and turn.get("_project_reference"):
+            self.local_projects.check(turn["_project_reference"])
+
     # 保存预览由用户编辑，后台仍固定完整回答身份、有效引用及真实模型出处。
     @traced
     def capture(self, params: dict) -> dict:
@@ -391,6 +418,7 @@ class SelectionQuestions:
         turn = next((t for t in session["turns"] if t["id"] == params.get("turn_id")), None)
         if turn is None or turn["state"] != "answered" or turn["_working"]:
             raise ValueError("只有完整成功的回答可以保存")
+        self.check_project(turn)
         title, content, _ = validate_note(params.get("title", ""), params.get("content", ""))
         path = params.get("category_path")
         if path != []:

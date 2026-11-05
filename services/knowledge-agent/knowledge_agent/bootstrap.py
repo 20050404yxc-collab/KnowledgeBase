@@ -10,11 +10,13 @@ from knowledge_agent.diagnostics import traced
 
 from .application.generation import ProviderClient
 from .application.knowledge_service import KnowledgeService
+from .application.local_projects import LocalProjects
 from .application.ports import CredentialVault, Generator, PublicProjectReader
 from .application.semantic_retrieval import SemanticRetrieval
 from .infrastructure.file_snapshots import FileSnapshots
 from .infrastructure.model_catalog import ModelCatalog
 from .infrastructure.model_transport import ModelTransport
+from .infrastructure.project_registry import ProjectRegistry
 from .infrastructure.public_projects import PublicProjects
 from .infrastructure.secret_vault import SecretVault
 from .infrastructure.semantic_model import LocalSemanticModel
@@ -55,6 +57,9 @@ def create_service(
         service.semantic = SemanticRetrieval(store, LocalSemanticModel(store.root))
         service.selection.retrieval = service.semantic
         service.selection.documents = service.attachments
+        service.local_projects = LocalProjects(ProjectRegistry(store.root))
+        service.topics.projects.local = service.local_projects
+        service.selection.local_projects = service.local_projects
         return service
     except Exception:
         store.close()

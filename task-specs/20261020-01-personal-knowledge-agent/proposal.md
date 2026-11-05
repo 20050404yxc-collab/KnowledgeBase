@@ -1,3 +1,13 @@
+## Revision 25: tagged local project references — 2026-10-25
+
+- Workflow mode: execute; Plan revision: 25; Approval basis: user requests folder paths stored with project labels and automatic reuse, then selects “允许按需读取少量相关文件，避免整项目加载（推荐）”. Implementation follows the current authorized scope; previous release authorization does not extend to this revision.
+- Status: implemented and verified within the isolated scope recorded in verification.md. Docs language: Chinese; Task-specs language: English. No delegation. Existing 0.13.0 installers are unchanged.
+- Routing: revise existing project-material workflow. Standards: supplied AGENTS.md and project coding/layering standard revision 2, read 2026-10-25.
+- Scope: persistent local path/label metadata, explicit directory picker and management in project materials/material library, unique deterministic project matching, bounded directory discovery and selective source/document reads, topic-material verification and direct-question reuse. No full import, execution, cloning, paid tests, schema migration, production data access, version bump or release.
+- Diagnosis: existing picker accepts four document formats; attachment parsing requires individual files; project material authorization is session-only. A folder cannot be represented as a reusable labeled source. Directory structure alone cannot establish implementation facts.
+- Risks: path moves, ambiguous labels, incomplete reads, stale registration during generation, links escaping the root, secret/build files and large directories. Preserve explicit scope, evidence validation, cancellation and original-file safety.
+- Human docs: product §3.21 and confirmation overview; evidence in verification.md.
+
 ## Stable 0.13.0 release follow-up — 2026-10-24
 
 - Workflow mode: execute; Plan revision: 24-release; Approval status: approved; Approved revision: 24-release.

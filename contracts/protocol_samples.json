@@ -187,6 +187,18 @@
         "type": "result",
         "result": []
       }
+    },
+    {
+      "request": {
+        "id": "projects-list-sample",
+        "operation": "projects.list",
+        "params": {}
+      },
+      "response": {
+        "id": "projects-list-sample",
+        "type": "result",
+        "result": []
+      }
     }
   ],
   "invalid_requests": [
@@ -655,6 +667,49 @@
         "category_path": [],
         "turns": [],
         "notice": "仅本次会话"
+      }
+    },
+    {
+      "operation": "projects.list",
+      "result": [
+        {
+          "id": "fixture-project",
+          "label": "示例项目",
+          "path": "D:\\fixtures\\project",
+          "category_path": ["项目实践", "示例项目"],
+          "revision": "fixture-version"
+        }
+      ]
+    },
+    {
+      "operation": "projects.save",
+      "result": [
+        {
+          "id": "fixture-project",
+          "label": "示例项目",
+          "path": "D:\\fixtures\\project",
+          "category_path": ["项目实践", "示例项目"],
+          "revision": "fixture-version"
+        }
+      ]
+    },
+    {
+      "operation": "projects.delete",
+      "result": [
+        {
+          "id": "fixture-project",
+          "label": "示例项目",
+          "path": "D:\\fixtures\\project",
+          "category_path": ["项目实践", "示例项目"],
+          "revision": "fixture-version"
+        }
+      ]
+    },
+    {
+      "operation": "projects.tree",
+      "result": {
+        "entries": ["src/", "src/main.cpp"],
+        "notice": "仅目录预览，未读取正文"
       }
     }
   ]

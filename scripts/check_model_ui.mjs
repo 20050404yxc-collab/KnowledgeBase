@@ -6,6 +6,7 @@ import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { checkPageUi } from './check_page_ui.mjs'
 import { checkProjectUi, checkLatePage } from './check_project_ui.mjs'
+import { checkProjectReferenceUi } from './check_project_reference_ui.mjs'
 import { checkBatchUi } from './check_batch_ui.mjs'
 import { checkLibraryUi } from './check_library_ui.mjs'
 import { checkSettingsUi } from './check_settings_ui.mjs'
@@ -493,6 +494,7 @@ export async function checkModelUi(context) {
     await checkPageUi(value)
     await supplement(value)
     await checkProjectUi({ ...value, finish })
+    await checkProjectReferenceUi({ ...value, finish })
     await checkLatePage({ ...value, finish })
     await checkBatchUi({ ...value, finish })
     await checkLibraryUi({ ...value, finish })

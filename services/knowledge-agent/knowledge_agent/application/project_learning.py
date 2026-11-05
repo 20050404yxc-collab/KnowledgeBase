@@ -5,8 +5,10 @@
 import json
 import uuid
 
+from knowledge_agent.domain.taxonomy import parent_path
 from knowledge_agent.domain.topic_rules import json_object, short_field
 
+from .local_projects import LocalProjects
 from .ports import Emit, Generator, PublicProjectReader
 from .questions import select_evidence
 
@@ -34,6 +36,7 @@ class ProjectLearning:
     def __init__(self, reader: PublicProjectReader, documents: dict) -> None:
         self.reader = reader
         self.documents = documents
+        self.local: LocalProjects | None = None
 
     # 撤销不用等待学习锁；新的版本使旧网络及生成结果失去提交许可。
     def revoke(self, session: dict, point: dict, public_only: bool = False) -> dict:
@@ -57,6 +60,17 @@ class ProjectLearning:
         )
         action = params.get("action", "learn")
         if action == "materials":
+            # 无显式附件时复用登记目录；仅文件范围仍不自动扩大授权。
+            if (
+                not params.get("attachment_ids")
+                and self.local is not None
+                and session["scope"] != "files"
+            ):
+                reference = self.local.match(session["query"], list(parent_path(point)))
+                if reference is not None:
+                    return await self.local_materials(
+                        session, point, reference, client, config, emit
+                    )
             return await self.materials(session, point, params, client, config, emit)
         if action == "public-search":
             return await self.search(session, point, params)
@@ -75,6 +89,16 @@ class ProjectLearning:
         if state["status"] in ("material-ready", "public-ready"):
             self.check(session, point, state)
             return None
+        # 登记的项目只在范围允许且唯一匹配时按需读取，不要求用户重复添加附件。
+        if self.local is not None and session["scope"] != "files":
+            reference = self.local.match(session["query"], list(parent_path(point)))
+            if reference is not None:
+                checked = await self.local_materials(
+                    session, point, reference, client, config, emit
+                )
+                if checked["project"]["status"] == "material-ready":
+                    return None
+                return checked
         return project_result(
             point, state, point["material_request"] + "。请提供资料并核对，或明确同意检索公开示例。"
         )
@@ -120,6 +144,56 @@ class ProjectLearning:
             state.update({"status": "material-ready", "evidence": evidence, "documents": docs})
         return project_result(point, state, reason + " ".join(notices))
 
+    # 项目路径证据仍经过同一充分性契约，目录存在不等于可以编造实现。
+    async def local_materials(
+        self,
+        session: dict,
+        point: dict,
+        reference: dict,
+        client: Generator,
+        config: dict,
+        emit: Emit,
+    ) -> dict:
+        if self.local is None:
+            raise ValueError("本地项目能力未装配")
+        state = self.reset(session, point)
+        state["reference"] = reference
+        emit({"type": "progress", "message": "已匹配登记项目，正在按需读取目录与相关文件"})
+        result = await self.local.read(reference, session["query"] + " " + point["facet"])
+        self.check(session, point, state)
+        evidence = result["evidence"]
+        # 核对只发送实际证据和标签，不把用户原始绝对路径传给供应商。
+        text = await client.generate(
+            config,
+            json.dumps(
+                {
+                    "point": point,
+                    "evidence": evidence,
+                    "coverage_notice": result["notice"],
+                    "constraint": "目录结构只证明文件位置；实现细节须以实际正文片段为依据，不能从文件名推断实现",
+                },
+                ensure_ascii=False,
+            ),
+            "project-materials",
+            emit,
+        )
+        self.check(session, point, state)
+        raw = json_object(text)
+        cited, allowed = raw.get("citation_ids"), {b["id"] for b in evidence}
+        if (
+            type(raw.get("sufficient")) is not bool
+            or not isinstance(cited, list)
+            or any(not isinstance(i, str) or i not in allowed for i in cited)
+        ):
+            raise ValueError("项目资料核对无效，未允许解释")
+        reason = short_field(raw.get("reason"), "资料核对理由", 500)
+        state["coverage_notice"] = result["notice"]
+        if raw["sufficient"] and cited:
+            state.update(status="material-ready", evidence=evidence)
+        return project_result(
+            point, state, f"已使用登记项目「{reference['label']}」。" + reason + result["notice"]
+        )
+
     # 显式按钮本身携带本次可编辑检索词与范围确认，不能从文档或模型接受授权。
     async def search(self, session: dict, point: dict, params: dict) -> dict:
         current = session["projects"][point["id"]]
@@ -154,6 +228,8 @@ class ProjectLearning:
         if any(self.documents.get(d["id"]) is not d for d in state.get("documents", [])):
             self.revoke(session, point)
             raise ValueError("项目资料已移除，请重新核对")
+        if state.get("reference") and self.local is not None:
+            self.local.check(state["reference"])
 
     # 选中的公开项目成为独立可追溯证据，不能混入用户项目资料冒充经历。
     def context(self, session: dict, point: dict) -> tuple[dict, dict | None]:
@@ -162,7 +238,12 @@ class ProjectLearning:
             raise ValueError("缺少项目许可")
         self.check(session, point, state)
         if state["status"] == "material-ready":
-            return {**session, "evidence": state["evidence"]}, state
+            return {
+                **session,
+                "evidence": state["evidence"],
+                "coverage_notice": session.get("coverage_notice", "")
+                + state.get("coverage_notice", ""),
+            }, state
         if state["status"] != "public-ready":
             raise ValueError("请先选择公开示例或核对资料")
         c = state["selected"]

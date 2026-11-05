@@ -379,7 +379,18 @@ const semanticStatus = object<SemanticStatus>({
   model: string,
   resource_bytes: count
 })
+const projectReference = object({
+  id: string,
+  label: string,
+  path: string,
+  category_path: array(string),
+  revision: string
+})
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
+  'projects.list': array(projectReference),
+  'projects.save': array(projectReference),
+  'projects.delete': array(projectReference),
+  'projects.tree': object({ entries: array(string), notice: string }),
   'question.open': selectionSession,
   'exploration.list': array(knowledge),
   'memory.get': memoryState,

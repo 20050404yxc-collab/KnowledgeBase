@@ -16,9 +16,9 @@ def style_preferences(settings: dict) -> dict:
     )
 
 
-# 证据最多五段，历史最多 4000 字符；总预算不足先减历史再减低排名证据。
+# 本地命中最多五段，项目片段另受读取预算约束；总预算不足先减历史再减证据。
 def direct_prompt(session: dict, turn: dict, settings: dict) -> tuple[str, str, list[dict]]:
-    evidence = []
+    evidence = list(turn.get("_project_evidence", []))
     for hit in turn["candidates"][:5]:
         citation = hit.get("citation")
         evidence.append(
@@ -56,5 +56,8 @@ def direct_prompt(session: dict, turn: dict, settings: dict) -> tuple[str, str, 
             evidence.pop()
         else:
             raise ValueError("本轮问题与背景超过上下文预算，请缩短后重试")
-    notice = f"本轮带入 {len(evidence)} 段本地摘录、{len(payload['history'])}/{len(prior)} 轮历史；兴趣统计未发送。"
+    notice = (
+        turn.get("_project_notice", "")
+        + f"本轮带入 {len(evidence)} 段本地摘录、{len(payload['history'])}/{len(prior)} 轮历史；兴趣统计未发送。"
+    )
     return json.dumps(payload, ensure_ascii=False), notice, evidence

@@ -1,3 +1,9 @@
+## R25 Design
+
+Persist only reference metadata in an atomically replaced bounded JSON file under application data; keep SQLite schema 7 unchanged. Application LocalProjects owns matching, scan concurrency, cancellation and revision checks. Infrastructure ProjectRegistry/reader validate paths, skip links and sensitive/generated paths, bound entry/depth/byte/text budgets, and produce relative-path evidence with immutable excerpts. No full directory index or original copy is retained.
+Add compatible project reference CRUD/tree operations and a restricted folder picker, validated in both protocol boundaries. Share a public React project-reference component between materials and SourceList. Bind explicit project category paths; match unique labels deterministically, without model-selected filesystem paths. Topic materials reuse the existing sufficiency call; direct questions add evidence inside their existing budget and validate registry revisions after generation. File-only sessions do not automatically expand scope.
+Verify isolated persistence/failures, original safety, bounded scanning/reads, label ambiguity, permissions, cancellation, revision changes and diagnostics privacy, then npm run check and npm run test:ui. No paid or production validation.
+
 ## Stable 0.13.0 release follow-up — 2026-10-24
 
 Reuse the existing frozen-worker, Electron and NSIS pipeline. Keep model resources as a separate explicit download, with CPU runtime dependencies bundled. Verify the actual packaged executable and worker against isolated synthetic data, then atomically push main/tag and verify uploaded asset sizes and SHA-256 before stable publication.

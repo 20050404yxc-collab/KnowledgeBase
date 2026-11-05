@@ -9,6 +9,7 @@ import { useAppContext } from '../../app/AppContext'
 import { api, errorText } from '../../shared/api/client'
 import { projectKey } from './directory_batch'
 import type { Attached } from './attachment_state'
+import { ProjectReferences } from '../projects'
 
 // 文件失败信息保持可见，未完成解析不能被当成已就绪材料。
 function fileStatus(file: Attached): string {
@@ -88,6 +89,16 @@ function ProjectMaterialGroup({ points }: { points: DirectoryPoint[] }) {
           <li key={request}>{request}</li>
         ))}
       </ul>
+      <ProjectReferences
+        categoryPath={categoryPath(points[0])}
+        defaultLabel={categoryPath(points[0]).at(-1) ?? points[0].theme}
+      />
+      <button
+        disabled={!!busy || !pending.length}
+        onClick={() => void learnBatch(pending.map((p) => p.id))}
+      >
+        使用已登记项目生成
+      </button>
       <ProjectUpload
         receive={async (files) => {
           setPaths((current) => [...new Set([...current, ...files])])

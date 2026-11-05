@@ -7,6 +7,7 @@ import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
 import { useState } from 'react'
 import { SourceReader } from './SourceReader'
+import { ProjectReferences } from '../projects'
 
 // 显示已保留资料的解析信息与删除入口。
 export function SourceList() {
@@ -23,6 +24,7 @@ export function SourceList() {
   const [reading, setReading] = useState<string | null>(null)
   return (
     <div className="source-list">
+      <ProjectReferences />
       {sources.length ? (
         sources.map((source) => (
           <article className="source-row" key={source.id}>

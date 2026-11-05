@@ -135,7 +135,8 @@ async function checkProjectBatch(context) {
   await fill('[aria-label="项目资料本地路径"]', attachmentPath)
   await click('加入资料')
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.project-material-group > button').disabled`),
+    () =>
+      ui.evaluate(`!document.querySelector('.project-material-group > button.primary').disabled`),
     'project group material parsed'
   )
   await checkProjectDrop(context)
@@ -214,7 +215,8 @@ async function checkProjectDrop({ ui, attachmentPath, waitFor }) {
     document.querySelector('.project-upload').dispatchEvent(new DragEvent('drop', {bubbles: true, cancelable: true, dataTransfer: data})); input.remove()
   })()`)
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.project-material-group > button').disabled`),
+    () =>
+      ui.evaluate(`!document.querySelector('.project-material-group > button.primary').disabled`),
     'dropped project file parsed'
   )
   assert.equal(

@@ -1,3 +1,17 @@
+## ADDED R25 — Local project references
+
+### R25-01 Persistent labeled references
+The app SHALL register, edit, list and remove local absolute directory references without copying files or parsing project contents at registration. Metadata SHALL survive restart; removal SHALL preserve originals and knowledge.
+Scenario: register a code/document folder, restart, edit its moved path, then remove only its registration. Invalid paths and duplicate labels SHALL fail without replacing the old registration.
+
+### R25-02 Bounded and scoped evidence
+A matching project SHALL supply a bounded directory listing and at most six selected files on demand. Dependency/build/secret files and links SHALL be excluded; truncation and inaccessible sources SHALL be visible. Explicit files-only scope SHALL not acquire unselected registered projects.
+Scenario: a large tree with binaries, secrets, links and unreadable files produces only bounded, attributed evidence, without claiming full coverage.
+
+### R25-03 Reuse and invalidation
+Unique label matches or explicit category bindings SHALL automatically reuse references in project learning; direct questions SHALL reuse unique label matches. Ambiguous references SHALL not be guessed. Changed/removed registrations SHALL invalidate in-flight project evidence before result/capture submission. Existing material sufficiency and citation checks SHALL remain.
+Scenario: ask about a registered project after restart without adding attachments; ambiguous/missing/insufficient evidence does not create unsupported knowledge. Cancellation SHALL stop pending reads without orphaned work.
+
 ## Stable 0.13.0 release follow-up — 2026-10-24
 
 The release SHALL synchronize current public versions to 0.13.0, preserve historical evidence and persistent identities, and ship a standalone Windows x64 installer with checksum and manifest. Given successful-miss retrieval, direct answering SHALL call AI once; a retrieval execution error SHALL not become a miss. Only verified assets may be published as a stable release.

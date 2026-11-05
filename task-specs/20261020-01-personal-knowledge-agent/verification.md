@@ -1,3 +1,16 @@
+## R25 Verification — 2026-10-25
+
+Status: implemented and verified within the following isolated scope; source increment only, no version bump, commit or release.
+
+- `npm run check`: passed; 344 Python tests passed, 1 skipped; 29 host tests passed; standards, Prettier, Ruff, TypeScript and production build passed.
+- `tests/test_project_references.py`: 15 passed, 1 skipped within that full run. Covers metadata-only registration, restart/path movement, duplicate/invalid input, atomic write failure, deterministic matching, bounded code/DOCX evidence, exclusions, cancellation and actual thread settlement, project-material sufficiency gates, direct-question scope, in-flight revocation and capture invalidation, request correlation and private-data exclusion from diagnostics.
+- Link coverage: Windows junction exclusion passed on a real temporary junction. File-symbolic-link case skipped because this machine lacks the required creation privilege; do not treat the skip as passing evidence.
+- `npm run test:ui`: passed; 55 checks and 75 screenshots in `artifacts/0.13.0/desktop-check.json`. Actual isolated Electron flow registers a synthetic project path, previews its tree, sends a real local code excerpt to the mock material audit without importing attachments, preserves the insufficient-evidence gate, edits/removes metadata in the material library and preserves originals. `desktop-project-reference.png` visually reviewed; long paths wrap and no horizontal page overflow was detected.
+- First desktop run failed in an existing batch-material wait: its broad button selector also matched the newly added reuse button and proceeded before parsing completed. Both waits now target the original primary material button; complete desktop rerun passed, including attachment/drop and batch audit behavior.
+- After the final screenshot-scroll/width assertion adjustment, `npm run check:standards` and targeted Prettier checks for both changed desktop scripts passed. No product code changed after the full engineering check.
+- Documentation and final source inventory reconciled; `git diff --check` and R25 documentation-link validation passed. No user knowledge, project copies, environments, dependencies or build outputs included in the change inventory.
+- Limits: no real large-project performance/quality acceptance, real provider, production data/credentials or paid API. Native directory-dialog interaction and folder drag were not manually exercised; the isolated desktop test enters the path and checks the exposed folder-picker capability. Selection uses file-name relevance and background files, not a complete code index. Published 0.13.0 installers do not contain this increment.
+
 ## Stable 0.13.0 release follow-up — 2026-10-24
 
 - npm run check: passed, 329 Python tests, 29 host tests, standards/format/Ruff/types/build. Initial formatting-only failure after version writes was corrected; the complete rerun passed.

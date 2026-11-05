@@ -1,3 +1,13 @@
+## R25 Execution
+
+- [x] R25-01: implement reference metadata, validated CRUD and folder picker; isolated persistence/failure tests.
+- [x] R25-02: implement bounded directory and selective source/document reader; cancellation, links, secret and coverage tests.
+- [x] R25-03: integrate project learning/direct questions with strict scope, matching and revision invalidation tests.
+- [x] Reconcile product §3.21 and overview; verify links.
+- [x] Run npm run check and npm run test:ui; record actual evidence and limits.
+
+Handoff: R25 implemented and verified under the user's path/tag/reuse request and explicit on-demand-read selection. Prior release evidence remains historical; installer unchanged. No production data or paid services. See verification.md for actual coverage and limits.
+
 ## Stable 0.13.0 release follow-up — 2026-10-24
 
 - [x] Synchronize version and current user documentation.

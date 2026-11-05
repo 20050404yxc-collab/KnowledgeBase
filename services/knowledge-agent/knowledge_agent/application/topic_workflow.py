@@ -9,6 +9,7 @@ from collections import OrderedDict
 
 from knowledge_agent.diagnostics import record, step, traced
 from knowledge_agent.domain.answer_validation import validate_answer
+from knowledge_agent.domain.project_references import has_label
 from knowledge_agent.domain.provider_rules import resolve_generation
 from knowledge_agent.domain.taxonomy import encode_path, parent_path
 from knowledge_agent.domain.topic_review import review_points
@@ -151,6 +152,13 @@ class TopicWorkflow:
             "evidence": evidence,
             "coverage_notice": coverage,
             "taxonomy": taxonomy,
+            "registered_projects": [
+                {"label": row["label"]}
+                for row in self.projects.local.list()
+                if has_label(row["label"], query)
+            ]
+            if self.projects.local is not None and scope != "files"
+            else [],
             "candidates": [
                 {"id": k["id"], "title": k["title"], "theme": k["theme"]} for k in local
             ],

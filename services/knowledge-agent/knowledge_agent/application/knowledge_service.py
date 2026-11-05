@@ -9,6 +9,7 @@ from knowledge_agent.domain.provider_rules import resolve_generation
 
 from .attachments import Attachments
 from .library_restructure import LibraryRestructure
+from .local_projects import LocalProjects
 from .long_text import LongText
 from .model_catalog import discover_models
 from .ports import (
@@ -55,6 +56,7 @@ class KnowledgeService:
         self.closed = False
         self.catalog = catalog
         self.semantic: SemanticRetrieval | None = None
+        self.local_projects: LocalProjects | None = None
 
     # 关闭可重复调用，先关闭数据库再清理会话；不删除保留资料。
     @traced
@@ -75,6 +77,8 @@ class KnowledgeService:
     # 入口退出时先收束解析线程，再执行同步资源释放。
     @traced
     async def settle(self) -> None:
+        if self.local_projects is not None:
+            await self.local_projects.settle()
         if self.semantic is not None:
             await self.semantic.settle()
         await self.snapshots.settle()

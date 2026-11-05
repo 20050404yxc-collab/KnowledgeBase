@@ -138,3 +138,9 @@ Schema 6 adds the persistent recycle table after a unique consistent `before-rec
 `selection.preview` 输入 `{session_id,turn_id}`，返回本地构造的可编辑 `{title,content}`，包含问题、选区、来源定位、必要前文、完整回答和模型解释标记。`selection.capture` 输入 `{session_id,turn_id,title,content,category_path,target_id?,version?}`；空路径表示未分类，明确选择 target_id 时必须提供当前 version。后台固定真实模型出处、有效引用及稳定收据键，复用 capture_topic 原子提交知识／独立补充和索引，禁止覆盖原文。返回最新会话 saved_id；重复同轮保存只提交一次，冲突与失败保留草稿。
 
 简单说：确认后才能入库，新答案可以另存或追加；聊天切页仍在，重启仅保留已入库内容和实际调用记录。
+
+## 带标签的项目路径引用
+
+`projects.list` 返回 `ProjectReference[]`；`projects.save` 接收 `{id?, label, path, category_path}` 并返回完整登记列表；`projects.delete` 接收 `{id}`，只移除登记；`projects.tree` 接收 `{id}`，返回 `{entries: string[], notice: string}`，不读取正文。登记包含 `id/label/path/category_path/revision`，只在本地界面展示绝对路径。标签需唯一，修改产生新版本。元数据保存在应用数据下 `project-references.json`，不改变 SQLite schema 7。
+
+新增受限 `chooseFolder(): Promise<string>` 仅选择单个目录，取消返回空串。目录及正文按需读取受 2000 个发现条目、12 层、6 文件、单文件 2 MiB 和 16000 字符证据预算约束，排除链接／敏感／依赖和构建目录。只发送标签、相对位置和实际摘录，自动复用不扩大 `files` 范围；编辑／移除在生成完成与保存前撤销旧版本。现有附件与文件快照契约保持兼容。

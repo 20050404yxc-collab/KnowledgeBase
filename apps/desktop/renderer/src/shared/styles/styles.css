@@ -2426,3 +2426,39 @@ td small {
     flex-wrap: wrap;
   }
 }
+
+/* 项目路径引用仅展示元数据；长路径和目录预览在当前卡片内滚动。 */
+.project-references {
+  padding: 14px;
+  margin: 12px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  min-width: 0;
+}
+.project-reference-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: flex-end;
+}
+.project-reference-form label {
+  display: flex;
+  flex: 1 1 220px;
+  flex-direction: column;
+  gap: 4px;
+}
+.project-reference-form input {
+  min-width: 0;
+  width: 100%;
+}
+.project-reference-row {
+  flex-wrap: wrap;
+}
+.project-reference-row p {
+  overflow-wrap: anywhere;
+}
+.project-references pre {
+  max-height: 280px;
+  overflow: auto;
+  white-space: pre;
+}

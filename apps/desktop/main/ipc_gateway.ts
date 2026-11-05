@@ -23,6 +23,7 @@ function trusted(event: IpcMainInvokeEvent, window: BrowserWindow | null): Brows
 
 // 具体业务参数继续由后台入口验证，宿主只限制协议结构。
 export function registerIpc(getWindow: () => BrowserWindow | null, bridge: WorkerBridge): void {
+  registerFolderPicker(getWindow)
   // 每分钟上限只作用于界面诊断通道，业务请求仍沿原通道执行。
   let budget = 600
   let reset = Date.now()
@@ -75,5 +76,23 @@ export function registerIpc(getWindow: () => BrowserWindow | null, bridge: Worke
     })
     diagnostic('files.selected', { cancelled: result.canceled, count: result.filePaths.length })
     return result.canceled ? [] : result.filePaths
+  })
+}
+
+// 文件夹选择不扫描内容；只向已验证主窗口返回用户选中的根路径。
+function registerFolderPicker(getWindow: () => BrowserWindow | null): void {
+  ipcMain.handle('kb:folder', async (event, requestId: unknown) => {
+    const window = trusted(event, getWindow())
+    const result = await dialog.showOpenDialog(window, {
+      title: '登记项目文件夹（仅保存本地路径）',
+      properties: ['openDirectory']
+    })
+    diagnostic('folder.selected', {
+      ...(typeof requestId === 'string' && /^[a-zA-Z0-9-]{1,80}$/.test(requestId)
+        ? { request_id: requestId }
+        : {}),
+      cancelled: result.canceled
+    })
+    return result.canceled ? '' : (result.filePaths[0] ?? '')
   })
 }

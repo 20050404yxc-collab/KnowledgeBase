@@ -4,6 +4,8 @@
 // 说明：保留协议字段命名，不包含运行时实现。
 import type { SelectionAsk, SelectionCapture, SelectionSession, SelectionSource } from './selection'
 import type { MemorySettings, MemoryState, SemanticStatus } from './memory'
+import type { ProjectReference, ProjectReferenceInput } from './projects'
+export type { ProjectReference, ProjectReferenceInput } from './projects'
 import type {
   LibraryTree,
   DraftReference,
@@ -267,6 +269,8 @@ export interface DesktopAPI {
   storagePaths(): Promise<StoragePaths>
   openDirectory(directory: StorageDirectory): Promise<void>
   chooseFiles(): Promise<string[]>
+  // 返回用户明确选择的本地文件夹，不提供目录读写能力。
+  chooseFolder(): Promise<string>
   pathsForFiles(files: File[]): string[]
   onEvent(callback: (event: WorkerEvent) => void): () => void
   reportDiagnostic(report: RendererDiagnostic): void
@@ -412,6 +416,10 @@ export interface RequestMap {
   'recovery.restore': { id: string }
   'knowledge.bucket': { id: string; bucket: Bucket | null }
   'attachments.add': { path: string }
+  'projects.list': Record<string, never>
+  'projects.save': ProjectReferenceInput
+  'projects.delete': { id: string }
+  'projects.tree': { id: string }
   'attachments.remove': { id: string }
   'sources.list': Record<string, never>
   'sources.read': { id: string; page?: number }
@@ -487,6 +495,10 @@ export interface ResultMap {
   'recovery.restore': { restored: boolean; backup: string }
   'knowledge.bucket': Knowledge
   'attachments.add': Attachment
+  'projects.list': ProjectReference[]
+  'projects.save': ProjectReference[]
+  'projects.delete': ProjectReference[]
+  'projects.tree': { entries: string[]; notice: string }
   'attachments.remove': { removed: boolean }
   'sources.list': Source[]
   'sources.read': { name: string; page: number; pages: number; items: Citation[] }
