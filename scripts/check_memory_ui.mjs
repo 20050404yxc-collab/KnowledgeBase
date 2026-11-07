@@ -2,14 +2,13 @@
 // 层：维护验证
 // 作用：验证长期记忆控制、普通问答入口与探索三排上限。
 // 说明：只操作本次隔离数据库，不下载模型或调用外部接口。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 设置使用真实控件保存；重启阶段独立核对相同偏好仍然存在。
 export async function checkMemoryUi(context, restarted = false) {
   const { ui, click, waitFor, screenshot, report } = context
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('设置')).click()`
-  )
+  await navigateUi(ui, '设置')
   await click('记忆与检索')
   await waitFor(
     () => ui.evaluate(`!!document.querySelector('[aria-label="回答详略"]')`),
@@ -77,6 +76,10 @@ async function checkExplorationCap(context) {
       )
     )
     await checkGridSizes(context)
+    // 独立问题显式选择知识库；草稿恢复会保留此前的文件范围而不会恢复附件。
+    await ui.evaluate(`(() => { const select=document.querySelector('[aria-label="知识来源"]');
+      Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'knowledge');
+      select.dispatchEvent(new Event('change',{bubbles:true})); })()`)
     await fill('#question', '合成普通问题的解释')
     await click('AI 回答 ↗')
     await waitFor(
@@ -103,9 +106,7 @@ async function checkExplorationCap(context) {
         `window.knowledgeBase.request('knowledge.delete',{id:${JSON.stringify(id)}})`
       )
     }
-    await ui.evaluate(
-      `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('设置')).click()`
-    )
+    await navigateUi(ui, '设置')
     await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
     await fill('#question', '')
     await waitFor(

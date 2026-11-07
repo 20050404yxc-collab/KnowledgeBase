@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证长正文分页、段落编辑及未编辑部分保留。
 // 说明：只使用隔离应用的受限 API 和合成正文，不调用真实模型。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 通过分段接口创建超过普通新建上限的已有正文，避免放宽普通创建契约。
@@ -25,12 +26,8 @@ async function seedLongText(ui) {
 
 // 从真实分类树打开知识，详情必须出现分页入口且没有危险的完整短文编辑入口。
 async function openLongText({ ui, click, fill, waitFor }) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().endsWith('资料库')).click()`
-  )
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().endsWith('知识库')).click()`
-  )
+  await navigateUi(ui, '资料库')
+  await navigateUi(ui, '知识库')
   await fill('[aria-label="筛选已有知识"]', '长文界面验收')
   await click('全部分类')
   for (const label of ['未分类／待整理', '未细分']) {

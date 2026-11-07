@@ -15,6 +15,9 @@ export function PathDialog() {
     <div className="modal-backdrop">
       <form
         className="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="加入本地文档"
         onSubmit={(event) => {
           event.preventDefault()
           const value = pathEntry

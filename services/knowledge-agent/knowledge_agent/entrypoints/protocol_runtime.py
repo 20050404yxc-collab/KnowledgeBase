@@ -16,6 +16,7 @@ from .dispatch import dispatch
 
 MAX_FRAME_BYTES = 1_000_000
 MAX_PENDING_REQUESTS = 16
+EXCLUSIVE_OPERATIONS = {"data.backup", "data.restore"}
 
 
 # 单线程事件循环中完整写入一行，线程解析器不直接写协议输出。
@@ -45,6 +46,7 @@ class ProtocolRuntime:
     def __init__(self, service: KnowledgeService) -> None:
         self.service = service
         self.tasks: dict[str, asyncio.Task] = {}
+        self.exclusive: str | None = None
 
     # 所有请求结算并移除关联；异常体不泄漏网络和文档内容。
     async def execute(self, message: dict) -> None:
@@ -94,6 +96,8 @@ class ProtocolRuntime:
         finally:
             record("request.finished", **events)
             self.tasks.pop(request_id, None)
+            if self.exclusive == request_id:
+                self.exclusive = None
 
     # 重复标识不能替换原任务；取消帧不占业务任务额度。
     def accept(self, message: dict) -> None:
@@ -112,16 +116,37 @@ class ProtocolRuntime:
             record("request.duplicate", request_id=request_id)
             # 忽略重复帧以保留首请求的终态归属，不能发送同 ID 错误误伤它。
             return
+        # 在受控停写期拒绝新任务；也拒绝在旧任务可能晚到提交时开始备份。
+        exclusive = message["operation"] in EXCLUSIVE_OPERATIONS
+        if self.exclusive is not None or (exclusive and self.tasks):
+            send(
+                {"id": request_id, "type": "error", "error": "请等待当前任务结束后执行；输入已保留"}
+            )
+            return
         if len(self.tasks) >= MAX_PENDING_REQUESTS:
             record("request.overloaded", request_id=request_id, pending=len(self.tasks))
             # 并发达到上限直接报错，不再无界创建任务等待资源。
             send({"id": request_id, "type": "error", "error": "后台任务过多，请稍后重试"})
             return
-        self.tasks[request_id] = asyncio.create_task(self.execute(message))
+        if exclusive:
+            self.exclusive = request_id
+        task = asyncio.create_task(self.execute(message))
+        self.tasks[request_id] = task
+        task.add_done_callback(lambda done: self.retire(request_id, done))
+
+    # 在协程首次执行之前取消时，finally 尚未安装，仍须结算并释放关联和独占锁。
+    def retire(self, request_id: str, task: asyncio.Task) -> None:
+        if self.tasks.get(request_id) is not task:
+            return
+        self.tasks.pop(request_id)
+        if self.exclusive == request_id:
+            self.exclusive = None
+        if task.cancelled():
+            send({"id": request_id, "type": "error", "error": "任务已取消，未收录残缺内容"})
 
     # EOF 和超大帧结束会话；格式错误可恢复，后续合法请求仍能执行。
     async def run(self) -> None:
-        send({"type": "ready", "version": "0.13.0"})
+        send({"type": "ready", "version": "0.14.0"})
         record("worker.ready")
         try:
             while True:

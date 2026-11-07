@@ -1,0 +1,209 @@
+/* 文件：composer.css
+ * 层：React 共享样式
+ * 作用：探索输入与附件工具栏。
+ * 说明：颜色引用主题变量；不承载业务状态。
+ */
+.composer {
+  background: var(--bg-elevated);
+  border: 1px solid #ccd7ce;
+  border-radius: 13px;
+  box-shadow: 0 3px 14px #28463206;
+  overflow: hidden;
+}
+
+.composer textarea {
+  padding: 24px 24px 10px;
+  border: 0;
+  width: 100%;
+  height: 115px;
+  resize: vertical;
+  min-height: 85px;
+  max-height: 320px;
+  font-size: 14px;
+  line-height: 1.9;
+  box-shadow: none;
+}
+
+.composer textarea::placeholder {
+  color: var(--ink-secondary);
+}
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 17px 15px;
+  gap: 10px;
+}
+
+.toolbar-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.attach-button {
+  border: 0;
+  background: var(--bg-subtle);
+  font-size: 11px;
+  padding: 7px 10px;
+}
+
+.text-button {
+  padding: 5px 0;
+  border: 0;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  background: transparent;
+}
+
+.toolbar-separator {
+  height: 15px;
+  border-left: 1px solid #dfe4de;
+}
+
+.toolbar-left select {
+  border: 0;
+  padding: 5px;
+  color: var(--ink-secondary);
+  font-size: 11px;
+}
+
+.composer-caption {
+  display: flex;
+  justify-content: space-between;
+  color: var(--ink-secondary);
+  font-size: 11px;
+  margin: 12px 3px 34px;
+  gap: 10px;
+}
+
+.attachments {
+  padding: 0 20px;
+}
+
+.attachment {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  background: #f6f8f3;
+  border: 1px solid #e3e9de;
+  border-radius: 7px;
+  padding: 9px 12px;
+  margin: 7px 0;
+  font-size: 11px;
+}
+
+.attachment > div {
+  flex: 1;
+  min-width: 130px;
+}
+
+.attachment b {
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.attachment small {
+  display: block;
+  font-size: 11px;
+  margin-top: 4px;
+  color: var(--ink-secondary);
+}
+
+.attachment button {
+  font-size: 11px;
+  padding: 4px 8px;
+}
+
+.attachment details {
+  width: 100%;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  line-height: 1.6;
+}
+
+.attachment details p {
+  margin: 4px 0;
+}
+
+.attachment.error {
+  background: #fff4ef;
+}
+
+.learning-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 12px;
+}
+
+.learning-guide {
+  margin: 0;
+  padding: 0 24px 16px;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-secondary);
+}
+.composer-caption {
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* 收起输入保留草稿和附件；隐藏表单不参与弹性布局。 */
+.composer form[hidden],
+.learning-guide[hidden] {
+  display: none;
+}
+
+.composer-toolbar {
+  flex-wrap: wrap;
+  align-items: flex-start;
+  border-top: 1px solid var(--border);
+}
+.toolbar-left {
+  flex: 1 1 350px;
+}
+.toolbar-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-left: auto;
+}
+.composer-search {
+  color: var(--ink-secondary);
+  font-size: 12px;
+  padding: 7px 4px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.toolbar-left select {
+  color: var(--ink);
+  background: var(--bg-subtle);
+  max-width: 100%;
+}
+.learning-guide {
+  color: var(--ink-muted);
+  padding-top: 6px;
+}
+.composer-caption {
+  color: var(--ink-muted);
+}
+.composer textarea::placeholder {
+  color: var(--ink-placeholder);
+}
+.composer-summary {
+  padding: 16px 20px;
+}
+.composer-summary > span {
+  min-width: 0;
+  flex: 1 1 220px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

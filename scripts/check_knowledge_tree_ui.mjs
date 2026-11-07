@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证真实桌面中的深层导航、内部节点阅读和混合布局。
 // 说明：使用隔离应用与本机模拟模型，不访问正式库或外部服务。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { checkCompactDeep } from './check_usability_ui.mjs'
 
@@ -102,9 +103,7 @@ export async function checkKnowledgeTreeUi(context) {
     `window.knowledgeBase.request('knowledge.search',{query:'vector'})`
   )
   assert.ok(search.items.some((hit) => hit.knowledge_id === saved[4].id))
-  await ui.evaluate(
-    `Array.from(document.querySelectorAll('.nav-item')).find(n=>n.textContent.trim().endsWith('知识库')).click()`
-  )
+  await navigateUi(ui, '知识库')
   await click('星球视图')
   await fill('[aria-label="筛选已有知识"]', 'DEEPTREEVALIDATIONOCTOBER')
   await waitFor(

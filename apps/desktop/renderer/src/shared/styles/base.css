@@ -1,0 +1,304 @@
+/* 文件：base.css
+ * 层：React 共享样式
+ * 作用：共享控件、反馈与基础排版。
+ * 说明：颜色引用主题变量；不承载业务状态。
+ */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, 'Microsoft YaHei UI', 'Microsoft YaHei', sans-serif;
+  font-size: 14px;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 14px;
+  background: var(--bg-elevated);
+  color: inherit;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+button:hover {
+  background: var(--bg-subtle);
+  border-color: var(--border-strong);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+input,
+textarea,
+select {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--ink);
+  border-radius: 7px;
+  padding: 10px 12px;
+  outline: none;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px #e8f0eb;
+}
+
+button:focus-visible {
+  outline: 3px solid #9cbdaa;
+  outline-offset: 2px;
+}
+
+h1 {
+  font-size: 29px;
+  line-height: 1.5;
+  margin: 10px 0 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+
+.secondary {
+  background: #fbfcfa;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.primary {
+  background: var(--green);
+  border-color: var(--green);
+  color: white;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 11px 18px;
+  white-space: nowrap;
+}
+
+.primary:hover {
+  background: var(--green-hover);
+  color: white;
+  border-color: var(--green-hover);
+}
+
+.primary span {
+  margin-left: 18px;
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 16px;
+  border-radius: 8px;
+  font-size: 12px;
+  margin-bottom: 20px;
+  line-height: 1.7;
+}
+
+.alert button {
+  border: 0;
+  background: transparent;
+  padding: 0 5px;
+  font-size: 19px;
+  color: inherit;
+}
+
+.error {
+  background: var(--error-bg);
+  border: 1px solid #efd7cb;
+  color: var(--error-text);
+}
+
+.success {
+  background: var(--green-subtle);
+  border: 1px solid var(--green-border);
+  color: var(--success-text);
+}
+
+.working {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #eef4ec;
+  border-radius: 8px;
+  padding: 18px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
+
+.working small {
+  color: var(--ink-secondary);
+}
+
+.spinner {
+  height: 15px;
+  width: 15px;
+  border: 2px solid #c9d8c2;
+  border-top-color: #60875a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.subtle {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  line-height: 1.9;
+}
+
+.modal label,
+.provider-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 16px 0;
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.info-box {
+  background: #f4f7ef;
+  border: 1px solid #e7eddc;
+  border-radius: 7px;
+  padding: 13px 15px;
+  font-size: 11px;
+  color: var(--ink-secondary);
+  line-height: 1.9;
+  margin-top: 20px;
+}
+
+.panel {
+  background: var(--bg-elevated);
+  border: 1px solid #dfe6d8;
+  border-radius: 11px;
+  padding: 24px;
+  min-width: 0;
+}
+
+.panel h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 22px;
+}
+
+.startup {
+  background: var(--bg-subtle);
+  border: 1px solid #dfe7d5;
+  border-radius: 9px;
+  padding: 16px;
+  margin-bottom: 20px;
+  font-size: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.batch-buttons,
+.project-path,
+.knowledge-question {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.project-path input,
+.knowledge-question input {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+/* 两种目录共用路径与分页缓存；列表让连续扫描标题不依赖动画。 */
+.tree-view-switch,
+.provider-presets,
+.first-use-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.composer-summary,
+.candidate-pages,
+.recovery-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.composer-summary > span,
+.recovery-row > span {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+.candidate-options small,
+.recovery-row small {
+  display: block;
+  color: var(--ink-secondary);
+  overflow-wrap: anywhere;
+}
+.global-search-hit,
+.source-reader,
+.bucket-learning,
+.organization-setup {
+  padding: 20px;
+  margin-bottom: 18px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg-elevated);
+}
+.frequency-settings p,
+.bucket-learning p,
+.organization-setup p {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--ink-secondary);
+}
+
+/* 功能性辅助文字保持可读，不随浏览器 small 默认比例继续缩小。 */
+small {
+  font-size: max(11px, 0.85em);
+}
+::placeholder {
+  color: var(--ink-placeholder);
+}
+.error {
+  border-color: var(--error-border);
+}
+.success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+.working > button {
+  margin-left: auto;
+  flex-shrink: 0;
+}

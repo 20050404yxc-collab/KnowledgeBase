@@ -2,14 +2,13 @@
 // 层：维护验证
 // 作用：验证真实桌面回收站、快照确认与恢复后会话重载。
 // 说明：仅合成知识与临时数据库，不接触正式配置和资料。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 从设置界面恢复已删除条目；快照取消保留当前内容，确认后恢复并重载。
 export async function checkRecoveryUi({ ui, click, waitFor, screenshot, report }) {
   const id = await seedDeletedNote(ui)
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().endsWith('回收站')).click()`
-  )
+  await navigateUi(ui, '回收站')
   await waitFor(
     () =>
       ui.evaluate(
@@ -109,8 +108,6 @@ async function seedDeletedNote(ui) {
 // 侧栏回收站与设置备份分开，核对各自入口。
 async function openSnapshots({ ui, click, screenshot }) {
   await screenshot('desktop-trash-direct.png')
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.textContent.trim().endsWith('设置')).click()`
-  )
+  await navigateUi(ui, '设置')
   await click('备份与恢复')
 }

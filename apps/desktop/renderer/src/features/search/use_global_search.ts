@@ -3,7 +3,7 @@
 // 作用：管理跨页全库搜索，不占用或取消模型生成任务。
 // 说明：查询快照与请求序号拒绝过期结果，正文阅读归独立搜索页。
 import { useEffect, useRef, useState } from 'react'
-import type { SearchResult } from '../../../../../../contracts/desktop'
+import type { SearchHit, SearchResult } from '../../../../../../contracts/desktop'
 import type { Navigation } from '../../app/use_navigation'
 import { api, errorText } from '../../shared/api/client'
 
@@ -14,18 +14,26 @@ export function useGlobalSearch(navigation: Navigation) {
   const [globalLoading, setGlobalLoading] = useState(false)
   const [globalError, setGlobalError] = useState('')
   const [searchedQuery, setSearchedQuery] = useState('')
+  const [searchFocus, setSearchFocus] = useState<SearchHit | null>(null)
+  const [searchKind, setSearchKind] = useState<'all' | 'knowledge' | 'supplement' | 'source'>('all')
+  const [searchCategory, setSearchCategory] = useState('')
   const sequence = useRef(0)
+  const submitted = useRef({ kind: searchKind, category: searchCategory })
   useEffect(
     () => () => {
       sequence.current++
     },
     []
   )
-  const searchGlobal = async (query = globalQuery, page = 0) => {
+  const searchGlobal = async (query = globalQuery, page = 0, apply = true) => {
     if (!query.trim()) {
       return
     }
     const request = ++sequence.current
+    // 新提交冻结筛选；翻页不能使用尚未应用的表单值。
+    if (apply) {
+      submitted.current = { kind: searchKind, category: searchCategory.trim() }
+    }
     navigation.setSection('搜索')
     setGlobalLoading(true)
     setGlobalError('')
@@ -33,7 +41,12 @@ export function useGlobalSearch(navigation: Navigation) {
     setGlobalQuery(query)
     setGlobalResult(null)
     try {
-      const result = await api.request('knowledge.search', { query, page, scope: 'knowledge' })
+      const result = await api.request('knowledge.search', {
+        query,
+        page,
+        scope: 'knowledge',
+        ...submitted.current
+      })
       if (request === sequence.current) {
         setGlobalResult(result)
       }
@@ -55,6 +68,12 @@ export function useGlobalSearch(navigation: Navigation) {
     globalLoading,
     globalError,
     searchedQuery,
-    searchGlobal
+    searchFocus,
+    setSearchFocus,
+    searchGlobal,
+    searchKind,
+    setSearchKind,
+    searchCategory,
+    setSearchCategory
   }
 }

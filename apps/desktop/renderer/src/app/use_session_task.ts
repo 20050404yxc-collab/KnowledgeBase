@@ -8,17 +8,57 @@ import type { Section } from './navigation'
 import type { Feedback } from '../shared/api/use_feedback'
 import { api, errorText } from '../shared/api/client'
 
-// 每次任务固定发起页；请求标识只在实际调用阶段持有。
-export function useSessionTask(section: Section, feedback: Feedback) {
+// 根会话拥有状态与订阅，导航不会创建第二份任务监听。
+function useTaskState() {
   const [busy, setBusy] = useState<string | null>(null)
   const [taskOwner, setTaskOwner] = useState<Section>('探索')
   const [progress, setProgress] = useState('')
   const [streamChars, setStreamChars] = useState(0)
+  const [streamPreview, setStreamPreview] = useState('')
   const activeRequest = useRef<string | null>(null)
   const taskRunning = useRef(false)
   const mounted = useRef(true)
   const taskCancelled = useRef(false)
-  useTaskEvents({ activeRequest, mounted, taskCancelled, setProgress, setStreamChars })
+  useTaskEvents({
+    activeRequest,
+    mounted,
+    taskCancelled,
+    setProgress,
+    setStreamChars,
+    setStreamPreview
+  })
+  return {
+    busy,
+    setBusy,
+    taskOwner,
+    setTaskOwner,
+    progress,
+    setProgress,
+    streamChars,
+    setStreamChars,
+    streamPreview,
+    setStreamPreview,
+    activeRequest,
+    taskRunning,
+    mounted,
+    taskCancelled
+  }
+}
+
+// 每次任务固定发起页；请求标识只在实际调用阶段持有。
+export function useSessionTask(section: Section, feedback: Feedback) {
+  const state = useTaskState()
+  const {
+    activeRequest,
+    taskCancelled,
+    mounted,
+    taskRunning,
+    setBusy,
+    setTaskOwner,
+    setProgress,
+    setStreamChars,
+    setStreamPreview
+  } = state
   // 一次流程含多个唯一请求；取消检查覆盖两个阶段之间。
   async function taskRequest<K extends Operation>(
     operation: K,
@@ -29,6 +69,7 @@ export function useSessionTask(section: Section, feedback: Feedback) {
     }
     const id = crypto.randomUUID()
     activeRequest.current = id
+    setStreamPreview('')
     try {
       return await api.request(operation, params, id)
     } catch (error) {
@@ -63,6 +104,7 @@ export function useSessionTask(section: Section, feedback: Feedback) {
     setTaskOwner(section)
     setProgress('正在整理')
     setStreamChars(0)
+    setStreamPreview('')
     feedback.setError('')
     try {
       await action()
@@ -72,19 +114,11 @@ export function useSessionTask(section: Section, feedback: Feedback) {
       taskRunning.current = false
       setBusy(null)
       setProgress('')
+      setStreamPreview('')
     }
   }
   return {
-    busy,
-    taskOwner,
-    progress,
-    setProgress,
-    streamChars,
-    setStreamChars,
-    activeRequest,
-    taskRunning,
-    taskCancelled,
-    mounted,
+    ...state,
     taskRequest,
     runTask,
     cancelTask
@@ -95,10 +129,16 @@ export function useSessionTask(section: Section, feedback: Feedback) {
 function useTaskEvents(
   state: Pick<
     ReturnType<typeof useSessionTask>,
-    'activeRequest' | 'mounted' | 'taskCancelled' | 'setProgress' | 'setStreamChars'
+    | 'activeRequest'
+    | 'mounted'
+    | 'taskCancelled'
+    | 'setProgress'
+    | 'setStreamChars'
+    | 'setStreamPreview'
   >
 ) {
-  const { activeRequest, mounted, taskCancelled, setProgress, setStreamChars } = state
+  const { activeRequest, mounted, taskCancelled, setProgress, setStreamChars, setStreamPreview } =
+    state
   // 所有页共用一份订阅，事件只能更新当前在途阶段。
   useEffect(() => {
     mounted.current = true
@@ -110,6 +150,7 @@ function useTaskEvents(
         setProgress(event.message ?? '')
       } else {
         setStreamChars((count) => count + (event.delta?.length ?? 0))
+        setStreamPreview((text) => (text + (event.delta ?? '')).slice(0, 40000))
       }
     })
     return () => {

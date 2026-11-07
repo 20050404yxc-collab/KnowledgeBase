@@ -4,7 +4,7 @@
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 import { createRoot } from 'react-dom/client'
 import { App } from './app/App'
-import './shared/styles/styles.css'
+import './shared/styles/index.css'
 import { diagnosticError } from '../../shared/diagnostic_error'
 
 // 全局错误和 Promise 拒绝只上报类别与代码位置，不上传 message 和业务对象。

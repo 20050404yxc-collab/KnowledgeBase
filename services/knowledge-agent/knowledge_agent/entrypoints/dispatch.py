@@ -53,6 +53,8 @@ def validate_params(operation: str, params: dict) -> None:
     ):
         if key == "path" and operation == "knowledge.tree":
             continue
+        if key == "revision" and operation == "workspace.write":
+            continue
         if key in params and params[key] is not None and not isinstance(params[key], str):
             raise ValueError("请求参数类型无效")
     bucket = params.get("bucket")
@@ -84,6 +86,12 @@ async def dispatch_operation(
 ) -> dict | list[dict]:
     validate_params(operation, params)
     store = service.store
+    if operation.startswith(("workspace.", "data.")):
+        if service.workspace is None:
+            raise ValueError("本地工作恢复能力未装配")
+        if operation.startswith("workspace."):
+            return service.workspace.draft(operation, params)
+        return await service.workspace.portable(operation, params)
     if operation == "bootstrap":
         return service.info()
     if operation.startswith("projects."):

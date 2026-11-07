@@ -9,6 +9,7 @@ import { MarkdownContent } from '../knowledge'
 import { ModelPicker } from '../providers'
 import { SelectionCapture } from './SelectionCapture'
 import type { ChatEntry } from './use_selection_questions'
+import { StreamPreview } from '../../shared/StreamPreview'
 
 // 收起仅隐藏当前面板；按发起页重新进入原会话。
 export function SelectionPanel() {
@@ -72,6 +73,7 @@ function SelectionConversation({ entry }: { entry: ChatEntry }) {
           <SelectionReply key={turn.id} turn={turn} entry={entry} />
         ))}
       </div>
+      <StreamPreview />
       {entry.error && (
         <p className="alert error" role="alert">
           {entry.error}

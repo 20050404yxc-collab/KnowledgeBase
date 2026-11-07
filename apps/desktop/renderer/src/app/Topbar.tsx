@@ -7,7 +7,7 @@ import { useAppContext } from './AppContext'
 
 // 显示当前分区名称及知识筛选输入。
 export function Topbar() {
-  const { section, ready, globalQuery, setGlobalQuery, searchGlobal } = useAppContext()
+  const { section, ready, globalQuery, setGlobalQuery, searchGlobal, setSection } = useAppContext()
   return (
     <header className="topbar">
       <span>
@@ -33,7 +33,14 @@ export function Topbar() {
       <div className="connection">
         <i className={ready ? 'online' : ''} />
         {ready ? '本地后台已连接' : '后台连接中'}
-        <span className="avatar">Y</span>
+        <button
+          className="avatar"
+          aria-label="打开设置"
+          title="打开设置"
+          onClick={() => setSection('设置')}
+        >
+          <span aria-hidden="true">⚙</span>
+        </button>
       </div>
     </header>
   )

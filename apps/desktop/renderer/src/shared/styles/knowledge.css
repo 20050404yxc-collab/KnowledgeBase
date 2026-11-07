@@ -1,0 +1,989 @@
+/* 文件：knowledge.css
+ * 层：React 共享样式
+ * 作用：知识卡片、目录、阅读与整理。
+ * 说明：颜色引用主题变量；不承载业务状态。
+ */
+.caption-dot {
+  padding: 0 8px;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 17px;
+}
+
+.section-title h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.section-title > span {
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.count {
+  background: var(--bg-subtle);
+  color: var(--ink-secondary);
+  border-radius: 4px;
+  font-size: 11px;
+  margin-left: 7px;
+  padding: 2px 6px;
+}
+
+.inline-search {
+  font-size: 11px;
+  padding: 7px 10px;
+  width: 190px;
+  background: transparent;
+}
+
+.knowledge-section {
+  margin-top: 34px;
+}
+
+.knowledge-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.knowledge-card {
+  display: block;
+  text-align: left;
+  border: 1px solid #e0e6dd;
+  border-radius: 11px;
+  background: var(--bg-elevated);
+  padding: 20px;
+  overflow: hidden;
+  min-height: 195px;
+  box-shadow: 0 1px 2px #2e462904;
+}
+
+.knowledge-card.chosen {
+  border-color: #91ad94;
+  background: #fafdf9;
+}
+
+.knowledge-card > div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.knowledge-icon {
+  color: var(--ink-secondary);
+  font-size: 23px;
+  background: var(--bg-subtle);
+  width: 33px;
+  height: 33px;
+  text-align: center;
+  line-height: 33px;
+  border-radius: 8px;
+}
+
+.bucket {
+  font-size: 11px;
+  padding: 3px 7px;
+  background: var(--bg-subtle);
+  color: var(--ink-secondary);
+  border-radius: 5px;
+}
+
+.bucket-常用 {
+  background: #faf0da;
+  color: var(--warning-text);
+}
+
+.bucket-归档 {
+  background: #edf0f1;
+  color: var(--ink-secondary);
+}
+
+.knowledge-card h3 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 16px 0 10px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.knowledge-card p {
+  font-size: 11px;
+  line-height: 1.9;
+  color: var(--ink-secondary);
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 62px;
+  white-space: pre-line;
+}
+
+.knowledge-card footer {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #eef1eb;
+  margin-top: 16px;
+  padding-top: 11px;
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.empty-state {
+  text-align: center;
+  border: 1px dashed #dbe3d7;
+  background: #fbfcf9;
+  border-radius: 12px;
+  padding: 42px 20px;
+}
+
+.empty-symbol {
+  color: var(--ink-secondary);
+  font-size: 30px;
+  display: grid;
+  place-items: center;
+  background: #edf2e9;
+  border-radius: 14px;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 16px;
+}
+
+.empty-state h3 {
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--ink-secondary);
+}
+
+.empty-state p {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  line-height: 1.8;
+}
+
+.empty-state button {
+  margin-top: 12px;
+}
+
+.answer-panel {
+  background: var(--bg-elevated);
+  border: 1px solid #dce5d6;
+  border-radius: 12px;
+  padding: 28px 30px;
+  margin-top: 26px;
+}
+
+.answer-heading {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.answer-heading h2 {
+  font-size: 21px;
+  font-weight: 500;
+  line-height: 1.6;
+  margin: 12px 0 0;
+}
+
+.pill {
+  font-size: 11px;
+  padding: 4px 7px;
+  border-radius: 4px;
+  background: var(--bg-subtle);
+  color: var(--ink-secondary);
+}
+
+.answer-heading select {
+  font-size: 11px;
+  max-width: 140px;
+}
+
+.reading-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  line-height: 2.05;
+  font-size: 14px;
+  color: var(--ink-secondary);
+}
+
+.citations {
+  border-top: 1px solid #edf0e8;
+  padding-top: 14px;
+  margin-top: 24px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.citations h3 {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  font-weight: 400;
+  width: 100%;
+  margin: 0 0 3px;
+}
+
+.citations button {
+  font-size: 11px;
+  background: #f6f8f2;
+  border-color: #e5ebdf;
+  padding: 6px 9px;
+  color: var(--ink-secondary);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.citations button span {
+  margin-right: 7px;
+  color: var(--green);
+}
+
+.citations small {
+  margin-left: 8px;
+  color: var(--ink-secondary);
+}
+
+.result-notice {
+  font-size: 11px;
+  line-height: 1.8;
+  color: var(--ink-secondary);
+  margin: 18px 0 0;
+}
+
+.note-footer {
+  border-top: 1px solid #edf0e8;
+  margin-top: 18px;
+  padding-top: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--ink-secondary);
+  font-size: 11px;
+}
+
+.note-footer button {
+  font-size: 11px;
+  padding: 5px 10px;
+  border: 0;
+}
+
+.danger-text {
+  color: var(--error-text);
+}
+
+.related {
+  margin: 30px 0;
+}
+
+.related-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.related-card {
+  text-align: left;
+  padding: 19px;
+  border-color: #dfe7d8;
+  background: #f5f8f0;
+  overflow-wrap: anywhere;
+}
+
+.related-card small {
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.related-card h3 {
+  font-size: 13px;
+  display: flex;
+  justify-content: space-between;
+  margin: 13px 0 8px;
+}
+
+.related-card p {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  line-height: 1.8;
+}
+
+.related-card div {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  line-height: 1.8;
+}
+
+/* 知识目录与详情分栏，内容始终限制在当前列内。 */
+.knowledge-workspace {
+  display: grid;
+  grid-template-columns: minmax(230px, 32%) minmax(0, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin: 24px 0;
+}
+.directory-panel {
+  border: 1px solid var(--border, #e4e4dd);
+  border-radius: 14px;
+  padding: 20px;
+  background: var(--surface, #fff);
+  min-width: 0;
+}
+.directory-panel h2 {
+  margin-top: 0;
+  font-size: 19px;
+}
+.directory-panel h3 {
+  font-size: 15px;
+}
+.directory-point,
+.directory-hit {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  width: 100%;
+  gap: 6px;
+  padding: 12px;
+  margin: 8px 0;
+  border: 1px solid #e5e6de;
+  border-radius: 8px;
+  background: transparent;
+  overflow-wrap: anywhere;
+}
+.directory-point.active {
+  border-color: #57776b;
+  background: var(--green-subtle);
+}
+.directory-hit > button {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.directory-hit .markdown-content {
+  font-size: 12px;
+  color: var(--ink-secondary);
+  max-height: 100px;
+  overflow: hidden;
+  margin: 0;
+  line-height: 1.6;
+}
+.directory-hit .markdown-content > * {
+  margin: 0 0 4px;
+  font-size: inherit;
+}
+.directory-hit .markdown-content pre {
+  padding: 4px;
+}
+.point-actions {
+  padding: 14px 0;
+  border-top: 1px solid #ddd;
+}
+.point-actions select {
+  width: 100%;
+  margin: 8px 0;
+}
+.point-actions button {
+  margin: 6px 4px 6px 0;
+}
+.pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+.detail-placeholder {
+  padding: 36px;
+  border: 1px dashed #cfd6cc;
+  border-radius: 14px;
+  color: var(--ink-secondary);
+}
+.knowledge-workspace .answer-panel {
+  margin: 0;
+  min-width: 0;
+}
+
+/* 生成和资料操作属于详情列，未生成知识点也可直接操作。 */
+.directory-detail {
+  min-width: 0;
+  display: grid;
+  gap: 18px;
+}
+.batch-panel,
+.project-materials,
+.directory-detail .point-actions {
+  background: var(--surface, #fff);
+  border: 1px solid #dce2d7;
+  border-radius: 14px;
+  padding: 20px;
+  overflow-wrap: anywhere;
+}
+.batch-panel h3,
+.project-materials h3,
+.point-actions h3 {
+  margin-top: 0;
+}
+.directory-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.directory-row > input,
+.group-selection input,
+.project-files input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  accent-color: var(--green);
+}
+.group-selection,
+.project-files label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+.batch-results {
+  padding-left: 18px;
+  max-height: 260px;
+  overflow: auto;
+}
+.batch-results li {
+  margin: 10px 0;
+}
+.batch-results span {
+  display: block;
+  color: var(--ink-secondary);
+  font-size: 13px;
+  margin-top: 4px;
+}
+.knowledge-question {
+  margin: 22px 0;
+}
+
+/* 页面末尾的提问栏随阅读吸附；正文末尾有实际占位，不盖住最后一段。 */
+.reading-question {
+  position: sticky;
+  bottom: 12px;
+  z-index: 8;
+  min-width: 0;
+  padding: 14px 18px;
+  margin-top: 24px;
+  box-shadow: 0 4px 22px #25301918;
+}
+.reading-question h2 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+.reading-question .knowledge-question {
+  margin: 10px 0 0;
+}
+.reading-question-settings {
+  max-height: 30vh;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.reading-question-settings summary {
+  cursor: pointer;
+  color: var(--ink-secondary);
+}
+/* 执行时由已有任务条提供进度和取消，禁用的提问栏不争用底部位置。 */
+.reading-question[aria-busy='true'] {
+  position: static;
+}
+.supplement-item {
+  margin-top: 24px;
+  padding-top: 18px;
+  border-top: 1px solid #d9dfd4;
+}
+.supplement-item textarea {
+  width: 100%;
+  min-height: 180px;
+  padding: 12px;
+}
+
+/* 长正文只编辑当前段，输入框适应详情宽度并允许纵向调整。 */
+.long-content textarea {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  resize: vertical;
+}
+.supplement-actions {
+  display: flex;
+  gap: 12px;
+}
+.directory-subgroup {
+  margin-left: 12px;
+  border-left: 2px solid #d9dfd4;
+  padding-left: 12px;
+}
+.directory-subgroup[data-depth='6'] .directory-subgroup {
+  margin-left: 0;
+  padding-left: 0;
+  border-left: 0;
+}
+.excluded-points {
+  padding: 12px;
+  font-size: 13px;
+  color: var(--ink-secondary);
+}
+
+/* 完整知识目录和重构预览按内容自适应，窄窗口不撑开页面。 */
+.library-workspace {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.5fr);
+  gap: 24px;
+  align-items: start;
+}
+.saved-tree {
+  background: var(--surface, white);
+  border: 1px solid var(--border, #e4e8e1);
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 24px;
+  min-width: 0;
+}
+.tree-view-switch {
+  margin: 12px 0;
+}
+.tree-view-switch button[aria-pressed='true'] {
+  background: var(--green-subtle);
+  color: var(--green);
+  border-color: #91ad94;
+}
+.compact-tree {
+  margin-top: 14px;
+  max-height: min(60vh, 520px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+.compact-tree-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid #e4e8e1;
+  padding: 6px 0;
+}
+.compact-tree-row > button {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.compact-tree-main {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px 18px;
+  text-align: left;
+  padding: 12px;
+  border: 1px solid transparent;
+}
+.compact-tree-main small {
+  font-size: 12px;
+  color: var(--ink-secondary);
+}
+.compact-tree-main.chosen {
+  background: var(--green-subtle);
+  border-color: #91ad94;
+}
+.first-use-guide {
+  padding: 16px 20px;
+  margin-bottom: 18px;
+  border: 1px solid #d5dfce;
+  border-radius: 12px;
+  background: #f5f8f1;
+}
+.first-use-guide p,
+.provider-start p {
+  font-size: 13px;
+  line-height: 1.8;
+  margin: 6px 0 12px;
+}
+.candidate-picker,
+.recovery-settings {
+  margin-top: 20px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+.candidate-options {
+  max-height: min(50vh, 420px);
+  overflow-y: auto;
+}
+.candidate-options label {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 0;
+}
+.candidate-options input[type='checkbox'] {
+  width: auto;
+}
+#learning-results {
+  scroll-margin-top: 20px;
+}
+.empty-state p {
+  color: var(--ink-secondary);
+}
+/* 星球导航与详情纵向组合，窄窗口给标签保留实际宽度。 */
+.library-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+.planet-breadcrumbs,
+.planet-pagination {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.planet-breadcrumbs button {
+  padding: 7px 10px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.planet-pagination {
+  justify-content: center;
+  font-size: 12px;
+}
+.planet-canvas {
+  position: relative;
+  height: 480px;
+  isolation: isolate;
+}
+.planet-node {
+  position: absolute;
+  z-index: 2;
+  width: 112px;
+  height: 112px;
+  border: 0;
+  border-radius: 50%;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: white;
+  transform: translate(-50%, -50%) scale(0.82);
+  opacity: 1;
+  transition:
+    left var(--planet-duration) cubic-bezier(0.4, 0, 0.2, 1) var(--planet-delay),
+    top var(--planet-duration) cubic-bezier(0.4, 0, 0.2, 1) var(--planet-delay),
+    transform var(--planet-duration) cubic-bezier(0.4, 0, 0.2, 1) var(--planet-delay),
+    width 600ms,
+    height 600ms,
+    opacity 240ms var(--planet-delay);
+}
+.planet-node:hover {
+  background: transparent;
+}
+.planet-node:focus-visible {
+  outline: 3px solid #7899b0;
+  outline-offset: 8px;
+}
+.planet-surface {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 27% 23%, #ffffff70, transparent 46%),
+    radial-gradient(ellipse at 74% 80%, #050f29dd, transparent 62%),
+    repeating-radial-gradient(
+      ellipse at 15% 5%,
+      transparent 0 7px,
+      #b7e1d329 10px,
+      transparent 14px 23px
+    ),
+    radial-gradient(ellipse at 30% 60%, hsl(var(--planet-hue) 18% 62%) 0 18%, transparent 25%),
+    radial-gradient(ellipse at 70% 20%, #94ac9270 0 19%, transparent 36%),
+    hsl(var(--planet-hue) 25% 42%);
+  box-shadow:
+    inset 2px 2px 7px #e6faffa3,
+    inset -12px -8px 17px #04152fc9,
+    0 0 10px #a4cee847,
+    6px 12px 16px #20324d38;
+  transition: box-shadow 600ms;
+}
+.planet-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.26;
+  mix-blend-mode: soft-light;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='128' height='128'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.035 .12' numOctaves='4' seed='17'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.planet-label {
+  position: relative;
+  width: 106px;
+  font-size: 15px;
+  line-height: 1.3;
+  font-weight: 600;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 1px 4px #08182e,
+    0 0 7px #08182e;
+}
+.planet-label {
+  max-height: 90px;
+  overflow: auto;
+}
+.planet-label small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+  font-weight: 400;
+}
+.planet-center {
+  width: 224px;
+  height: 224px;
+  transform: translate(-50%, -50%) scale(1);
+  z-index: 3;
+}
+.planet-center .planet-surface {
+  box-shadow:
+    inset 2px 2px 8px #e6faffb0,
+    inset -15px -8px 20px #04152fc9,
+    0 0 18px #a4cee873,
+    8px 16px 22px #20324d38;
+}
+.planet-hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) scale(0.65);
+  z-index: 0;
+}
+.planet-leaves {
+  position: absolute;
+  inset: 100px 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 260px;
+  grid-auto-rows: minmax(70px, 1fr);
+  align-items: center;
+}
+.planet-leaf {
+  position: relative;
+  z-index: 1;
+  background: #f7f9f7;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 9px;
+  font-size: 13px;
+  max-height: 88px;
+  overflow: auto;
+}
+.planet-leaf small {
+  display: block;
+  font-size: 11px;
+  color: #657568;
+}
+.planet-leaf::before {
+  content: '';
+  position: absolute;
+  height: 1px;
+  background: #99adb0;
+  width: 132px;
+  top: 50%;
+  pointer-events: none;
+}
+.leaf-left::before {
+  left: 100%;
+}
+.leaf-right::before {
+  right: 100%;
+}
+.planet-leaf {
+  overflow: visible;
+}
+.planet-leaf span {
+  display: block;
+  max-height: 60px;
+  overflow: auto;
+}
+.planet-leaf.chosen {
+  background: #e8f1df;
+  border-color: #83a65b;
+}
+.planet-leaves {
+  animation: planet-children 260ms 440ms backwards;
+}
+@keyframes planet-children {
+  from {
+    opacity: 0;
+    transform: scaleX(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+@starting-style {
+  .planet-canvas:not([data-depth='0']) .planet-node:not(.planet-center) {
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 0;
+  }
+}
+.restructure-panel {
+  padding: 24px;
+  border: 1px solid #bdd0aa;
+  background: #fbfdf8;
+  border-radius: 18px;
+  margin: 24px 0;
+}
+.restructure-panel button {
+  margin: 6px;
+}
+.restructure-panel label {
+  display: block;
+}
+.restructure-panel input:not([type='checkbox']) {
+  width: 100%;
+  margin: 12px 0;
+}
+.outline-change {
+  border-left: 3px solid #b7cda0;
+  padding: 8px 16px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+
+/* 重构原文和稳定标识可在窄窗口换行，不撑开外层页面。 */
+.restructure-panel pre,
+[aria-label='只读原文'] pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+}
+.restructure-panel,
+[aria-label='只读原文'],
+.restructure-panel select {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.restructure-panel select {
+  width: 100%;
+}
+
+/* 混合层的正文放在球体画布之后，避免与任意深度的下级球重叠。 */
+.planet-mixed-leaves .planet-leaves {
+  position: static;
+  gap: 12px;
+  margin: 12px 0;
+  grid-auto-rows: auto;
+}
+.planet-mixed-leaves .planet-leaf::before {
+  display: none;
+}
+.tree-node-reading {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+.category-path-editor {
+  display: grid;
+  gap: 6px;
+}
+.category-path-editor textarea {
+  width: 100%;
+  min-height: 100px;
+  resize: vertical;
+}
+.global-search-hit > button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  text-align: left;
+}
+.global-search-hit small {
+  color: var(--text-muted);
+}
+.category-picker {
+  border: 0;
+  padding: 8px 0;
+  margin: 0;
+}
+.category-level {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+.category-level input {
+  flex: 1;
+  min-width: 0;
+}
+.move-knowledge,
+.frequency-settings {
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.move-knowledge > button {
+  margin-left: 12px;
+}
+.move-knowledge fieldset {
+  border: 0;
+  padding: 0;
+}
+.organization-setup > label {
+  display: flex;
+  gap: 8px;
+  margin: 12px 0;
+  align-items: center;
+}
+.organization-setup input[type='radio'] {
+  width: auto;
+}
+
+.knowledge-icon {
+  display: inline-grid;
+  place-items: center;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  color: var(--green);
+  background: var(--green-subtle);
+}
+.bucket {
+  color: var(--ink-secondary);
+  background: var(--bg-subtle);
+}
+.bucket-常用 {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+.bucket-归档 {
+  color: var(--ink-muted);
+}
+.knowledge-card footer,
+.result-notice,
+.citations h3 {
+  color: var(--ink-muted);
+}

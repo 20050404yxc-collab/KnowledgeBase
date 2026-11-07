@@ -8,6 +8,7 @@ import { useAppContext } from '../../app/AppContext'
 import { api } from '../../shared/api/client'
 import { MarkdownContent } from './MarkdownContent'
 import { saveTextPage, type TextTarget } from './long_text_edit'
+import { useSearchLocation } from '../search'
 
 type Props = TextTarget & { first: string; chars: number; citations: Citation[] }
 
@@ -79,6 +80,7 @@ function useLongContent(props: Props) {
 // 分段大小只约束单次传输，不限制整篇正文长度。
 export function LongContent(props: Props) {
   const state = useLongContent(props)
+  useSearchLocation(props.id, props.supplement_id, state.draft !== null, state.read)
   const { setCitation } = useAppContext()
   return (
     <div className="long-content">

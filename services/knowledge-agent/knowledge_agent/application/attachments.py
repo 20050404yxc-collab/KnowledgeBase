@@ -28,14 +28,26 @@ class Attachments:
     # 解析完成才登记；重复内容复用首个附件并清理多余快照。
     @traced
     async def add(self, params: dict, emit: Emit) -> dict:
+        keep = params.get("retain", False)
+        if type(keep) is not bool:
+            raise ValueError("资料保留选项无效")
         emit({"type": "progress", "message": "正在读取本地文档"})
         document = await self.snapshots.read(params.get("path", ""))
         existing = self.documents.get(document["id"])
         if existing:
             self.snapshots.remove_temporary(document)
+            if keep:
+                self.retain(existing["id"])
             return self.info(existing)
         document["retained"] = self.store.has_source(document["id"])
         self.documents[document["id"]] = document
+        if keep:
+            # 资料库导入不借用探索的会话所有权；成功或失败都释放本次临时副本。
+            try:
+                self.retain(document["id"])
+                return self.info(document)
+            finally:
+                self.remove(document["id"])
         return self.info(document)
 
     # 保存资料重新挂到会话；在途删除和重复完成都清理多余临时副本。

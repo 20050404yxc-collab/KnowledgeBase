@@ -112,6 +112,7 @@ const searchHit = object<SearchHit>({
   title: string,
   theme: string,
   excerpt: string,
+  text_page: optional(number),
   citation: optional(citation)
 })
 const searchResult = object<SearchResult>({
@@ -387,6 +388,12 @@ const projectReference = object({
   revision: string
 })
 const results: { [K in Operation]: Check<ResultMap[K]> } = {
+  'workspace.read': object({ value: nullable(string), revision: count, updated_at: string }),
+  'workspace.write': object({ value: nullable(string), revision: count, updated_at: string }),
+  'data.export': object({ path: string, files: count, bytes: count, verified: boolean }),
+  'data.backup': object({ path: string, files: count, bytes: count, verified: boolean }),
+  'data.verify': object({ path: string, files: count, bytes: count, verified: boolean }),
+  'data.restore': object({ path: string, files: count, bytes: count, verified: boolean }),
   'projects.list': array(projectReference),
   'projects.save': array(projectReference),
   'projects.delete': array(projectReference),

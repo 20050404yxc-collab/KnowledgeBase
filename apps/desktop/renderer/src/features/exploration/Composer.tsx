@@ -44,16 +44,20 @@ export function Composer() {
       {composerCollapsed && (
         <div className="composer-summary">
           <span>
-            本次问题：{query || '本地检索'} · {attachments.length} 个附件
+            本次问题：
+            {Array.from(query || '本地检索')
+              .slice(0, 40)
+              .join('')}
+            {Array.from(query).length > 40 ? '…' : ''} · {attachments.length} 个附件
           </span>
           <button
             onClick={() => setComposerCollapsed(false)}
             aria-expanded={false}
             aria-controls="question-form"
           >
-            修改问题与附件
+            编辑
           </button>
-          <button onClick={showResults}>查看结果</button>
+          <button onClick={showResults}>跳到结果</button>
         </div>
       )}
       <form
@@ -69,11 +73,12 @@ export function Composer() {
         </label>
         <QuestionInput />
         {attachments.length > 0 && <AttachmentList />}
+        <p className="learning-guide" id="answer-guide">
+          先搜索相关知识，再由 AI 结合最多五段摘录回答；无相关内容时直接回答。满意后可预览保存。
+        </p>
         <ComposerToolbar />
       </form>
-      <p className="learning-guide" hidden={composerCollapsed}>
-        先搜索相关知识，再由 AI 结合最多五段摘录回答；无相关内容时直接回答。满意后可预览保存。
-      </p>
+      <QuestionDraftProtection />
       {!composerCollapsed && resultArrival > 0 && (
         <button
           onClick={() => setComposerCollapsed(true)}
@@ -84,5 +89,40 @@ export function Composer() {
         </button>
       )}
     </section>
+  )
+}
+
+// 问题只恢复文字，重启不恢复附件授权或自动发送请求。
+function QuestionDraftProtection() {
+  const {
+    questionDraftStatus,
+    questionDraftUpdated,
+    retryQuestionDraft,
+    clearQuestionDraft,
+    query
+  } = useAppContext()
+  return (
+    <div className="draft-protection subtle" role="status">
+      {questionDraftStatus}
+      {questionDraftUpdated && ` · ${new Date(questionDraftUpdated).toLocaleString('zh-CN')}`}
+      {questionDraftStatus &&
+        !questionDraftStatus.includes('正在读取') &&
+        !questionDraftStatus.includes('已恢复') &&
+        !questionDraftStatus.includes('已在本地保护') &&
+        !questionDraftStatus.includes('正在保存') && (
+          <button onClick={retryQuestionDraft}>重试保护输入</button>
+        )}
+      {query && (
+        <button
+          onClick={() => {
+            if (confirm('清除本地问题草稿？不会删除已保存知识。')) {
+              clearQuestionDraft()
+            }
+          }}
+        >
+          清除问题草稿
+        </button>
+      )}
+    </div>
   )
 }

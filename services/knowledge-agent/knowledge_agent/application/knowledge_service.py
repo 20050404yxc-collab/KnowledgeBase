@@ -26,6 +26,7 @@ from .recommendations import Recommendations
 from .selection_questions import SelectionQuestions
 from .semantic_retrieval import SemanticRetrieval
 from .topic_workflow import TopicWorkflow
+from .workspace import Workspace
 
 
 class KnowledgeService:
@@ -57,6 +58,7 @@ class KnowledgeService:
         self.catalog = catalog
         self.semantic: SemanticRetrieval | None = None
         self.local_projects: LocalProjects | None = None
+        self.workspace: Workspace | None = None
 
     # 关闭可重复调用，先关闭数据库再清理会话；不删除保留资料。
     @traced
@@ -97,7 +99,7 @@ class KnowledgeService:
     @traced
     def info(self) -> dict:
         return {
-            "version": "0.13.0",
+            "version": "0.14.0",
             "data_dir": self.data_dir,
             "providers": self.store.providers(),
             "knowledge": self.store.exploration_list(),

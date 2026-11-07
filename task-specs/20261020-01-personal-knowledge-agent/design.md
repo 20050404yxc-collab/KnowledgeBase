@@ -1,3 +1,27 @@
+## Stable 0.14.0 release design (revision 28)
+
+Use existing npm/PyInstaller/electron-builder/NSIS pipeline, complete offline runtime and stable install identity. Update active versions/report paths only; retain historical evidence. GitHub publication uses the existing Git credential helper in memory, never logs or persists credentials. Verify remote ancestry/tag absence before atomic push. Upload to a draft, compare asset sizes/SHA-256, then publish as latest stable. Product behavior, runtime dependencies and data schema are unchanged by release preparation.
+
+## Revision 27 — implementation design
+
+- React root hooks own per-page drafts, source import lock/receipts, reading selection and recent metadata. Fixed draft slots use serial CAS writes after 400 ms quiet time or blur; stale callbacks always write their original slot. Bad reads never become empty successful data. Explicit conflict retry reads a fresh revision only after user confirms replacing the disk draft. Formal note version checks remain authoritative.
+- `Workspace` coordinates repository snapshots and file ports; `WorkspaceFiles` owns atomic fsync/replace JSON and tombstones; `PortableData` owns filesystem and independent SQLite connections. Bootstrap selects implementations; domain remains free of I/O, application free of SQL/path operations. Host validates additive operation results and exposes only existing bounded folder/file choices.
+- `ProtocolRuntime` grants exclusive backup/restore only without pending business tasks and rejects new work while active; cancellation is shielded repeatedly until actual filesystem completion. Done callback handles cancellation before the coroutine starts. A real completed output returns a real receipt.
+- Search submits query/kind/category snapshots separately from unsaved form fields. Backend filters before ordering/pagination and emits optional text_page. Search focus loads only matching long-content target. Canonical mapping is loaded once per result pass, preserving merged-source selection semantics.
+- Source `attachments.add` optional retain flag lets the use case copy+commit+release its newly owned temporary snapshot while preserving existing shared session documents. Individual failures and retry receipts remain in root state across navigation, bounded to 100 UI entries.
+- Responsive ReadingWorkspace hides rather than unmounts its directory; current-page Markdown headings use actual DOM. Code copy uses textContent; generated preview uses JSON.parse of bounded content strings; Markdown keeps HTML/remote media blocked. Custom modals trap Tab and dispatch existing Escape close action; reduced motion disables animation.
+- Backup manifest format 1/schema 7 includes one-level managed files and <=20,000 entries/8 GiB. Relative canonical paths, Windows reserved names/ADS, duplicates, links/junctions, hashes and database/source references are checked. Immutable read-only SQLite inspection cannot add WAL/SHM files. Restore never switches data location automatically.
+- Full validation: npm run check, npm run test:ui, synthetic benchmark and existing-resource offline semantic evaluator. No production data, new dependency, resource download, schema migration or release.
+
+## Revision 26 — implementation design
+
+- Preserve Section keys and existing hooks: `navigation.ts` separates primary destinations from library views; `LibraryViews` is app composition above existing `LibraryPage` / keyed `KnowledgePage`. Sidebar groups current-state highlighting only.
+- Composer retains source values and API calls. Move guidance into the form, shorten only displayed summary using Unicode code points, group secondary/primary actions, retain independent global search. Native dialog owns focus/Escape, component effect owns dialog lifecycle; organization mode/model state remains in AppModel.
+- Settings uses explicit tab/tabpanel relationships, roving focus and arrow/Home/End activation; quick start is conditional on ready/no active provider. No persistence changes.
+- Split CSS via PostCSS AST into theme, base, layout, composer, knowledge, modals, selection, settings, markdown, sources, usage and projects. Keep responsive overrides together last and retain order within each responsibility; shared rules stay base. Tokens unify text/brand/status values, leaving decorative planet gradients separate.
+- Adapt existing desktop scripts to actual library subnavigation and new button labels. Completion conditions use both `.working` and `.session-task` since foreground global absence no longer indicates completion.
+- Verify `npm run check`, `npm run test:ui`, keyboard/focus and wide/narrow screenshots. No real providers, production data or installer validation.
+
 ## R25 Design
 
 Persist only reference metadata in an atomically replaced bounded JSON file under application data; keep SQLite schema 7 unchanged. Application LocalProjects owns matching, scan concurrency, cancellation and revision checks. Infrastructure ProjectRegistry/reader validate paths, skip links and sensitive/generated paths, bound entry/depth/byte/text budgets, and produce relative-path evidence with immutable excerpts. No full directory index or original copy is retained.

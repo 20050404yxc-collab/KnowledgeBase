@@ -93,7 +93,7 @@ async function decideGroups(context, ids) {
       await waitFor(
         () =>
           ui.evaluate(
-            `!document.querySelector('.session-task') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('merge')`
+            `!document.querySelector('.session-task, .working') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('merge')`
           ),
         'explicit merge choice'
       )
@@ -102,7 +102,7 @@ async function decideGroups(context, ids) {
       await waitFor(
         () =>
           ui.evaluate(
-            `!document.querySelector('.session-task') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('keep')`
+            `!document.querySelector('.session-task, .working') && document.querySelector('[aria-label="重构覆盖与来源核对"] .pagination') && document.querySelector('[aria-label="重复组决定"] h4')?.innerText.includes('keep')`
           ),
         'explicit keep choice'
       )
@@ -129,7 +129,7 @@ async function selectMergeContent({ ui, click, waitFor, screenshot }) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!!document.querySelector('[aria-label="重构内容差异"]') && !document.querySelector('.session-task')`
+        `!!document.querySelector('[aria-label="重构内容差异"]') && !document.querySelector('.session-task, .working')`
       ),
     'merge content ready',
     30000
@@ -236,7 +236,7 @@ export async function checkMergeUi(context, fallback) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!!document.querySelector('[aria-label="重构目录预览"] .outline-change') && !document.querySelector('.session-task')`
+        `!!document.querySelector('[aria-label="重构目录预览"] .outline-change') && !document.querySelector('.session-task, .working')`
       ),
     'merge outline complete',
     30000
@@ -302,7 +302,7 @@ async function checkCandidatePicker({ ui, fill, click, waitFor, screenshot, repo
   await waitFor(
     () =>
       ui.evaluate(
-        `!document.querySelector('.session-task') && document.querySelector('[aria-label="重复组决定"]')?.innerText.includes(${JSON.stringify(ids[0])})`
+        `!document.querySelector('.session-task, .working') && document.querySelector('[aria-label="重复组决定"]')?.innerText.includes(${JSON.stringify(ids[0])})`
       ),
     'manual candidate added'
   )

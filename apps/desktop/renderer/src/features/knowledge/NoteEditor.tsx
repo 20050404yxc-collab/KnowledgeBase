@@ -60,6 +60,21 @@ export function NoteEditor() {
             {error}。输入已保留，可修改标题或分类后重试。
           </p>
         )}
+        {error && editor.id && (
+          <button
+            type="button"
+            onClick={() =>
+              setEditor({
+                title: editor.title + '（恢复副本）',
+                content: editor.content,
+                category_path: editor.category_path
+              })
+            }
+          >
+            另存为新笔记
+          </button>
+        )}
+        <DraftProtection />
         <p className="subtle">内容仅保存在本地；同一分类中标题不可重复，不会覆盖已有知识。</p>
         <NoteEditorActions
           discarding={discarding}
@@ -68,6 +83,22 @@ export function NoteEditor() {
         />
       </form>
     </div>
+  )
+}
+
+// 只显示实际写入状态，失败提供原位重试且不清空输入。
+function DraftProtection() {
+  const { draftStatus, draftUpdated, retryDraft } = useAppContext()
+  return (
+    <p className="subtle" role="status">
+      {draftStatus}
+      {draftUpdated && ` · ${new Date(draftUpdated).toLocaleString('zh-CN')}`}
+      {draftStatus.includes('未写入') && (
+        <button type="button" onClick={retryDraft}>
+          重试保护草稿
+        </button>
+      )}
+    </p>
   )
 }
 

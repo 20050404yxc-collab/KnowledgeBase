@@ -18,6 +18,7 @@ import { WorkingStatus } from './WorkingStatus'
 import { AnswerPanel, KnowledgeQuestion } from '../knowledge'
 import { RelatedKnowledge } from './RelatedKnowledge'
 import { KnowledgeList } from '../knowledge'
+import { RecentReading } from './RecentReading'
 
 // 列表打开的知识在列表下方阅读；学习目录及其生成结果保留原有位置。
 export function ExplorationPage() {
@@ -39,6 +40,7 @@ export function ExplorationPage() {
       <FirstUseGuide />
       <Composer />
       <ComposerCaption />
+      <RecentReading />
       {busy && <WorkingStatus />}
       <KnowledgeWorkspace showReading={!localReading} />
       {!localReading && (visibleContent || recommendations.length > 0) && <RelatedKnowledge />}

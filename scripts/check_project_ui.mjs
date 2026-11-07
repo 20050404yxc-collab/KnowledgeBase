@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证资格理由、分层目录和项目资料核对入口。
 // 说明：只响应本机模拟模型，不触发真实公开项目检索。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 项目点保留，职责任务被排除；无关附件即使存在也不能直接生成。
@@ -114,9 +115,7 @@ export async function checkLatePage(context) {
   await fill('#question', '等待时切页的独立目录')
   await click('生成学习目录')
   await waitFor(async () => fixture.state.posts.length === count, 'pending plan')
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('常用')).click()`
-  )
+  await navigateUi(ui, '常用')
   await waitFor(
     () => ui.evaluate(`document.querySelector('[aria-label="常用页面"]') !== null`),
     'switch during pending plan'
@@ -149,7 +148,7 @@ export async function checkLatePage(context) {
     }))
   })
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.session-task')`),
+    () => ui.evaluate(`!document.querySelector('.session-task, .working')`),
     'hidden plan completes'
   )
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)

@@ -84,7 +84,7 @@ function registerFolderPicker(getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('kb:folder', async (event, requestId: unknown) => {
     const window = trusted(event, getWindow())
     const result = await dialog.showOpenDialog(window, {
-      title: '登记项目文件夹（仅保存本地路径）',
+      title: '选择本地文件夹（具体用途由当前操作决定）',
       properties: ['openDirectory']
     })
     diagnostic('folder.selected', {

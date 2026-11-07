@@ -10,7 +10,7 @@ export function SourcesHeading() {
       <div>
         <div className="eyebrow">YOUR SOURCES</div>
         <h1>留下值得反复阅读的资料。</h1>
-        <p>探索中的附件点击“保存到资料库”后留在这里；可直接阅读或基于已保存副本再次提问。</p>
+        <p>直接导入资料，查看可读范围，或基于已保存副本再次提问。</p>
       </div>
     </div>
   )

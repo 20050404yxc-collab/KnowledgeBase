@@ -14,7 +14,7 @@ function SupplementItem({ item }: { item: Supplement }) {
   const { draft, setDraft, saving, maintain } = useSupplementEdit(item)
   const { setCitation, selected } = useAppContext()
   return (
-    <section className="supplement-item">
+    <section className="supplement-item" data-search-id={`supplement:${item.id}`}>
       <h3>新增补充 · {item.title}</h3>
       <small>
         {new Date(item.created_at).toLocaleString('zh-CN')} · {item.provider_name} · {item.model}

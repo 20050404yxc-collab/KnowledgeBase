@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证真实桌面选区、免费命中、显式模型回答、追问和确认入库。
 // 说明：仅使用隔离数据库和本机 SSE 服务，结束时删除合成凭据和知识。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 
@@ -95,7 +96,8 @@ export async function checkSelectionUi(context) {
     await waitFor(
       () =>
         ui.evaluate(
-          `document.querySelector('.selection-panel').innerText.includes('降低长期饥饿风险')`
+          `document.querySelector('.selection-turn .markdown-content')?.innerText.includes('降低长期饥饿风险') &&
+          [...document.querySelectorAll('.selection-turn button')].some(b=>b.textContent.trim()==='预览并保存回答' && !b.disabled)`
         ),
       'explicit answer shown'
     )
@@ -133,9 +135,7 @@ export async function checkSelectionUi(context) {
 
 // 通过界面删除以同步运行期接口列表；避免测试清理留下不存在的活动配置。
 async function removeFixtureProvider({ ui, waitFor }) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('设置')).click()`
-  )
+  await navigateUi(ui, '设置')
   await waitFor(
     () => ui.evaluate(`!!document.querySelector('.provider-card')`),
     'provider cleanup visible'
@@ -149,9 +149,7 @@ async function removeFixtureProvider({ ui, waitFor }) {
     () => ui.evaluate(`!document.querySelector('.provider-card')`),
     'provider cleanup synchronized'
   )
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('探索')).click()`
-  )
+  await navigateUi(ui, '探索')
   await waitFor(
     () => ui.evaluate(`!!document.querySelector('.inline-search')`),
     'return after provider cleanup'
@@ -191,7 +189,7 @@ async function checkCaptureAndFollowup(context) {
   await waitFor(
     () =>
       ui.evaluate(
-        `document.querySelectorAll('.selection-turn').length===2 && !document.querySelector('.session-task')`
+        `document.querySelectorAll('.selection-turn').length===2 && !document.querySelector('.session-task, .working')`
       ),
     'followup local lookup complete'
   )
@@ -202,13 +200,9 @@ async function checkCaptureAndFollowup(context) {
   assert.equal(fixture.state.posts.length, 2)
   assert.equal(JSON.parse(fixture.state.posts[1].input).history.length, 1)
   await screenshot('desktop-selection-chat-wide.png')
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('资料库')).click()`
-  )
+  await navigateUi(ui, '资料库')
   assert.equal(await ui.evaluate(`!!document.querySelector('[aria-label="选区问题"]')`), false)
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('探索')).click()`
-  )
+  await navigateUi(ui, '探索')
   await waitFor(
     () => ui.evaluate(`document.querySelectorAll('.selection-turn').length===2`),
     'return restores chat'
@@ -291,9 +285,7 @@ async function saveFixtureProvider({ ui, fill, click, waitFor }, fixture) {
     'fixture provider saved from form'
   )
   const configs = (await request(ui, 'bootstrap')).providers
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('探索')).click()`
-  )
+  await navigateUi(ui, '探索')
   await waitFor(
     () =>
       ui.evaluate(

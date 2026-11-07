@@ -6,11 +6,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { ResultMap } from '../../../../../../contracts/desktop'
 import { api, errorText } from '../../shared/api/client'
 import { MarkdownContent } from '../knowledge'
+import { useAppContext } from '../../app/AppContext'
 
 // 每次翻页拥有独立序号，失败可重试；没有成功数据时不显示空内容成功状态。
-export function SourceReader({ id, close }: { id: string; close: () => void }) {
+function useSourceReader(id: string) {
+  const { sourceReading, setSourceReading } = useAppContext()
   const [result, setResult] = useState<ResultMap['sources.read'] | null>(null)
-  const [page, setPage] = useState(0)
+  const page = sourceReading?.id === id ? sourceReading.page : 0
+  const setPage = (next: number) => setSourceReading({ id, page: next })
   const [retry, setRetry] = useState(0)
   const [error, setError] = useState('')
   const sequence = useRef(0)
@@ -34,6 +37,13 @@ export function SourceReader({ id, close }: { id: string; close: () => void }) {
       sequence.current++
     }
   }, [id, page, retry])
+  return { result, page, setPage, retry, setRetry, error }
+}
+
+// 正文与就近动作共享同一已成功读取的分页快照。
+export function SourceReader({ id, close }: { id: string; close: () => void }) {
+  const { reuseSource, busy, setEditor } = useAppContext()
+  const { result, page, setPage, retry, setRetry, error } = useSourceReader(id)
   return (
     <section className="panel source-reader" aria-label="资料阅读">
       <div className="section-title">
@@ -41,6 +51,25 @@ export function SourceReader({ id, close }: { id: string; close: () => void }) {
         <button onClick={close}>关闭资料阅读</button>
       </div>
       <p className="subtle">应用保存的解析文本；图片和未解析的版式不包含在内。</p>
+      <div className="heading-actions">
+        <button disabled={!!busy} onClick={() => void reuseSource(id)}>
+          基于此资料提问
+        </button>
+        <button
+          disabled={!result}
+          onClick={() =>
+            setEditor({
+              title: (result?.name ?? '资料') + ' · 摘录',
+              content:
+                result?.items
+                  .map((item) => `> ${item.text}\n\n来源：${item.name} · ${item.locator}`)
+                  .join('\n\n') ?? ''
+            })
+          }
+        >
+          当前段摘录为笔记
+        </button>
+      </div>
       {!result && !error && <p role="status">正在读取资料…</p>}
       {error && (
         <p role="alert">

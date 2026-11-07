@@ -14,15 +14,25 @@ import { SupplementList } from './SupplementList'
 import { LongContent } from './LongContent'
 import { MoveKnowledge } from './MoveKnowledge'
 import { FrequencySettings } from './FrequencySettings'
+import { ReadingTools } from './ReadingTools'
 
 // 安全显示当前回答正文与引用入口。
 export function AnswerPanel() {
   const { answer, selected, visibleContent, visibleCitations, setCitation } = useAppContext()
   return (
-    <article className="answer-panel">
+    <article
+      className="answer-panel"
+      data-search-id={selected ? `knowledge:${selected.id}` : undefined}
+    >
       <AnswerHeading />
-      {selected && !answer?.review && <MoveKnowledge key={selected.id + selected.version} />}
-      {selected && !answer?.review && <FrequencySettings />}
+      <ReadingTools />
+      {selected && !answer?.review && (
+        <details className="knowledge-management">
+          <summary>分类与使用频率</summary>
+          <MoveKnowledge key={selected.id + selected.version} />
+          <FrequencySettings />
+        </details>
+      )}
       {(!answer || answer.content === selected?.content) &&
       selected?.content_chars &&
       selected.version ? (

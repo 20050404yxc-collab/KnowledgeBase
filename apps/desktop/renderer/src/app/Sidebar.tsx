@@ -4,7 +4,7 @@
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 import React from 'react'
 import { useAppContext } from './AppContext'
-import { sections, icons } from './navigation'
+import { primarySections, icons, isLibrarySection } from './navigation'
 
 // 显示知识分区导航并切换当前页面。
 export function Sidebar() {
@@ -15,18 +15,22 @@ export function Sidebar() {
         <div className="brand-mark">知</div>
         <div>
           <strong>知序</strong>
-          <small>PERSONAL KNOWLEDGE</small>
         </div>
       </div>
       <div className="workspace-label">
         我的知识空间 <span>LOCAL</span>
       </div>
-      <nav>
-        {sections.map((name, index) => (
+      <nav aria-label="主导航">
+        {primarySections.map((name, index) => (
           <React.Fragment key={name}>
             {name === '设置' && <div className="nav-divider" />}
             <button
-              className={`nav-item ${section === name ? 'active' : ''}`}
+              className={`nav-item ${section === name || (name === '知识库' && isLibrarySection(section)) ? 'active' : ''}`}
+              aria-current={
+                section === name || (name === '知识库' && isLibrarySection(section))
+                  ? 'page'
+                  : undefined
+              }
               onClick={() => {
                 setSection(name)
                 if (name === '用量统计') {
@@ -34,9 +38,10 @@ export function Sidebar() {
                 }
               }}
             >
-              <span className="nav-icon">{icons[index]}</span>
+              <span className="nav-icon" aria-hidden="true">
+                {icons[index]}
+              </span>
               {name}
-              {name === '在学' && <span className="nav-dot" />}
             </button>
           </React.Fragment>
         ))}
@@ -46,7 +51,7 @@ export function Sidebar() {
           <span /> 本地存储 · 由你掌控
         </div>
         <small>
-          0.13.0 <span>正式版</span>
+          0.14.0 <span>正式版</span>
         </small>
       </div>
     </aside>

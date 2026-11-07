@@ -3,17 +3,22 @@
 // 作用：验证独立分区首帧、筛选、阅读、草稿与滚动恢复。
 // 说明：使用隔离桌面的公开 API 建立合成知识，不请求模型。
 import assert from 'node:assert/strict'
+import { navigateUi } from './ui_navigation.mjs'
 
 // 导航后的首个绘制帧不允许出现探索内容或另一个分区的详情。
 async function navigate(ui, index) {
+  // 从其他模块进入分区时先打开知识库，首帧观察仍针对实际分区切换。
+  if (index > 0 && !(await ui.evaluate(`!!document.querySelector('.library-view')`))) {
+    await navigateUi(ui, '知识库')
+  }
   const state = await ui.evaluate(`new Promise((resolve, reject) => {
-    const target = [...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith(${JSON.stringify(['探索', '常用', '在学', '归档'][index])}))
+    const target = [...document.querySelectorAll('.nav-item, .library-view')].find(b => b.textContent.trim().endsWith(${JSON.stringify(['探索', '常用', '在学', '归档'][index])}))
     const snapshot = () => ({composer: !!document.querySelector('#question'), directory: !!document.querySelector('.directory-panel'),
       answer: !!document.querySelector('.answer-panel'), active: document.querySelector('.nav-item.active').innerText})
-    if (target.classList.contains('active')) { resolve(snapshot()); return }
+    if (target.getAttribute('aria-current') === 'page') { resolve(snapshot()); return }
     const timer = setTimeout(() => { observer.disconnect(); reject(Error('Navigation did not commit')) }, 15000)
     const observer = new MutationObserver(() => {
-      if (target.classList.contains('active')) { observer.disconnect(); clearTimeout(timer); resolve(snapshot()) }
+      if (target.getAttribute('aria-current') === 'page') { observer.disconnect(); clearTimeout(timer); resolve(snapshot()) }
     })
     observer.observe(document.querySelector('main').parentElement, {subtree: true, childList: true, attributes: true})
     target.click()

@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：在隔离桌面验证设置、独立计价和全历史用量展示。
 // 说明：系统目录打开由宿主单测模拟，桌面测试不启动文件管理器。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 选择值通过原生事件进入 React，价格保存使用实际表单。
@@ -134,9 +135,7 @@ async function checkPriceAttempts(context) {
     assert.ok(Math.abs(attempt.cost - (model === 'fixture-b' ? 0.00011 : 0)) < 1e-12)
     assert.equal(attempt.currency, model === 'fixture-b' ? 'CNY' : 'USD')
   }
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.endsWith('用量统计')).click()`
-  )
+  await navigateUi(ui, '用量统计')
   await waitFor(
     () => ui.evaluate(`!!document.querySelector('.usage-summary')`),
     'usage summary visible'

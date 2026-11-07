@@ -13,7 +13,7 @@ export function CitationDialog() {
   }
   return (
     <div className="modal-backdrop">
-      <section className="modal">
+      <section className="modal" role="dialog" aria-modal="true" aria-label="引用摘录">
         <div className="modal-heading">
           <h2>{citation.name}</h2>
           <button onClick={() => setCitation(null)} aria-label="关闭引用">

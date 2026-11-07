@@ -1,0 +1,132 @@
+/* 文件：responsive.css
+ * 层：React 共享样式
+ * 作用：响应式与减少动画覆盖。
+ * 说明：颜色引用主题变量；最后加载以覆盖基础布局。
+ */
+@media (min-width: 1500px) {
+  .app:has(.selection-panel) main {
+    margin-right: 470px;
+  }
+}
+
+@media (max-width: 1150px) {
+  .sidebar {
+    width: 190px;
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  main {
+    margin-left: 190px;
+    width: calc(100% - 190px);
+  }
+
+  .content {
+    padding: 32px 28px;
+  }
+
+  .topbar {
+    padding: 0 28px;
+  }
+
+  .knowledge-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exploration-grid > :nth-child(n + 7) {
+    display: none;
+  }
+
+  h1 {
+    font-size: 25px;
+  }
+
+  .composer-toolbar {
+    flex-wrap: wrap;
+  }
+
+  .toolbar-left {
+    gap: 7px;
+  }
+
+  .settings-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .price-inputs {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .settings-grid .panel {
+    padding: 18px;
+  }
+}
+@media (max-width: 1050px) {
+  .knowledge-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .planet-node {
+    transition: opacity 100ms;
+  }
+  .planet-leaves {
+    animation: none;
+  }
+}
+@media (max-width: 700px) {
+  .planet-node {
+    width: 96px;
+    height: 96px;
+  }
+  .planet-center {
+    width: 196px;
+    height: 196px;
+  }
+  .planet-label {
+    width: 94px;
+    font-size: 13px;
+  }
+  .planet-leaves {
+    column-gap: 216px;
+  }
+  .planet-leaf::before {
+    width: 110px;
+  }
+}
+@media (max-width: 1100px) {
+  .library-workspace,
+  .content-comparison {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 1050px) {
+  .topbar > span,
+  .connection {
+    display: none;
+  }
+  .topbar {
+    padding: 10px 18px;
+  }
+  .global-search-form {
+    max-width: none;
+  }
+}
+@media (max-width: 760px) {
+  .exploration-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .exploration-grid > :nth-child(n + 4) {
+    display: none;
+  }
+  .knowledge-question {
+    flex-wrap: wrap;
+  }
+  .knowledge-question input {
+    flex-basis: 100%;
+    min-width: 0;
+  }
+  .category-level {
+    flex-wrap: wrap;
+  }
+}

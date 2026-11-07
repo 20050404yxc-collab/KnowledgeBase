@@ -1,16 +1,20 @@
 // 文件：BackupGuide.tsx
 // 层：React 展示组件
 // 作用：说明完整数据备份与整理恢复点的使用边界。
-// 说明：仅提供指引，不在运行中复制、覆盖或恢复用户数据库。
+// 说明：完整备份使用一致性快照；恢复只创建新隔离目录，不覆盖当前库。
+import { PortableData } from './PortableData'
 
 // 指引基于上方实际数据目录，不将数据库恢复点描述为包含资料和密钥的完整备份。
 export function BackupGuide() {
   return (
     <section className="backup-guide" aria-label="备份与恢复指引">
       <h3>备份你的知识</h3>
+      <PortableData />
       <ol>
         <li>先到“存储与日志”，用“打开目录”找到本地数据目录，并记下位置。</li>
-        <li>等待任务结束并关闭知序，再复制整个数据目录到另一个安全位置。</li>
+        <li>
+          可使用上方完整备份；手工复制时等待任务结束并关闭知序，再复制整个数据目录到安全位置。
+        </li>
         <li>保留数据库、资料副本等全部文件；API Key 不在目录备份中，换电脑需重新填写。</li>
       </ol>
       <details>

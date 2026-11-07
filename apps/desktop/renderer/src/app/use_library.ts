@@ -25,6 +25,16 @@ function useLibraryState() {
   const [failedKey, setFailedKey] = useState('')
   const currentListKey = useRef('')
   const [sources, setSources] = useState<Source[]>([])
+  const [sourceReading, setSourceReading] = useState<{ id: string; page: number } | null>(null)
+  const [sourceImport, setSourceImport] = useState({
+    retained: true,
+    running: false,
+    error: '',
+    items: [] as { path: string; name: string; state: string; error: string }[]
+  })
+  const sourceImportLock = useRef(false)
+  const [portableData, setPortableData] = useState({ running: false, result: '', error: '' })
+  const portableDataLock = useRef(false)
   const [providers, setProviders] = useState<Provider[]>([])
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null)
@@ -40,6 +50,14 @@ function useLibraryState() {
     currentListKey,
     sources,
     setSources,
+    sourceReading,
+    setSourceReading,
+    sourceImport,
+    setSourceImport,
+    sourceImportLock,
+    portableData,
+    setPortableData,
+    portableDataLock,
     providers,
     setProviders,
     attempts,

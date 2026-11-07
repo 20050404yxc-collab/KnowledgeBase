@@ -1,0 +1,63 @@
+/* 文件：sources.css
+ * 层：React 共享样式
+ * 作用：资料列表与阅读。
+ * 说明：颜色引用主题变量；不承载业务状态。
+ */
+.source-list {
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid #e0e7d9;
+  background: var(--bg-elevated);
+}
+
+.source-list .empty-state {
+  border: 0;
+}
+
+.source-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 18px;
+  padding: 23px;
+  border-bottom: 1px solid #edf1e7;
+}
+
+.source-row:last-child {
+  border-bottom: 0;
+}
+
+.source-row > div {
+  flex: 1;
+  min-width: 160px;
+  overflow-wrap: anywhere;
+}
+
+.source-row h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 8px;
+}
+
+.source-row p {
+  font-size: 11px;
+  color: var(--ink-secondary);
+  margin: 5px 0;
+}
+
+.source-row details {
+  font-size: 11px;
+  color: var(--ink-secondary);
+}
+
+.file-icon {
+  font-size: 27px;
+  color: var(--ink-secondary);
+}
+
+.source-row button {
+  font-size: 11px;
+}
+.source-reader .markdown-content {
+  overflow-wrap: anywhere;
+}

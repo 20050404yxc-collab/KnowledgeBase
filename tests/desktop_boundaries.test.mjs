@@ -48,6 +48,37 @@ const { markdownForDisplay } = await loadModule(
   '../apps/desktop/renderer/src/features/knowledge/markdown_display.ts'
 )
 
+// 草稿与备份回执必须逐字段校验，不能把缺失或非法大小显示为已保护。
+test('workspace and portable results reject invalid protection receipts', () => {
+  const draft = { value: '草稿', revision: 1, updated_at: 'fixture' }
+  assert.deepEqual(validation.decodeResult('workspace.read', draft), draft)
+  for (const value of [{ ...draft, revision: -1 }, { ...draft, value: {} }, { revision: 0 }]) {
+    assert.throws(() => validation.decodeResult('workspace.write', value))
+  }
+  const receipt = { path: 'fixture', files: 1, bytes: 12, verified: true }
+  assert.deepEqual(validation.decodeResult('data.backup', receipt), receipt)
+  for (const value of [
+    { ...receipt, bytes: -1 },
+    { ...receipt, files: 0.5 },
+    { ...receipt, verified: 'yes' }
+  ]) {
+    assert.throws(() => validation.decodeResult('data.restore', value))
+  }
+})
+
+// 生成流仅提取有界正文，不显示原始 JSON；不完整转义等待后续片段。
+test('stream preview safely decodes partial structured content', async () => {
+  const { readablePreview } = await loadModule(
+    '../apps/desktop/renderer/src/shared/stream_preview.ts'
+  )
+  assert.equal(readablePreview('{"title":"内部标题",'), '')
+  assert.equal(readablePreview('{"content":"第一段\\n第二段'), '第一段\n第二段')
+  assert.equal(readablePreview('{"content":"已到达\\u4e'), '已到达')
+  assert.equal(readablePreview('{"content":"末尾\\'), '末尾')
+  assert.equal(readablePreview(JSON.stringify({ content: '字'.repeat(9000) })).length, 6000)
+  assert.equal(readablePreview('{"content":"\\q'), '')
+})
+
 // 目标读取期间的正文编辑不得被旧闭包覆盖，关闭会话后的回调也不能复活内容。
 test('late selection target preserves current draft and cannot revive closed previews or chats', async () => {
   const { updateChatEntries, updateCapture } = await loadModule(

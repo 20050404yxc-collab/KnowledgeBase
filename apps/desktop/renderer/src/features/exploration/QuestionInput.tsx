@@ -7,12 +7,13 @@ import { useAppContext } from '../../app/AppContext'
 
 // 管理问题输入、快捷提交和本地路径粘贴。
 export function QuestionInput() {
-  const { query, setQuery, answerQuestion, addFiles } = useAppContext()
+  const { query, setQuery, answerQuestion, addFiles, questionDraftReady } = useAppContext()
   return (
     <textarea
       id="question"
       placeholder="想了解什么？输入问题，或把文档拖到这里…"
       value={query}
+      disabled={!questionDraftReady}
       maxLength={12000}
       onChange={(event) => setQuery(event.target.value)}
       onKeyDown={(event) => {

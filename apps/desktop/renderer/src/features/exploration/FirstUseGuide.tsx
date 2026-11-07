@@ -6,16 +6,18 @@ import { useAppContext } from '../../app/AppContext'
 
 // 本地笔记无需配置即可使用，模型学习步骤与现有目录流程一致。
 export function FirstUseGuide() {
-  const { ready, providers, setEditor, setSection } = useAppContext()
+  const { ready, activeProvider, generationOptions, setEditor, setSection } = useAppContext()
   // 等待启动完成，避免已配置用户在加载期间闪现首次使用状态。
-  if (!ready || providers.length) {
+  if (!ready || (activeProvider?.has_key && (generationOptions.model || activeProvider.model))) {
     return null
   }
   return (
     <aside className="first-use-guide" aria-label="开始使用知序">
       <div>
         <strong>从一条笔记开始，也可以用 AI 学习</strong>
-        <p>本地笔记和搜索可直接使用。AI 学习：配置接口 → 生成目录 → 选择知识点。</p>
+        <p>
+          本地笔记、资料阅读和搜索可直接使用。配置可用模型后，输入问题即可直接回答；系统学习时选择“生成学习目录”。
+        </p>
       </div>
       <div className="first-use-actions">
         <button onClick={() => setEditor({ title: '', content: '' })}>先写一条笔记</button>

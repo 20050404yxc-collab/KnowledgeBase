@@ -1,0 +1,187 @@
+/* 文件：workspace.css
+ * 层：React 共享样式
+ * 作用：连续阅读、查找、草稿和资料入口的布局。
+ * 说明：断点后加载，使用真实状态控制列表与详情。
+ */
+.reading-workspace {
+  grid-template-columns: minmax(260px, 32%) minmax(0, 1fr);
+}
+.reading-workspace > *,
+.reading-tools > * {
+  min-width: 0;
+}
+.reading-workspace .saved-tree {
+  position: sticky;
+  top: 16px;
+}
+.reading-workspace .section-title {
+  flex-wrap: wrap;
+}
+.reading-workspace .section-title input {
+  max-width: 100%;
+}
+.reading-workspace .answer-panel {
+  margin-top: 0;
+}
+.reading-workspace .knowledge-workspace {
+  display: block;
+  margin-top: 0;
+}
+.reading-workspace .reading-detail {
+  min-width: 0;
+}
+.reading-workspace.planet-workspace {
+  grid-template-columns: minmax(0, 1fr);
+}
+.narrow-reading-control {
+  display: none;
+}
+.reading-text {
+  font-size: var(--reading-font-size, 16px);
+  line-height: 1.9;
+  color: var(--ink);
+}
+.answer-panel > .selectable-text,
+.answer-panel > .reading-text {
+  max-width: 76ch;
+  margin-inline: auto;
+}
+.long-content > .selectable-text {
+  max-width: 76ch;
+  margin-inline: auto;
+}
+.reading-tools,
+.search-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 14px 0;
+}
+.reading-tools label,
+.search-filters label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.reading-tools nav {
+  display: grid;
+  max-height: 260px;
+  overflow: auto;
+  gap: 6px;
+}
+.reading-tools nav button {
+  text-align: left;
+}
+.knowledge-management {
+  margin-block: 12px 20px;
+  font-size: 13px;
+}
+summary {
+  cursor: pointer;
+}
+summary:focus-visible {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+.code-block {
+  position: relative;
+}
+.code-block > button {
+  display: block;
+  margin-left: auto;
+  font-size: 12px;
+  padding: 5px 10px;
+}
+.source-import input[type='checkbox'] {
+  width: auto;
+}
+.source-import li {
+  margin-block: 12px;
+  overflow-wrap: anywhere;
+}
+.portable-data {
+  overflow-wrap: anywhere;
+}
+.search-excerpt {
+  white-space: pre-wrap;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+mark {
+  color: #253423;
+  background: #f4df9c;
+}
+.recent-reading {
+  margin-block: 22px;
+}
+.recent-reading-list {
+  display: flex;
+  overflow-x: auto;
+  gap: 10px;
+  padding: 4px;
+}
+.recent-reading-list > button {
+  flex: 0 0 180px;
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.recent-reading-list small {
+  display: block;
+  color: var(--ink-secondary);
+  margin-top: 8px;
+}
+.draft-protection {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.stream-preview {
+  flex-basis: 100%;
+  padding: 12px;
+  border: 1px dashed var(--green);
+  border-radius: 8px;
+}
+.stream-preview p {
+  white-space: pre-wrap;
+  max-height: 300px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+  line-height: 1.8;
+}
+.subtle,
+.result-notice,
+.citations h3,
+.pill,
+.note-footer {
+  font-size: 12px;
+}
+@media (max-width: 1100px) {
+  .reading-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .reading-workspace[data-detail='true'] .reading-directory {
+    display: none;
+  }
+  .reading-workspace[data-detail='false'] .reading-detail {
+    display: none;
+  }
+  .narrow-reading-control {
+    display: inline-block;
+    margin-bottom: 12px;
+  }
+  .reading-workspace .saved-tree {
+    position: static;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

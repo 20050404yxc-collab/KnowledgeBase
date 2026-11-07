@@ -5,6 +5,7 @@
 import type { SelectionAsk, SelectionCapture, SelectionSession, SelectionSource } from './selection'
 import type { MemorySettings, MemoryState, SemanticStatus } from './memory'
 import type { ProjectReference, ProjectReferenceInput } from './projects'
+import type { DraftSnapshot, PortableReceipt } from './workspace'
 export type { ProjectReference, ProjectReferenceInput } from './projects'
 import type {
   LibraryTree,
@@ -88,6 +89,7 @@ export interface SearchHit {
   title: string
   theme: string
   excerpt: string
+  text_page?: number
   citation?: Citation
 }
 export interface SearchResult {
@@ -393,6 +395,8 @@ export interface RequestMap {
     bucket?: Bucket | null
     scope?: Scope
     attachment_ids?: string[]
+    kind?: 'all' | 'knowledge' | 'supplement' | 'source'
+    category?: string
   }
   'question.plan': RequestMap['question']
   'knowledge.learn': LearnInput
@@ -415,7 +419,7 @@ export interface RequestMap {
   'recovery.create': Record<string, never>
   'recovery.restore': { id: string }
   'knowledge.bucket': { id: string; bucket: Bucket | null }
-  'attachments.add': { path: string }
+  'attachments.add': { path: string; retain?: boolean }
   'projects.list': Record<string, never>
   'projects.save': ProjectReferenceInput
   'projects.delete': { id: string }
@@ -440,6 +444,12 @@ export interface RequestMap {
     purpose: string
   } & GenerationOptions
   recommendations: { id: string }
+  'workspace.read': { slot: string }
+  'workspace.write': { slot: string; value: string | null; revision: number }
+  'data.export': { id: string; directory: string }
+  'data.backup': { directory: string }
+  'data.verify': { path: string }
+  'data.restore': { path: string; directory: string }
 }
 export interface ResultMap {
   'question.open': SelectionSession
@@ -514,6 +524,12 @@ export interface ResultMap {
   'usage.list': Attempt[]
   question: Answer
   recommendations: Recommendation[]
+  'workspace.read': DraftSnapshot
+  'workspace.write': DraftSnapshot
+  'data.export': PortableReceipt
+  'data.backup': PortableReceipt
+  'data.verify': PortableReceipt
+  'data.restore': PortableReceipt
 }
 export type Operation = keyof RequestMap
 export type WorkerMessage =

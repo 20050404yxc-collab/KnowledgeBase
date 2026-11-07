@@ -1,3 +1,40 @@
+## Stable 0.14.0 release follow-up — 2026-11-07
+
+- Workflow mode: execute; Plan revision: 28; Approval status: approved; Approved revision: 28.
+- Authorization: user requested “帮我上传github，这一版作为正式版本，上传安装包，你帮我迭代版本”. This authorizes version iteration, commit/tag/push and stable GitHub Release of the current R25–R27 source increment.
+- Routing: revise-existing; reuse the existing product task and installation/release page. Docs language: Chinese; Task-specs language: English.
+- Scope: synchronize stable 0.14.0, check source, build Windows x64 worker/installer, verify isolated packaged execution and archive contents, push main and annotated v0.14.0 without force, publish installer/checksum/manifest and verify remote digests.
+- Standards: supplied AGENTS.md and project coding/layering standard revision 2, read 2026-11-07; active. No dependencies, schema 7, app/data/credential identities or existing features changed by this follow-up.
+- Status: local build and verification complete; GitHub publication pending. Prior release evidence remains historical. No production data/credentials or paid APIs; clean-machine and full installed upgrade/uninstall matrix remain unverified.
+- Human docs: [installation and release](../../docs/确认页/个人知识库/安装与发布.md).
+
+## Revision 27: complete workflow optimization — 2026-11-07
+
+- Workflow mode: execute; Plan revision: 27; Approval status: approved; Approved revision: 27.
+- Authorization: user explicitly requested “根据这个方案进行优化，一次性优化完” against the delivered overall roadmap. This supersedes the previous planning-only boundary for the implementation below; no further approval is required for that scope.
+- Status: implemented and verified within the recorded isolated scope; documentation reconciled. No automatic release or archival.
+- Docs language: Chinese; Task-specs language: English. Routing: revise-existing; preserve pre-existing R26 changes and all historical evidence.
+- Standard: supplied AGENTS.md and docs/确认页/工程规范/项目编码与分层规范.md; no exception or replacement. Electron/React/Python boundaries remain; schema 7 and credential/data identities remain.
+- Scope: first-use actions; responsive reading workspace and tools; keyword filters/highlights/long-text location; explicit retained/temporary source import with item retries; atomic bounded note/question drafts; recent reading; bounded readable stream preview; complete Markdown export; online backup, checksum verification and isolated restore; keyboard/focus/reduced motion; synthetic performance and offline semantic evaluation.
+- Decisions: note drafts per existing page, question text plus scope, no temporary attachment persistence; 400 ms debounce and blur flush; recoverability claimed only after acknowledgement. Explicit discard or successful save clears through a versioned tombstone. Keep drafts until explicit removal; no silent expiration. Maximum 850,000 bytes per slot, recent reading eight entries. Conversation bodies remain runtime-only; no replay on restore.
+- Data safety: online SQLite backup plus retained sources, drafts and project registry; database includes settings, usage, recycle and knowledge recovery records. Exclude credentials, sessions, logs and reproducible model resources. Format 1/schema 7 manifest; <=20,000 files/8 GiB, SHA256/size/path/integrity/source completeness checks. Restore creates a unique new directory and never replaces current library. Exclusive protocol ownership lasts through actual file-thread completion, including repeated cancellation.
+- M0/M4 outcome: benchmark synthetic 101/1001/5001 records and 120,000-character text; evaluate existing verified offline INT8 model. OCR/complex-layout/whole-document summaries and dark theme remain evaluated future choices; no resource download or unsupported delivery claim. Real-user observation, paid supplier quality, production migration and clean-machine installation remain unverified.
+- No version bump, credential access, production edits, paid calls, commit/push, release or installer rebuild.
+- Human docs: [overall optimization](../../docs/确认页/个人知识库/总体优化方案.md), product, technical design and implementation/acceptance pages.
+
+## Revision 26: frontend and everyday usability — 2026-11-07
+
+- Workflow mode: execute; Plan revision: 26; Approval status: approved; Approved revision: 26.
+- Authorization: user supplied `知序前端与使用体验优化方案.md` and requested “根据这个优化方案进行优化”. This is implementation of that concrete supplied plan; no additional approval gate.
+- Docs language: Chinese; Task-specs language: English. Reuse existing product task and confirmation pages. No delegation.
+- Standards: supplied AGENTS.md and project coding/layering standard revision 2, read 2026-11-07; active for renderer, scripts, docs and checks.
+- Scope: all 17 plan items using its short-term options: seven primary destinations with library subviews; composer hierarchy and guidance; accessible cards; visible organization dialog; settings quick-start banner; semantic theme tokens, functional text >=11px and CSS file split; avatar settings shortcut; foreground/background progress separation.
+- Findings: topbar search already navigates and copies query; preserve it. Settings selected styling already exists; unify it instead of claiming absent behavior. `--muted` and `--text-muted` are undefined; define semantic aliases. No real learning count exists in summary; remove obsolete decorative dot rather than inventing a badge count.
+- Risks: navigation must preserve per-section draft, scroll, reading and task ownership; modal must restore focus; CSS splitting must retain cascade and responsive behavior; test completion must not depend on a now-hidden foreground global bar.
+- Out of scope: CSS Modules/Tailwind, dark mode, onboarding persistence, backend/protocol/schema changes, paid calls, credentials, production data, dependency upgrades, version bumps, commits, release.
+- Status: implemented and verified within isolated scope; evidence in verification.md. Human plan: product §3.22.
+
+
 ## Revision 25: tagged local project references — 2026-10-25
 
 - Workflow mode: execute; Plan revision: 25; Approval basis: user requests folder paths stored with project labels and automatic reuse, then selects “允许按需读取少量相关文件，避免整项目加载（推荐）”. Implementation follows the current authorized scope; previous release authorization does not extend to this revision.

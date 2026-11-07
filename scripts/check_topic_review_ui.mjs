@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证审核漏项通过实际桥接显示具体原因和请求编号。
 // 说明：使用既有隔离桌面和本机模型，不访问正式数据或接口。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 模型成功返回但漏审时，界面保留本地命中且不得出现可学习的残缺目录。
@@ -13,12 +14,10 @@ export async function checkTopicReviewUi(context) {
       ? { decisions: [] }
       : { points: [{ title: '审核完整性', theme: '软件设计', facet: '逐项判断' }] }
   try {
-    await ui.evaluate(
-      `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.endsWith('探索')).click()`
-    )
+    await navigateUi(ui, '探索')
     await waitFor(() => ui.evaluate(`!!document.querySelector('#question')`), 'exploration form')
     await ui.evaluate(`(() => {
-      const select = document.querySelector('[aria-label="AI 学习范围"]')
+      const select = document.querySelector('[aria-label="知识来源"]')
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype,'value').set.call(select,'knowledge')
       select.dispatchEvent(new Event('change',{bubbles:true}))
     })()`)

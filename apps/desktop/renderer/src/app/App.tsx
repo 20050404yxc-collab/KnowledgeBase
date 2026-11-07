@@ -7,6 +7,7 @@ import { api, errorText } from '../shared/api/client'
 import { useAppContext } from './AppContext'
 
 import { Sidebar } from './Sidebar'
+import { LibraryViews } from './LibraryViews'
 import { Topbar } from './Topbar'
 import { ExplorationPage } from '../features/exploration/ExplorationPage'
 import { KnowledgePage } from '../features/knowledge/KnowledgePage'
@@ -26,6 +27,8 @@ import { useCallback, useState } from 'react'
 import { SearchPage } from '../features/search/SearchPage'
 import { RecoverySettings } from '../features/settings/RecoverySettings'
 import { SelectionPanel } from '../features/selection'
+import { useModalFocus } from './use_modal_focus'
+import { DraftRecovery } from '../features/knowledge/DraftRecovery'
 
 // 组合会话上下文、导航、反馈与页面布局。
 export function App() {
@@ -45,6 +48,7 @@ function AppSession({ resetSession }: { resetSession: () => void }) {
 }
 // 根布局只组合导航、页面与对话框。
 function AppShell() {
+  useModalFocus()
   const { setError, section, editor, citation, busy, pathEntry, addFiles } = useAppContext()
   return (
     <div
@@ -81,6 +85,7 @@ function AppContent() {
   const { error, setError, message, setMessage, ready, boot, section } = useAppContext()
   return (
     <div className="content">
+      <DraftRecovery />
       {error && (
         <div className="alert error" role="alert">
           {error}
@@ -104,6 +109,7 @@ function AppContent() {
         </div>
       )}
       {section === '探索' && <ExplorationPage />}
+      <LibraryViews />
       {section === '知识库' && <LibraryPage />}
       {isBucket(section) && <KnowledgePage key={section} />}
       {section === '资料库' && <SourcesPage />}

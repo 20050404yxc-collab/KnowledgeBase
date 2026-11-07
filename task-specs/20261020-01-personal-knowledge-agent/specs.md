@@ -1,3 +1,47 @@
+## Stable 0.14.0 release requirements (revision 28)
+
+- REL28-01: Public source/package/UI/preload/worker versions SHALL agree on 0.14.0; persistence identities and schema SHALL remain stable.
+- REL28-02: Required engineering and isolated desktop checks SHALL pass; the actual frozen worker and packaged application SHALL run with isolated data before release.
+- REL28-03: The installer SHALL contain the tested application/worker, and its SHA-256 and manifest SHALL agree. Only intended source/docs/tests/licenses SHALL be committed.
+- REL28-04: Existing GitHub main and annotated v0.14.0 SHALL be pushed without force; a stable non-prerelease Release SHALL contain installer, checksum and manifest with matching remote sizes and digests.
+
+## Revision 27 — implemented workflow requirements
+
+### ADDED Requirement: R27-01 Local work protection
+The system SHALL restore acknowledged note drafts per page and question text/scope across restart; never restore temporary attachments or automatically invoke a model. It SHALL expose time/status, read/write errors, retry, explicit clear, version conflicts and an alternative copy for a changed/deleted formal target. Failed or oversized saves preserve input and prior disk content.
+Scenario: write, await protection, restart, edit and save; a newer formal version is not overwritten. Atomic replacement failure, corrupt files and stale writes do not claim success. Clear creates a tombstone preventing late resurrection.
+
+### MODIFIED Requirement: R27-02 Continuous reading and discovery
+The system SHALL show direct-answer and local-note entry points based on usable model state; provide compact wide split reading, narrow list/detail return, reading size, current-page heading navigation and safe code copy. Keyword search SHALL explicitly apply kind/category before pagination, preserve submitted filters, highlight safely and load the matched long-text page. Existing planet preference and page ownership remain.
+Scenario: edit a filter without applying it, page back to zero, and observe unchanged results; open a later-page match and read the matching paragraph. Narrow layout keeps directory state.
+
+### ADDED Requirement: R27-03 Explicit source and generation state
+Source-library import SHALL distinguish retained from temporary, isolate per-file failure/retry and release only its own temporary snapshots. Reading SHALL offer source-based question and excerpt-to-note. Stream preview SHALL decode bounded content text safely and state it is unvalidated/unsaved; cancellation and failed complete validation never capture preview fragments.
+
+### ADDED Requirement: R27-04 Portable results and non-destructive recovery
+Export SHALL include full selected text, supplements and citations regardless of renderer pagination. Backup SHALL include consistent database and retained files/settings/drafts/registry, exclude credentials/temp/logs/models, and verify version/path/hash/size/integrity/source completeness. Restore SHALL create and verify a new isolated directory; failure cleans only newly owned output. File work SHALL retain exclusive ownership through actual thread completion.
+
+### ADDED Requirement: R27-05 Evidence and integration
+Required project checks, isolated desktop paths, meaningful failure tests, current screenshots and reproducible synthetic/offline evaluation SHALL substantiate scoped completion. Historical evidence and existing edits SHALL be preserved; real users/providers/OCR/production and clean installers SHALL not be inferred from mocks or local fixtures.
+
+## Revision 26 — frontend usability
+
+### MODIFIED Requirement: R26-01 Library navigation and state
+The system SHALL expose seven primary destinations and four library views while retaining independent page drafts, filters, reading, scroll and running tasks.
+Scenario: switch from exploration to library and between all/frequent/learning/archive, then return; each page restores its own state and only the active library view is selected.
+
+### MODIFIED Requirement: R26-02 Composer and search clarity
+The system SHALL group attachments/source selection separately from secondary directory generation and primary AI answer, display bounded-answer guidance inside the form, and provide non-model full-text search. A collapsed query SHALL show at most 40 Unicode code points plus an ellipsis without changing the draft.
+Scenario: a long draft collapses; edit restores the entire input; direct search opens full results even with file-only AI scope and no model configured.
+
+### ADDED Requirement: R26-03 Discoverable configuration and organization
+The system SHALL show a settings API quick-start banner until an active provider exists, provide keyboard-operable selected settings tabs, and open organization settings from a page-heading button in a modal dialog. Closing that dialog SHALL make no model call or storage changes.
+Scenario: offline startup permits notes/search, configuration instructions are visible, Escape returns focus from organization settings and leaves model attempts unchanged.
+
+### MODIFIED Requirement: R26-04 Accessible presentation and task feedback
+The system SHALL identify card origin accessibly, use defined semantic text/brand tokens, keep functional labels at least 11px, and show global task progress only away from its owning page. Foreground progress SHALL retain cancellation.
+Scenario: a delayed model task continues through library navigation, foreground progress and background return controls remain available, and completion clears both without stale results.
+
 ## ADDED R25 — Local project references
 
 ### R25-01 Persistent labeled references

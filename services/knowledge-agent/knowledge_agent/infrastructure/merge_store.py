@@ -164,13 +164,16 @@ class MergeStorage:
     # 合并组所有来源只返回最相关命中，普通未合并的补充仍沿用原有检索语义。
     def canonical_matches(self, matches: list[tuple]) -> list[tuple]:
         result, seen = [], set()
+        # 映射由数据库触发器保证单跳；一次读取避免每个候选重复查询整组合并关系。
+        mappings = dict(self.db.execute("SELECT source_id,target_id FROM knowledge_merges"))
+        merged_targets = set(mappings.values())
         for score, hit in matches:
             source_id = hit["knowledge_id"]
             if not source_id:
                 result.append((score, hit))
                 continue
-            target = self.canonical_id(source_id)
-            merged = len(self.group_ids(target)) > 1
+            target = mappings.get(source_id, source_id)
+            merged = target in merged_targets
             if merged and target in seen:
                 continue
             seen.add(target)

@@ -8,6 +8,7 @@ import type { Citation } from '../../../../../../contracts/desktop'
 import { markdownForDisplay } from './markdown_display'
 import type { SelectionSource } from '../../../../../../contracts/selection'
 import { SelectableText } from '../selection'
+import { CodeBlock } from './CodeBlock'
 
 interface MarkdownNode {
   type: string
@@ -74,6 +75,7 @@ export function MarkdownContent({
           skipHtml
           urlTransform={defaultUrlTransform}
           components={{
+            pre: ({ children }) => <CodeBlock>{children}</CodeBlock>,
             img: ({ alt }) => <span className="media-placeholder">[图片：{alt || '未加载'}]</span>,
             a: ({ href, children }) => {
               if (preview || !href) {

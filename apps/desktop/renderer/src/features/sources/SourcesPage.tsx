@@ -5,12 +5,14 @@
 
 import { SourcesHeading } from './SourcesHeading'
 import { SourceList } from './SourceList'
+import { SourceImport } from './SourceImport'
 
 // 组合资料库标题和已保留资料列表。
 export function SourcesPage() {
   return (
     <>
       <SourcesHeading />
+      <SourceImport />
       <SourceList />
     </>
   )

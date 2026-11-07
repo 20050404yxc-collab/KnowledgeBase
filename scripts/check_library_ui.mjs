@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证全库重构确认、跨页阶段推进和完整分类树。
 // 说明：仅隔离数据和本机模拟接口，不发送真实知识。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { startOrganization } from './check_ux_review_ui.mjs'
 import { readDiagnosticLog } from './diagnostic_fixtures.mjs'
@@ -57,9 +58,7 @@ async function checkSummaryFailure({ ui, click, waitFor, fixture, logDir, report
 
 // 导航按可见名称定位，新增页面不改变测试目标。
 async function go(ui, page) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith(${JSON.stringify(page)})).click()`
-  )
+  await navigateUi(ui, page)
 }
 
 // 仅合成要点、分类及整理建议，不放宽生产模型校验。
@@ -114,7 +113,7 @@ async function runRestructureFlow(context, manual, original, count) {
     }
   }
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.session-task')`),
+    () => ui.evaluate(`!document.querySelector('.session-task, .working')`),
     'all overview and directory stages complete hidden',
     30000
   )
@@ -142,7 +141,7 @@ async function runRestructureFlow(context, manual, original, count) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!!document.querySelector('[aria-label="重构内容差异"]') && !document.querySelector('.session-task')`
+        `!!document.querySelector('[aria-label="重构内容差异"]') && !document.querySelector('.session-task, .working')`
       ),
     'content changes ready',
     30000
@@ -186,7 +185,7 @@ async function checkFeedbackMemory({ ui, fill, click, waitFor, fixture, screensh
     await waitFor(
       () =>
         ui.evaluate(
-          `!!document.querySelector('[aria-label="重构目录预览"] .outline-change') && !document.querySelector('.session-task')`
+          `!!document.querySelector('[aria-label="重构目录预览"] .outline-change') && !document.querySelector('.session-task, .working')`
         ),
       'feedback revision ready',
       30000
@@ -368,13 +367,13 @@ async function decideExistingGroups({ ui, click, waitFor }) {
 // 目录核对后可直接保存分类；提交阶段不再调用正文模型。
 async function checkDirectoryOnly({ ui, click, waitFor, fixture, screenshot, report }) {
   fixture.state.reply = reply
-  await ui.evaluate(`document.querySelector('.organization-setup').open=true`)
+  await click('整理知识库')
   await ui.evaluate(`document.querySelector('input[name=organization-mode]').click()`)
   await click('生成整理方案')
   await waitFor(
     () =>
       ui.evaluate(
-        `!!document.querySelector('.outline-change') && !document.querySelector('.session-task')`
+        `!!document.querySelector('.outline-change') && !document.querySelector('.session-task, .working')`
       ),
     'category-only outline',
     30000

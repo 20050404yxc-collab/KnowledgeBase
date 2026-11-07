@@ -6,8 +6,9 @@ import { useAppContext } from './AppContext'
 
 // 全局任务条不携带其他页面的正文和错误。
 export function TaskStatus() {
-  const { busy, taskOwner, progress, setSection, cancelTask } = useAppContext()
-  if (!busy) {
+  const { busy, taskOwner, section, progress, setSection, cancelTask } = useAppContext()
+  // 前台由页内状态展示；离开任务页后才出现跨页返回入口。
+  if (!busy || taskOwner === section) {
     return null
   }
   return (

@@ -2,13 +2,12 @@
 // 层：维护验证
 // 作用：验证首次配置、紧凑完整目录和明确的保存删除反馈。
 // 说明：复用隔离桌面及合成知识，不接触正式数据或外部服务。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 页面入口使用实际导航，保持根会话状态与用户操作一致。
 async function go(ui, section) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith(${JSON.stringify(section)})).click()`
-  )
+  await navigateUi(ui, section)
 }
 
 // 模板只作用于空白新增；任何用户输入及现有配置均不可被模板替换。

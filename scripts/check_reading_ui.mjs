@@ -2,13 +2,12 @@
 // 层：维护验证
 // 作用：验证列表阅读位置、底部提问可达及按页隔离的提问结果。
 // 说明：仅使用隔离知识和本机模拟服务，不读取正式数据或调用付费接口。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 正常导航保留原页面状态，不使用组件内部 setter 绕过实际交互。
 async function go(ui, section) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith(${JSON.stringify(section)})).click()`
-  )
+  await navigateUi(ui, section)
 }
 
 // 中段输入真正可点击，文末不被吸附栏遮挡；同时覆盖宽窄布局与设置展开。
@@ -153,7 +152,7 @@ async function checkLibraryOfflineReading(context, title) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!document.querySelector('.session-task') && document.querySelector('.selection-candidates')?.innerText.includes('阅读停靠验收')`
+        `!document.querySelector('.session-task, .working') && document.querySelector('.selection-candidates')?.innerText.includes('阅读停靠验收')`
       ),
     'library-local question results without provider'
   )
@@ -188,7 +187,7 @@ export async function checkReadingQuestions(context) {
   await waitFor(
     () =>
       ui.evaluate(
-        `!document.querySelector('.session-task') && !document.querySelector('.knowledge-question .primary').disabled`
+        `!document.querySelector('.session-task, .working') && !document.querySelector('.knowledge-question .primary').disabled`
       ),
     'failed planning retains retry'
   )
@@ -218,7 +217,7 @@ export async function checkReadingQuestions(context) {
     }))
   })
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.session-task')`),
+    () => ui.evaluate(`!document.querySelector('.session-task, .working')`),
     'hidden library completion'
   )
   assert.equal(await ui.evaluate(`document.querySelector('#question').value`), exploration)

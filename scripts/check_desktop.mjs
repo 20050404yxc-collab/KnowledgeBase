@@ -17,13 +17,21 @@ import { checkUxNotes, checkUxSources, checkViewPreference } from './check_ux_re
 import { checkReadingUi } from './check_reading_ui.mjs'
 import { checkSelectionUi } from './check_selection_ui.mjs'
 import { checkMemoryUi } from './check_memory_ui.mjs'
+import { checkFrontendUi } from './check_frontend_ui.mjs'
+import {
+  checkOptimizationSearch,
+  checkOptimizationFiles,
+  prepareOptimizationRestart,
+  checkOptimizationRestart
+} from './check_optimization_ui.mjs'
 
 const root = resolve(import.meta.dirname, '..')
-const artifactDir = join(root, 'artifacts', '0.13.0')
+const artifactDir = join(root, 'artifacts', '0.14.0')
 await mkdir(artifactDir, { recursive: true })
 const dataDir = await mkdtemp(join(tmpdir(), 'knowledgebase-ui-'))
 // 测试独占 Electron profile，避免单实例锁影响用户已运行的应用。
 const isolatedApp = join(dataDir, 'electron-launcher')
+const dialogQueue = join(dataDir, 'test-dialog-queue.json')
 await mkdir(isolatedApp)
 await writeFile(
   join(isolatedApp, 'package.json'),
@@ -33,6 +41,12 @@ await writeFile(
   join(isolatedApp, 'main.cjs'),
   [
     "const {app} = require('electron')",
+    // 仅隔离启动器替换原生文件选择，产品代码与沙箱能力保持不变。
+    `require('electron').dialog.showOpenDialog = async () => {
+      const fs=require('node:fs'), path=${JSON.stringify(dialogQueue)};
+      const queue=fs.existsSync(path)?JSON.parse(fs.readFileSync(path,'utf8')):[];
+      const filePaths=queue.shift()||[]; fs.writeFileSync(path,JSON.stringify(queue));
+      return {canceled:!filePaths.length,filePaths}; }`,
     `app.setPath('userData', ${JSON.stringify(join(dataDir, 'electron-profile'))})`,
     `require(${JSON.stringify(join(root, 'out', 'main', 'index.js'))})`
   ].join('\n')
@@ -43,7 +57,7 @@ await writeFile(
   '# 数据库事务\n\n事务的一致性用于确保数据规则成立。\n\n<script>window.__documentExecuted=true</script>\n',
   'utf8'
 )
-const report = { version: '0.13.0', checks: [], screenshots: [] }
+const report = { version: '0.14.0', checks: [], screenshots: [] }
 let child, socket, ui
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -190,17 +204,18 @@ try {
     report.screenshots.push(name)
   }
   await checkFirstUseUi({ ui, fill, click, waitFor, screenshot, report })
+  await checkFrontendUi({ ui, click, waitFor, screenshot, report })
   await screenshot('desktop-empty.png')
   assert.equal(await ui.evaluate(`typeof require`), 'undefined')
   assert.deepEqual(
     await ui.evaluate(`(async()=>[window.knowledgeBase.version,
       (await window.knowledgeBase.request('bootstrap')).version,
-      document.querySelector('.sidebar-bottom small').innerText.includes('0.13.0') &&
+      document.querySelector('.sidebar-bottom small').innerText.includes('0.14.0') &&
       document.querySelector('.sidebar-bottom small').innerText.includes('正式版')])()`),
-    ['0.13.0', '0.13.0', true]
+    ['0.14.0', '0.14.0', true]
   )
   report.checks.push(
-    'sandboxed renderer: Node require unavailable; 0.13.0 UI/preload/worker versions agree'
+    'sandboxed renderer: Node require unavailable; 0.14.0 UI/preload/worker versions agree'
   )
   await checkEmptyEditorUi({ ui, fill, click, waitFor, screenshot, report })
   await click('＋ 新建知识')
@@ -263,21 +278,21 @@ try {
   )
   await fill('#question', '数据库事务')
   await ui.evaluate(`(() => {
-    const input = document.querySelector('[aria-label="AI 学习范围"]')
+    const input = document.querySelector('[aria-label="知识来源"]')
     Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value').set.call(input, 'files')
     input.dispatchEvent(new Event('change', {bubbles: true}))
   })()`)
   // 即使学习范围选了文件，独立全库搜索仍命中已有笔记且不调用模型。
-  await click('搜索此问题')
+  await click('不消耗 API，直接全文检索')
   await waitFor(
     () =>
-      ui.evaluate(`!document.querySelector('.session-task') &&
+      ui.evaluate(`!document.querySelector('.session-task, .working') &&
       !!document.querySelector('.global-search-hit')`),
     'all-library search independent of learning scope'
   )
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   assert.equal(
-    await ui.evaluate(`document.querySelector('[aria-label="AI 学习范围"]').value`),
+    await ui.evaluate(`document.querySelector('[aria-label="知识来源"]').value`),
     'files'
   )
   assert.equal(
@@ -347,6 +362,27 @@ try {
   )
   await screenshot('desktop-knowledge.png')
   await checkViewPreference({ ui, click, waitFor, report })
+  await checkOptimizationSearch({ ui, click, fill, waitFor, screenshot, report })
+  const portableOutput = await mkdtemp(join(tmpdir(), 'knowledgebase-portable-ui-'))
+  try {
+    await checkOptimizationFiles({
+      ui,
+      click,
+      waitFor,
+      screenshot,
+      report,
+      fixture,
+      missing: join(dataDir, 'missing-fixture.txt'),
+      repairMissing: () =>
+        writeFile(join(dataDir, 'missing-fixture.txt'), '合成资料修复后重试导入。'),
+      output: portableOutput,
+      choose: (...paths) => writeFile(dialogQueue, JSON.stringify(paths))
+    })
+  } finally {
+    // 仅删除本次 mkdtemp 生成的隔离导出目录，绝不处理用户目录。
+    await rm(portableOutput, { recursive: true, force: true })
+  }
+  await prepareOptimizationRestart({ ui, click, fill, waitFor, screenshot })
   await closeApp(ui)
   // 正常关闭已 flush，三端同一请求必须可关联，合成私密内容不得进入文件。
   const desktopLog = await readDiagnosticLog(join(dataDir, 'logs'), 'desktop')
@@ -376,6 +412,7 @@ try {
     firstLogNames.map((name) => readFile(join(dataDir, 'logs', name), 'utf8'))
   )
   ui = await launch()
+  await checkOptimizationRestart({ ui, click, waitFor, screenshot, report })
   await waitFor(
     () => ui.evaluate(`document.querySelector('.knowledge-card') !== null`),
     'initial page list loaded after restart'

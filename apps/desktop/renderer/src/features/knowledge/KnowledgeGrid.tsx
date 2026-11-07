@@ -17,7 +17,27 @@ export function KnowledgeGrid() {
           onClick={() => void openItem(item.id)}
         >
           <div>
-            <span className="knowledge-icon">{item.generated ? '✧' : '▤'}</span>
+            <span
+              className="knowledge-icon"
+              role="img"
+              aria-label={item.generated ? 'AI 生成' : '个人笔记'}
+            >
+              {item.generated ? (
+                'AI'
+              ) : (
+                <svg
+                  viewBox="0 0 24 24"
+                  width="20"
+                  height="20"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.6"
+                  aria-hidden="true"
+                >
+                  <path d="M6 3h12v18H6zM9 8h6M9 12h6M9 16h4" />
+                </svg>
+              )}
+            </span>
             <span className={`bucket bucket-${item.bucket}`}>{item.bucket}</span>
           </div>
           <h3>{item.title}</h3>

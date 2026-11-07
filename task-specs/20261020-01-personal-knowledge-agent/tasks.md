@@ -1,3 +1,30 @@
+## Stable 0.14.0 release follow-up — 2026-11-07
+
+- [x] Confirm current source increment, authorization, stable version and unchanged persistence identities.
+- [x] Synchronize active versions and release documentation.
+- [x] Run npm run check and npm run test:ui.
+- [x] Build installer and verify frozen worker, packaged application and installer contents using isolated resources.
+- [ ] Review staged inventory; commit and annotate v0.14.0; push main/tag without force.
+- [ ] Upload draft assets; verify remote digests/sizes; publish latest stable and reconcile evidence.
+
+## Revision 27 — execution
+
+- [x] Reuse roadmap and task; trace source definitions/callers/state/ownership; preserve R26 edits and selected standard.
+- [x] Implement first use, responsive reading/tools, search filtering/highlighting/long-text location, explicit source import/read actions.
+- [x] Implement acknowledged atomic draft recovery and failures, recent reading, safe bounded generation preview and modal keyboard behavior.
+- [x] Implement full Markdown export, consistent bounded backup manifest, verification and non-overwriting isolated restore with thread ownership.
+- [x] Add risk-based backend/host and actual desktop import/search/backup/restart scenarios; fix failures found during execution.
+- [x] Measure three synthetic library sizes; re-evaluate existing local semantic resource without downloading or paid calls.
+- [x] Complete required engineering/desktop checks, visual review, document reconciliation and record limitations.
+
+## Revision 26 — execution
+
+- [x] Read supplied optimization plan and applicable standards; trace navigation, search, page ownership, task/cancel and organization flow.
+- [x] Implement all scoped UI changes and short-term CSS/token split.
+- [x] Adapt meaningful desktop navigation/task regressions and verify new keyboard/modal behavior.
+- [x] Run full required checks and isolated desktop regression; inspect screenshots.
+- [x] Reconcile product/usage docs and record actual evidence and limits.
+
 ## R25 Execution
 
 - [x] R25-01: implement reference metadata, validated CRUD and folder picker; isolated persistence/failure tests.

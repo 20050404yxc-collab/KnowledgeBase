@@ -3,6 +3,7 @@
 // 作用：协调附件状态、提问、请求事件和资料保留。
 // 说明：通过受限 API 操作，不访问底层存储或供应商。
 import { useState } from 'react'
+import { useQuestionDraft } from './use_question_draft'
 import type { useSessionTask } from '../../app/use_session_task'
 import type { GenerationOptions, Scope } from '../../../../../../contracts/desktop'
 import { api, errorText } from '../../shared/api/client'
@@ -16,16 +17,12 @@ import type { Reading } from '../knowledge'
 // 协调附件状态、提问、请求事件和资料保留。
 // 本 hook 只持有状态，动作通过显式能力对象访问。
 function useExplorationState() {
-  const [query, setQuery] = useState('')
-  const [scope, setScope] = useState<Scope>('mixed')
+  const questionDraft = useQuestionDraft()
   const [attachments, setAttachments] = useState<Attached[]>([])
   const [pathEntry, setPathEntry] = useState<string | null>(null)
   const [sourceArrival, setSourceArrival] = useState(0)
   return {
-    query,
-    setQuery,
-    scope,
-    setScope,
+    ...questionDraft,
     attachments,
     setAttachments,
     pathEntry,

@@ -16,6 +16,7 @@ import { useSavedTree } from '../features/knowledge/use_saved_tree'
 import { useRestructure } from '../features/knowledge/use_restructure'
 import { useGlobalSearch } from '../features/search/use_global_search'
 import { useSelectionQuestions } from '../features/selection'
+import { useRecentReading } from './use_recent_reading'
 import type { GenerationOptions } from '../../../../../contracts/desktop'
 
 // 上层组合功能 hook，只连接已声明的能力与状态。
@@ -28,6 +29,7 @@ export function useAppModel(resetSession: () => void) {
   const tree = useSavedTree(navigation.section, navigation.filter, library.dataRevision)
   const reading = useReading(navigation.section, globalSearch.globalSearchRevision)
   const knowledge = useKnowledge({ ...feedback, ...library, ...reading })
+  const recent = useRecentReading(reading.selected, navigation.section)
   const selection = useModelSelection(library.providers)
   const generationOptions = selection.optionsFor(library.activeProvider)
   const restructure = useRestructure({
@@ -64,6 +66,7 @@ export function useAppModel(resetSession: () => void) {
   const answerQuestion = (text = exploration.query) =>
     startAnswer(exploration, feedback, selectionChat, generationOptions, text)
   return {
+    ...recent,
     selectionChat,
     answerQuestion,
     resetSession,

@@ -2,6 +2,7 @@
 // 层：桌面验证
 // 作用：验证项目目录引用登记、按需复用及资料库管理入口。
 // 说明：只读取测试临时目录，充分性响应来自本机模拟服务。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { mkdir, writeFile, readFile } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -49,7 +50,7 @@ export async function checkProjectReferenceUi(context) {
     citation_ids: []
   })
   await waitFor(
-    () => ui.evaluate(`!document.querySelector('.session-task')`),
+    () => ui.evaluate(`!document.querySelector('.session-task, .working')`),
     'insufficient registered source is gated'
   )
   await ui.evaluate(
@@ -65,9 +66,7 @@ export async function checkProjectReferenceUi(context) {
 
 // 资料库能更新标签和移除登记，原件路径仅作为本地元数据展示。
 async function verifyLibraryReference({ ui, fill, click, waitFor }, reference) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('资料库')).click()`
-  )
+  await navigateUi(ui, '资料库')
   await waitFor(
     () => ui.evaluate(`document.querySelector('.project-reference-row') !== null`),
     'reference visible in material library'

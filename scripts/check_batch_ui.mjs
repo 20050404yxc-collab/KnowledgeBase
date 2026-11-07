@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证多选取消、项目一次提交和三个分区的简洁提问。
 // 说明：使用隔离桌面与本机合成模型，不访问真实接口。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 建立三个同类点，审核仍经过真实协议和独立模型响应。
@@ -57,6 +58,7 @@ export async function checkBatchUi(context) {
   )
   await click('生成所选知识点')
   await waitFor(async () => fixture.state.posts.length === count + 1, 'batch first generation')
+  await checkForegroundTask(ui)
   await ui.evaluate(`document.querySelectorAll('.directory-point')[2].click()`)
   await waitFor(
     () =>
@@ -65,9 +67,7 @@ export async function checkBatchUi(context) {
       ),
     'reading selection changes during generation'
   )
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('知识库')).click()`
-  )
+  await navigateUi(ui, '知识库')
   await waitFor(
     () =>
       ui.evaluate(
@@ -230,9 +230,7 @@ async function checkBucketQuestions(context) {
   const { ui, fill, click, waitFor, fixture, finish, screenshot, report } = context
   const exploration = await ui.evaluate(`document.querySelector('#question').value`)
   for (let index = 1; index <= 3; index++) {
-    await ui.evaluate(
-      `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith(${JSON.stringify(['常用', '在学', '归档'][index - 1])})).click()`
-    )
+    await navigateUi(ui, ['常用', '在学', '归档'][index - 1])
     await waitFor(
       () => ui.evaluate(`!!document.querySelector('[aria-label="知识提问内容"]')`),
       'compact bucket question'
@@ -289,5 +287,15 @@ async function checkBucketQuestions(context) {
   assert.equal(await ui.evaluate(`document.querySelectorAll('.directory-point').length`), 3)
   report.checks.push(
     'all three compact bucket questions use exploration planning, with independent directories and preserved exploration state'
+  )
+}
+
+// 前台任务只显示页内进度并保留取消，离开后的全局条另在主流程断言。
+async function checkForegroundTask(ui) {
+  assert.equal(
+    await ui.evaluate(
+      `!!document.querySelector('.working button') && !document.querySelector('.session-task')`
+    ),
+    true
   )
 }

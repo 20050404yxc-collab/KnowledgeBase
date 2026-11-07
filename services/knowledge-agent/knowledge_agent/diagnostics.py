@@ -38,6 +38,13 @@ WORKER_LOG = re.compile(r"(?:\d{4}-\d{2}-\d{2}-[1-9]\d*-worker\.log|worker\.log(
 # 仅允许项目定义的固定提示进入异常原因，动态异常文字一律不保存。
 SAFE_REASONS = frozenset(
     {
+        "草稿版本冲突，请先恢复或清除已有草稿",
+        "草稿损坏，原文件已保留；请先备份后处理",
+        "草稿超出本地恢复容量，请另存正文",
+        "备份文件校验失败，未恢复",
+        "备份包含越界路径",
+        "备份数据库完整性检查失败",
+        "备份数据库版本不兼容，未恢复",
         "API 配置不存在",
         "DOCX 解压内容过大，请拆分文件",
         "Windows 凭据中未找到 API Key，请重新保存该配置",
@@ -225,6 +232,12 @@ SAFE_REASONS = frozenset(
 )
 OPERATIONS = frozenset(
     {
+        "workspace.read",
+        "workspace.write",
+        "data.export",
+        "data.backup",
+        "data.verify",
+        "data.restore",
         "bootstrap",
         "question",
         "question.plan",

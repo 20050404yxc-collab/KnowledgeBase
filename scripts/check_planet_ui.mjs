@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：采样真实星球移动并遍历有界展示页，验证完整目录可达。
 // 说明：使用隔离桌面数据，运动证据与宽窄截图写入现有报告。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { spawn } from 'node:child_process'
 import { dirname, join, resolve } from 'node:path'
@@ -200,15 +201,13 @@ export async function verifyPlanetPages(context, expected) {
   }
   assert.equal(found.size, expected)
   const snapshot = await ui.evaluate(`document.querySelector('.planet-pagination').innerText`)
-  await ui.evaluate(
-    `Array.from(document.querySelectorAll('.nav-item')).find(n=>n.textContent.trim().endsWith('归档')).click()`
-  )
-  await ui.evaluate(
-    `Array.from(document.querySelectorAll('.nav-item')).find(n=>n.textContent.trim().endsWith('常用')).click()`
-  )
-  assert.equal(
-    await ui.evaluate(`document.querySelector('.planet-pagination').innerText`),
-    snapshot
+  await navigateUi(ui, '归档')
+  await navigateUi(ui, '常用')
+  // 页面重挂载后 ResizeObserver 才测得实际宽度；等待测量，不把默认容量当成丢失分页。
+  await waitFor(
+    async () =>
+      (await ui.evaluate(`document.querySelector('.planet-pagination').innerText`)) === snapshot,
+    'restored planet page after width measurement'
   )
   await enterPlanet(context, true)
   await waitFor(

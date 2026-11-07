@@ -17,9 +17,14 @@ from .topic_schema import populate_index
 
 # 摘录围绕最早命中的词，而非只截取正文开头。
 def excerpt(text: str, query: str) -> str:
-    positions = [text.casefold().find(term) for term in tokens(query)]
-    start = max(0, min((p for p in positions if p >= 0), default=0) - 60)
+    start = max(0, match_position(text, query) - 60)
     return ("…" if start else "") + text[start : start + 360]
+
+
+# 命中位置采用正文字符偏移，与完整正文分页接口保持一致。
+def match_position(text: str, query: str) -> int:
+    positions = [text.lower().find(term.lower()) for term in tokens(query)]
+    return min((p for p in positions if p >= 0), default=0)
 
 
 class TopicStorage:
@@ -131,6 +136,14 @@ class TopicStorage:
             raise ValueError("请输入有效关键词")
         query = value.strip()
         page = params.get("page", 0)
+        kind = params.get("kind", "all")
+        category = params.get("category", "")
+        if (
+            kind not in ("all", "knowledge", "supplement", "source")
+            or not isinstance(category, str)
+            or len(category) > 160
+        ):
+            raise ValueError("检索筛选无效")
         if not query or len(query) > 12000 or type(page) is not int or not 0 <= page <= 100000:
             raise ValueError("请输入有效关键词和分页位置")
         terms = sorted(tokens(query))
@@ -148,6 +161,12 @@ class TopicStorage:
             # 每批只构造匹配摘要；完整排序稳定使用索引 ID 作为同分键。
             for row in batch:
                 path = classification(row["theme"])
+                if kind != "all" and row["kind"] != kind:
+                    continue
+                if category and not any(
+                    category.casefold() in part.casefold() for part in path.get("category_path", [])
+                ):
+                    continue
                 score = relevance(query, path["theme"] + " " + row["title"], row["body"])
                 if score <= 0:
                     continue
@@ -161,6 +180,7 @@ class TopicStorage:
                 hit.update(path)
                 hit["knowledge_id"] = hit["knowledge_id"] or ""
                 hit["excerpt"] = excerpt(row["body"], query)
+                hit["text_page"] = match_position(row["body"], query) // 12000
                 if row["kind"] == "source":
                     hit["citation"] = {
                         "id": row["id"].split(":", 2)[2],

@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：验证同名草稿、手工分类、独立搜索和资料复用入口。
 // 说明：复用隔离桌面和合成数据，所有动作不调用外部模型。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 
 // 通过真实表单验证同名失败后仍保留内容，改分类重试后移动并同步搜索。
@@ -27,6 +28,14 @@ export async function checkUxNotes(context) {
   await click('＋ 添加一级分类')
   await fill('[aria-label="第 1 级分类"]', '体验分类')
   await click('保存知识')
+  await waitFor(
+    () =>
+      ui.evaluate(
+        `!document.querySelector('.editor') && !!document.querySelector('.knowledge-management')`
+      ),
+    'saved note management available'
+  )
+  await ui.evaluate(`document.querySelector('.knowledge-management summary').click()`)
   await waitFor(
     () =>
       ui.evaluate(
@@ -94,7 +103,7 @@ export async function checkUxSources({ ui, click, waitFor, screenshot, report })
     'saved source attached'
   )
   assert.equal(
-    await ui.evaluate(`document.querySelector('[aria-label="AI 学习范围"]').value`),
+    await ui.evaluate(`document.querySelector('[aria-label="知识来源"]').value`),
     'files'
   )
   assert.equal(await ui.evaluate(`document.querySelector('#question').value`), '')
@@ -130,13 +139,16 @@ async function checkNarrowUx({ ui, screenshot }, name) {
   }
 }
 
-// 显式展开整理入口并选择内容模式，保护既有全文整理回归。
+// 从页首显式打开整理模态框并选择内容模式，保护既有全文整理回归。
 export async function startOrganization({ ui, click, waitFor }) {
   await waitFor(
-    () => ui.evaluate(`!!document.querySelector('.organization-setup')`),
+    () =>
+      ui.evaluate(
+        `[...document.querySelectorAll('.heading-actions button')].some(b=>b.textContent.trim()==='整理知识库' && !b.disabled)`
+      ),
     'organization setup ready after closing previous draft'
   )
-  await ui.evaluate(`document.querySelector('.organization-setup').open=true`)
+  await click('整理知识库')
   await ui.evaluate(
     `[...document.querySelectorAll('input[name=organization-mode]')].at(-1).click()`
   )
@@ -145,9 +157,7 @@ export async function startOrganization({ ui, click, waitFor }) {
 
 // 首次目录缺省紧凑，各页选择独立保存；供同 profile 的真实重启验证。
 export async function checkViewPreference({ ui, click, waitFor, report }, restarted = false) {
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('知识库')).click()`
-  )
+  await navigateUi(ui, '知识库')
   await waitFor(
     () =>
       ui.evaluate(
@@ -163,9 +173,7 @@ export async function checkViewPreference({ ui, click, waitFor, report }, restar
   )
   if (!restarted) {
     await click('星球视图')
-    await ui.evaluate(
-      `[...document.querySelectorAll('.nav-item')].find(b=>b.innerText.trim().endsWith('归档')).click()`
-    )
+    await navigateUi(ui, '归档')
     assert.equal(
       await ui.evaluate(
         `[...document.querySelectorAll('button[aria-pressed]')].find(b=>b.textContent.trim()==='紧凑列表').getAttribute('aria-pressed')`

@@ -1,6 +1,32 @@
+/* 文件：theme.css
+ * 层：React 主题样式
+ * 作用：集中定义表面、文字、品牌与状态颜色。
+ * 说明：装饰星球的纹理色独立；文字 token 优先保证浅色表面可读。
+ */
 :root {
   --bg: #f8faf5;
+  --bg-elevated: #fff;
+  --bg-subtle: #f0f3f0;
   --ink: #36422f;
+  --ink-secondary: #526348;
+  --ink-muted: #66725f;
+  --ink-placeholder: #6f7d69;
+  --muted: var(--ink-muted);
+  --text-muted: var(--ink-muted);
   --green: #486b43;
+  --green-hover: #345d43;
+  --green-subtle: #edf5ec;
+  --green-border: #d5e6d1;
   --border: #e1e7dc;
+  --border-strong: #b6c9bd;
+  --error-bg: #fcf0eb;
+  --error-border: #efd7cb;
+  --error-text: #934e38;
+  --success-bg: #edf5ec;
+  --success-border: #d5e6d1;
+  --success-text: #486b43;
+  --warning-bg: #faf0da;
+  --warning-text: #765b20;
+  --surface: var(--bg-elevated);
+  --accent: var(--green);
 }

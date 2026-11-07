@@ -5,7 +5,6 @@
 
 import { api } from '../../shared/api/client'
 import { useAppContext } from '../../app/AppContext'
-import { useState } from 'react'
 import { SourceReader } from './SourceReader'
 import { ProjectReferences } from '../projects'
 
@@ -19,9 +18,12 @@ export function SourceList() {
     setSelected,
     setAttachments,
     busy,
-    reuseSource
+    reuseSource,
+    sourceReading,
+    setSourceReading
   } = useAppContext()
-  const [reading, setReading] = useState<string | null>(null)
+  const reading = sourceReading?.id ?? null
+  const setReading = (id: string | null) => setSourceReading(id ? { id, page: 0 } : null)
   return (
     <div className="source-list">
       <ProjectReferences />
@@ -63,7 +65,7 @@ export function SourceList() {
                     )
                     setSelected(null)
                     setAnswer(null)
-                    setReading((current) => (current === source.id ? null : current))
+                    setSourceReading((current) => (current?.id === source.id ? null : current))
                   })
                 }
               }}
@@ -76,7 +78,7 @@ export function SourceList() {
         <div className="empty-state">
           <div className="empty-symbol">▱</div>
           <h3>还没有长期保留的资料</h3>
-          <p>在探索页加入附件，解析后点击“保留”。临时文件不会自动进入资料库。</p>
+          <p>使用上方“选择文件导入”添加资料；临时附件不会自动进入资料库。</p>
         </div>
       )}
       {reading && <SourceReader key={reading} id={reading} close={() => setReading(null)} />}

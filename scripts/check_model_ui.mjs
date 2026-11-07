@@ -2,6 +2,7 @@
 // 层：维护验证
 // 作用：通过隔离桌面和本机模拟服务验证接口与模型交互。
 // 说明：合成凭据在 finally 删除，不接触正式接口和用户数据。
+import { navigateUi } from './ui_navigation.mjs'
 import assert from 'node:assert/strict'
 import { createServer } from 'node:http'
 import { checkPageUi } from './check_page_ui.mjs'
@@ -63,9 +64,7 @@ async function providers(ui) {
 // 获取、去重和手动目录只修改草稿；地址变化取消旧结果，默认可留空。
 async function createDraft(context) {
   const { ui, fill, click, waitFor, fixture } = context
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
-  )
+  await navigateUi(ui, '设置')
   await fill('.provider-form input[placeholder="例如：我的 GPT 接口"]', 'UI 模型测试')
   await fill('.provider-form input[type=url]', fixture.url.replace('/v1', '/slow/v1'))
   await fill('.provider-form input[type=password]', 'synthetic-ui-model-key')
@@ -145,9 +144,7 @@ async function generate(context) {
     'missing model error'
   )
   assert.equal(fixture.state.posts.length, 0)
-  await ui.evaluate(
-    `[...document.querySelectorAll('.nav-item')].find(b => b.textContent.trim().endsWith('设置')).click()`
-  )
+  await navigateUi(ui, '设置')
   await editDraft(context)
   await ui.evaluate(`document.querySelectorAll('.nav-item')[0].click()`)
   await select(ui, '.composer-caption [aria-label="生成模型"]', 'fixture-b')
@@ -183,13 +180,24 @@ async function generate(context) {
   )
   assert.equal(await ui.evaluate(`document.querySelector('.answer-panel') === null`), true)
   assert.equal(await ui.evaluate(`document.querySelector('#question-form').hidden`), true)
-  await click('修改问题与附件')
+  await ui.evaluate(`document.querySelector('.composer-summary button').click()`)
   assert.equal(
     await ui.evaluate(`document.querySelector('#question').value`),
     '数据库事务：模型强度界面测试新概念'
   )
+  // 摘要只截断显示，不裁掉完整 Unicode 草稿；编辑后可原样恢复原问题。
+  const longQuery = '知识问题🧠'.repeat(30)
+  await fill('#question', longQuery)
   await click('收起输入区')
-  await click('查看结果')
+  assert.equal(
+    await ui.evaluate(`document.querySelector('.composer-summary > span').textContent.trim()`),
+    '本次问题：' + Array.from(longQuery).slice(0, 40).join('') + '… · 0 个附件'
+  )
+  await ui.evaluate(`document.querySelector('.composer-summary button').click()`)
+  assert.equal(await ui.evaluate(`document.querySelector('#question').value`), longQuery)
+  await fill('#question', '数据库事务：模型强度界面测试新概念')
+  await click('收起输入区')
+  await click('跳到结果')
   assert.equal(await ui.evaluate(`document.activeElement.id`), 'learning-results')
   await screenshot('desktop-directory.png')
   await ui.evaluate(`document.querySelector('.directory-point').click()`)
@@ -468,7 +476,7 @@ async function maintainSupplement(context) {
     0
   )
   await fill('#question', '模型选择验证')
-  await click('搜索此问题')
+  await click('不消耗 API，直接全文检索')
   await waitFor(
     () =>
       ui.evaluate(
