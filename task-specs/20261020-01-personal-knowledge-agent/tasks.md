@@ -4,8 +4,8 @@
 - [x] Synchronize active versions and release documentation.
 - [x] Run npm run check and npm run test:ui.
 - [x] Build installer and verify frozen worker, packaged application and installer contents using isolated resources.
-- [ ] Review staged inventory; commit and annotate v0.14.0; push main/tag without force.
-- [ ] Upload draft assets; verify remote digests/sizes; publish latest stable and reconcile evidence.
+- [x] Review staged inventory; commit and annotate v0.14.0; push main/tag without force.
+- [x] Upload draft assets; verify remote digests/sizes; publish latest stable and reconcile evidence.
 
 ## Revision 27 — execution
 

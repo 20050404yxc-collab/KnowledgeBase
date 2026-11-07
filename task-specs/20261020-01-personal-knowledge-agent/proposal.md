@@ -5,7 +5,7 @@
 - Routing: revise-existing; reuse the existing product task and installation/release page. Docs language: Chinese; Task-specs language: English.
 - Scope: synchronize stable 0.14.0, check source, build Windows x64 worker/installer, verify isolated packaged execution and archive contents, push main and annotated v0.14.0 without force, publish installer/checksum/manifest and verify remote digests.
 - Standards: supplied AGENTS.md and project coding/layering standard revision 2, read 2026-11-07; active. No dependencies, schema 7, app/data/credential identities or existing features changed by this follow-up.
-- Status: local build and verification complete; GitHub publication pending. Prior release evidence remains historical. No production data/credentials or paid APIs; clean-machine and full installed upgrade/uninstall matrix remain unverified.
+- Status: completed and published as latest stable v0.14.0; source 46b442a8cb217ee5fe416e2850cf023ce54276b7. Prior release evidence remains historical. No production data/credentials or paid APIs; clean-machine and full installed upgrade/uninstall matrix remain unverified.
 - Human docs: [installation and release](../../docs/确认页/个人知识库/安装与发布.md).
 
 ## Revision 27: complete workflow optimization — 2026-11-07
